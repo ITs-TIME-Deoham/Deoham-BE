@@ -1,0 +1,36 @@
+spring:
+  datasource:
+    url: jdbc:postgresql://localhost:5432/deoham
+    username: deoham
+    password: deoham
+    hikari:
+      maximum-pool-size: 10
+      minimum-idle: 2
+  data:
+    redis:
+      host: localhost
+      port: 6379
+  jpa:
+    show-sql: true
+    properties:
+      hibernate:
+        format_sql: true
+
+deoham:
+  cors:
+    allowed-origins: http://localhost:3000,http://localhost:5173
+  supabase:
+    jwt:
+      issuer: ${SUPABASE_JWT_ISSUER:https://YOUR-PROJECT-REF.supabase.co/auth/v1}
+      jwks-uri: ${SUPABASE_JWT_JWKS_URI:https://YOUR-PROJECT-REF.supabase.co/auth/v1/.well-known/jwks.json}
+      audience: authenticated
+  s3:
+    region: ${AWS_S3_REGION:ap-northeast-2}
+    bucket: ${AWS_S3_BUCKET:deoham-local}
+
+logging:
+  level:
+    com.deoham: DEBUG
+    org.hibernate.SQL: DEBUG
+    org.hibernate.orm.jdbc.bind: TRACE
+    org.springframework.security: DEBUG
