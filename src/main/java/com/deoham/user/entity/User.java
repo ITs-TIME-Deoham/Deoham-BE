@@ -53,7 +53,7 @@ public class User extends BaseEntity {
     private boolean notiCounterpartConfirmed;
 
     @Builder
-    private User(String email, String name, String jobType, String phone, PlanType planType) {
+    private User(String email, String name, JobType jobType, String phone, PlanType planType) {
         this.email = email;
         this.name = name;
         this.jobType = jobType;
