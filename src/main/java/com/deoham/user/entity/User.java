@@ -33,7 +33,7 @@ public class User extends BaseEntity {
     private String name;
 
     @Column(name = "job_type", length = 100)
-    private String jobType;
+    private JobType jobType;
 
     @Column(name = "phone", length = 20)
     private String phone;
