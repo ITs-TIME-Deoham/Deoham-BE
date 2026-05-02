@@ -40,7 +40,8 @@ public class User extends BaseEntity {
 
     @Enumerated(EnumType.STRING)
     @Column(name = "plan_type", nullable = false, length = 20)
-    private PlanType planType;
+    @Builder.Default
+    private PlanType planType = PlanType.FREE;
 
     @Column(name = "noti_new_card", nullable = false)
     private boolean notiNewCard;
