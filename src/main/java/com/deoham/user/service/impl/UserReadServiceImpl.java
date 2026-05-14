@@ -1,7 +1,8 @@
-package com.deoham.user.service;
+package com.deoham.user.service.impl;
 
 import com.deoham.user.repository.UserAuthRepository;
 import com.deoham.user.repository.UserRepository;
+import com.deoham.user.service.UserReadService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -9,7 +10,7 @@ import org.springframework.transaction.annotation.Transactional;
 @Service
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
-public class UserService {
+public class UserReadServiceImpl implements UserReadService {
 
     private final UserRepository userRepository;
     private final UserAuthRepository userAuthRepository;
