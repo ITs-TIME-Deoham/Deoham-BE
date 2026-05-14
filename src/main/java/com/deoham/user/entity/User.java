@@ -32,6 +32,7 @@ public class User extends BaseEntity {
     @Column(name = "name", nullable = false, length = 100)
     private String name;
 
+    @Enumerated(EnumType.STRING)
     @Column(name = "job_type", length = 100)
     private JobType jobType;
 
@@ -40,8 +41,7 @@ public class User extends BaseEntity {
 
     @Enumerated(EnumType.STRING)
     @Column(name = "plan_type", nullable = false, length = 20)
-    @Builder.Default
-    private PlanType planType = PlanType.FREE;
+    private PlanType planType;
 
     @Column(name = "noti_new_card", nullable = false)
     private boolean notiNewCard;
