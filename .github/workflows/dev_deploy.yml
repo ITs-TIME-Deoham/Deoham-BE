@@ -41,7 +41,7 @@ jobs:
          path: |
            build/libs/*.jar
            Dockerfile
-           docker-compose.yml
+           compose.yaml
            monitoring/
            nginx/
 
