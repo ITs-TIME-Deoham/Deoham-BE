@@ -41,7 +41,7 @@ jobs:
          path: |
            build/libs/*.jar
            Dockerfile
-           docker-compose.yml
+           compose.yaml
            monitoring/
            nginx/
 
@@ -139,7 +139,7 @@ jobs:
            df -h
 
            echo "Stopping existing containers..."
-           docker-compose down 2>/dev/null || true
+           compose down 2>/dev/null || true
 
            echo "Cleaning Docker resources..."
          # docker system prune -af --volumes 2>/dev/null || true
@@ -160,7 +160,7 @@ jobs:
            Dockerfile ${EC2_USERNAME}@${EC2_HOST}:/home/${EC2_USERNAME}/planup/
 
          rsync -avz -e "ssh -i private_key.pem -o StrictHostKeyChecking=no" \
-           docker-compose.yml ${EC2_USERNAME}@${EC2_HOST}:/home/${EC2_USERNAME}/planup/
+           compose.yaml ${EC2_USERNAME}@${EC2_HOST}:/home/${EC2_USERNAME}/planup/
 
          rsync -avz -e "ssh -i private_key.pem -o StrictHostKeyChecking=no" \
            .env ${EC2_USERNAME}@${EC2_HOST}:/home/${EC2_USERNAME}/planup/
