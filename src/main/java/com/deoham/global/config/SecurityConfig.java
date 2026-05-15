@@ -33,7 +33,7 @@ import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 @Configuration
 @EnableWebSecurity
 @EnableMethodSecurity
-@EnableConfigurationProperties({ SupabaseJwtProperties.class, CorsProperties.class })
+@EnableConfigurationProperties({ SupabaseJwtProperties.class, CorsProperties.class, SupabaseAuthProperties.class })
 @RequiredArgsConstructor
 public class SecurityConfig {
 
@@ -44,7 +44,10 @@ public class SecurityConfig {
 			"/swagger-ui.html",
 			"/swagger-ui/**",
 			"/v3/api-docs",
-			"/v3/api-docs/**"
+			"/v3/api-docs/**",
+			"/api/auth/signup",
+			"/api/auth/login",
+			"/api/auth/kakao"
 	};
 
 	private final SupabaseJwtProperties jwtProperties;

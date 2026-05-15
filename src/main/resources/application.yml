@@ -53,6 +53,10 @@ deoham:
       issuer: ${SUPABASE_JWT_ISSUER}
       jwks-uri: ${SUPABASE_JWT_JWKS_URI}
       audience: ${SUPABASE_JWT_AUDIENCE:authenticated}
+    auth:
+      url: ${SUPABASE_URL}
+      anon-key: ${SUPABASE_ANON_KEY}
+      redirect-url: ${SUPABASE_REDIRECT_URL}
   s3:
     region: ${AWS_S3_REGION:ap-northeast-2}
     bucket: ${AWS_S3_BUCKET}
