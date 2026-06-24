@@ -33,11 +33,13 @@ public class User extends BaseEntity {
     @Column(name = "profile_image_url")
     private String profileImageUrl;
 
+
     @Column(name = "phone_number", length = 20)
     private String phoneNumber;
 
     @Column(name = "phone_verified", nullable = false)
     private boolean phoneVerified = false;
+
 
     @Column(name = "language", nullable = false, length = 10)
     private String language = "ko";
