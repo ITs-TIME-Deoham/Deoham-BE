@@ -15,7 +15,6 @@ spring:
     properties:
       hibernate:
         format_sql: true
-
 deoham:
   cors:
     allowed-origins: http://localhost:3000,http://localhost:5173
@@ -27,6 +26,12 @@ deoham:
   s3:
     region: ${AWS_S3_REGION:ap-northeast-2}
     bucket: ${AWS_S3_BUCKET:deoham-local}
+
+fcm:
+  service-account-key-path: src/main/resources/firebase/local-service-account.json
+
+kakao-map:
+  rest-api-key: ${KAKAO_MAP_REST_API_KEY:}
 
 logging:
   level:

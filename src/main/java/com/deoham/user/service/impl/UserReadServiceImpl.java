@@ -1,6 +1,5 @@
 package com.deoham.user.service.impl;
 
-import com.deoham.user.repository.UserAuthRepository;
 import com.deoham.user.repository.UserRepository;
 import com.deoham.user.service.UserReadService;
 import lombok.RequiredArgsConstructor;
@@ -13,5 +12,4 @@ import org.springframework.transaction.annotation.Transactional;
 public class UserReadServiceImpl implements UserReadService {
 
     private final UserRepository userRepository;
-    private final UserAuthRepository userAuthRepository;
 }

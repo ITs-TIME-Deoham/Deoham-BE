@@ -1,6 +1,5 @@
-package com.deoham.notification.entity;
+package com.deoham.user.entity;
 
-import com.deoham.user.entity.User;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
@@ -21,9 +20,9 @@ import java.util.UUID;
 
 @Getter
 @Entity
-@Table(name = "notifications")
+@Table(name = "user_oauth_providers")
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
-public class Notification {
+public class UserOauthProvider {
 
     @Id
     @UuidGenerator
@@ -35,28 +34,20 @@ public class Notification {
     private User user;
 
     @Enumerated(EnumType.STRING)
-    @Column(name = "type", nullable = false, columnDefinition = "notify_type")
-    private NotifyType type;
+    @Column(name = "provider", nullable = false, updatable = false, columnDefinition = "oauth_provider")
+    private OauthProvider provider;
 
-    @Column(name = "reference_id")
-    private UUID referenceId;
-
-    @Column(name = "is_read", nullable = false)
-    private boolean isRead = false;
+    @Column(name = "provider_user_id", nullable = false, updatable = false, length = 100)
+    private String providerUserId;
 
     @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt;
 
     @Builder
-    private Notification(User user, NotifyType type, UUID referenceId) {
+    private UserOauthProvider(User user, OauthProvider provider, String providerUserId) {
         this.user = user;
-        this.type = type;
-        this.referenceId = referenceId;
-        this.isRead = false;
+        this.provider = provider;
+        this.providerUserId = providerUserId;
         this.createdAt = Instant.now();
-    }
-
-    public void markAsRead() {
-        this.isRead = true;
     }
 }

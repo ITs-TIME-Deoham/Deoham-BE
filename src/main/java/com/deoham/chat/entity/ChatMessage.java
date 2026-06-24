@@ -1,10 +1,8 @@
-package com.deoham.notification.entity;
+package com.deoham.chat.entity;
 
 import com.deoham.user.entity.User;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
-import jakarta.persistence.EnumType;
-import jakarta.persistence.Enumerated;
 import jakarta.persistence.FetchType;
 import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
@@ -21,9 +19,9 @@ import java.util.UUID;
 
 @Getter
 @Entity
-@Table(name = "notifications")
+@Table(name = "chat_messages")
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
-public class Notification {
+public class ChatMessage {
 
     @Id
     @UuidGenerator
@@ -31,29 +29,29 @@ public class Notification {
     private UUID id;
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "user_id", nullable = false, updatable = false)
-    private User user;
+    @JoinColumn(name = "room_id", nullable = false, updatable = false)
+    private ChatRoom room;
 
-    @Enumerated(EnumType.STRING)
-    @Column(name = "type", nullable = false, columnDefinition = "notify_type")
-    private NotifyType type;
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @JoinColumn(name = "sender_id", nullable = false, updatable = false)
+    private User sender;
 
-    @Column(name = "reference_id")
-    private UUID referenceId;
+    @Column(name = "content", nullable = false, columnDefinition = "TEXT")
+    private String content;
 
     @Column(name = "is_read", nullable = false)
     private boolean isRead = false;
 
-    @Column(name = "created_at", nullable = false, updatable = false)
-    private Instant createdAt;
+    @Column(name = "sent_at", nullable = false, updatable = false)
+    private Instant sentAt;
 
     @Builder
-    private Notification(User user, NotifyType type, UUID referenceId) {
-        this.user = user;
-        this.type = type;
-        this.referenceId = referenceId;
+    private ChatMessage(ChatRoom room, User sender, String content) {
+        this.room = room;
+        this.sender = sender;
+        this.content = content;
         this.isRead = false;
-        this.createdAt = Instant.now();
+        this.sentAt = Instant.now();
     }
 
     public void markAsRead() {
