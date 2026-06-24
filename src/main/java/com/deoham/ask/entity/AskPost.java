@@ -15,7 +15,9 @@ import lombok.AccessLevel;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.annotations.UuidGenerator;
+import org.hibernate.type.SqlTypes;
 import org.locationtech.jts.geom.Point;
 
 import java.util.UUID;
@@ -36,6 +38,7 @@ public class AskPost extends BaseEntity {
     private User author;
 
     @Enumerated(EnumType.STRING)
+    @JdbcTypeCode(SqlTypes.NAMED_ENUM)
     @Column(name = "category", nullable = false, columnDefinition = "ask_category")
     private AskCategory category;
 
@@ -49,6 +52,7 @@ public class AskPost extends BaseEntity {
     private Point location;
 
     @Enumerated(EnumType.STRING)
+    @JdbcTypeCode(SqlTypes.NAMED_ENUM)
     @Column(name = "status", nullable = false, columnDefinition = "ask_status")
     private AskStatus status = AskStatus.OPEN;
 

@@ -14,7 +14,9 @@ import lombok.AccessLevel;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.annotations.UuidGenerator;
+import org.hibernate.type.SqlTypes;
 
 import java.time.Instant;
 import java.util.UUID;
@@ -35,6 +37,7 @@ public class Report {
     private User reporter;
 
     @Enumerated(EnumType.STRING)
+    @JdbcTypeCode(SqlTypes.NAMED_ENUM)
     @Column(name = "target_type", nullable = false, columnDefinition = "report_target")
     private ReportTarget targetType;
 
@@ -42,6 +45,7 @@ public class Report {
     private UUID targetId;
 
     @Enumerated(EnumType.STRING)
+    @JdbcTypeCode(SqlTypes.NAMED_ENUM)
     @Column(name = "reason", nullable = false, columnDefinition = "report_reason")
     private ReportReason reason;
 
