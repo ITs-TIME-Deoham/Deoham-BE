@@ -3,6 +3,8 @@ package com.deoham.chat.entity;
 import com.deoham.user.entity.User;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
 import jakarta.persistence.FetchType;
 import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
@@ -12,7 +14,9 @@ import lombok.AccessLevel;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.annotations.UuidGenerator;
+import org.hibernate.type.SqlTypes;
 
 import java.time.Instant;
 import java.util.UUID;
@@ -32,12 +36,17 @@ public class ChatMessage {
     @JoinColumn(name = "room_id", nullable = false, updatable = false)
     private ChatRoom room;
 
-    @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "sender_id", nullable = false, updatable = false)
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "sender_id", updatable = false)
     private User sender;
 
     @Column(name = "content", nullable = false, columnDefinition = "TEXT")
     private String content;
+
+    @Enumerated(EnumType.STRING)
+    @JdbcTypeCode(SqlTypes.NAMED_ENUM)
+    @Column(name = "message_type", nullable = false, columnDefinition = "chat_message_type")
+    private MessageType messageType = MessageType.TEXT;
 
     @Column(name = "is_read", nullable = false)
     private boolean isRead = false;
@@ -46,10 +55,11 @@ public class ChatMessage {
     private Instant sentAt;
 
     @Builder
-    private ChatMessage(ChatRoom room, User sender, String content) {
+    private ChatMessage(ChatRoom room, User sender, String content, MessageType messageType) {
         this.room = room;
         this.sender = sender;
         this.content = content;
+        this.messageType = messageType != null ? messageType : MessageType.TEXT;
         this.isRead = false;
         this.sentAt = Instant.now();
     }
