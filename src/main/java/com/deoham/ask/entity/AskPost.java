@@ -42,7 +42,7 @@ public class AskPost extends BaseEntity {
     @Column(name = "category", nullable = false, columnDefinition = "ask_category")
     private AskCategory category;
 
-    @Column(name = "title", nullable = false, length = 100)
+    @Column(name = "title", length = 100)
     private String title;
 
     @Column(name = "description", columnDefinition = "TEXT")
@@ -53,20 +53,42 @@ public class AskPost extends BaseEntity {
 
     @Enumerated(EnumType.STRING)
     @JdbcTypeCode(SqlTypes.NAMED_ENUM)
+    @Column(name = "preferred_gender", columnDefinition = "preferred_gender")
+    private PreferredGender preferredGender;
+
+    @Column(name = "preferred_age_min")
+    private Integer preferredAgeMin;
+
+    @Column(name = "preferred_age_max")
+    private Integer preferredAgeMax;
+
+    @Column(name = "retry_count", nullable = false)
+    private int retryCount = 0;
+
+    @Enumerated(EnumType.STRING)
+    @JdbcTypeCode(SqlTypes.NAMED_ENUM)
     @Column(name = "status", nullable = false, columnDefinition = "ask_status")
     private AskStatus status = AskStatus.OPEN;
 
     @Builder
-    private AskPost(User author, AskCategory category, String title, String description, Point location) {
+    private AskPost(User author, AskCategory category, String title, String description, Point location,
+                    PreferredGender preferredGender, Integer preferredAgeMin, Integer preferredAgeMax) {
         this.author = author;
         this.category = category;
         this.title = title;
         this.description = description;
         this.location = location;
+        this.preferredGender = preferredGender;
+        this.preferredAgeMin = preferredAgeMin;
+        this.preferredAgeMax = preferredAgeMax;
         this.status = AskStatus.OPEN;
     }
 
     public void updateStatus(AskStatus status) {
         this.status = status;
+    }
+
+    public void incrementRetryCount() {
+        this.retryCount++;
     }
 }
