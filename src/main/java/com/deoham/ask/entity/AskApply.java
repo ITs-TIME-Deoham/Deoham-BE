@@ -1,4 +1,4 @@
-package com.deoham.notification.entity;
+package com.deoham.ask.entity;
 
 import com.deoham.user.entity.User;
 import jakarta.persistence.Column;
@@ -23,9 +23,9 @@ import java.util.UUID;
 
 @Getter
 @Entity
-@Table(name = "notifications")
+@Table(name = "ask_applies")
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
-public class Notification {
+public class AskApply {
 
     @Id
     @UuidGenerator
@@ -33,33 +33,34 @@ public class Notification {
     private UUID id;
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "user_id", nullable = false, updatable = false)
-    private User user;
+    @JoinColumn(name = "ask_id", nullable = false, updatable = false)
+    private AskPost ask;
+
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @JoinColumn(name = "applicant_id", nullable = false, updatable = false)
+    private User applicant;
 
     @Enumerated(EnumType.STRING)
     @JdbcTypeCode(SqlTypes.NAMED_ENUM)
-    @Column(name = "type", nullable = false, columnDefinition = "notify_type")
-    private NotifyType type;
-
-    @Column(name = "reference_id")
-    private UUID referenceId;
-
-    @Column(name = "is_read", nullable = false)
-    private boolean isRead = false;
+    @Column(name = "status", nullable = false, columnDefinition = "apply_status")
+    private ApplyStatus status = ApplyStatus.PENDING;
 
     @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt;
 
     @Builder
-    private Notification(User user, NotifyType type, UUID referenceId) {
-        this.user = user;
-        this.type = type;
-        this.referenceId = referenceId;
-        this.isRead = false;
+    private AskApply(AskPost ask, User applicant) {
+        this.ask = ask;
+        this.applicant = applicant;
+        this.status = ApplyStatus.PENDING;
         this.createdAt = Instant.now();
     }
 
-    public void markAsRead() {
-        this.isRead = true;
+    public void accept() {
+        this.status = ApplyStatus.ACCEPTED;
+    }
+
+    public void reject() {
+        this.status = ApplyStatus.REJECTED;
     }
 }

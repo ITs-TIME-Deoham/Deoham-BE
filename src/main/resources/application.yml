@@ -19,7 +19,6 @@ spring:
     default-property-inclusion: non_null
     deserialization:
       fail-on-unknown-properties: false
-
 server:
   port: ${SERVER_PORT:8080}
   shutdown: graceful
@@ -57,6 +56,12 @@ deoham:
     region: ${AWS_S3_REGION:ap-northeast-2}
     bucket: ${AWS_S3_BUCKET}
     presigned-url-ttl-seconds: ${AWS_S3_PRESIGNED_TTL:600}
+
+fcm:
+  service-account-key-path: ${FCM_KEY_PATH}
+
+kakao-map:
+  rest-api-key: ${KAKAO_MAP_REST_API_KEY}
 
 logging:
   level:

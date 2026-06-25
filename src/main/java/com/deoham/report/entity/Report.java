@@ -1,4 +1,4 @@
-package com.deoham.notification.entity;
+package com.deoham.report.entity;
 
 import com.deoham.user.entity.User;
 import jakarta.persistence.Column;
@@ -23,9 +23,9 @@ import java.util.UUID;
 
 @Getter
 @Entity
-@Table(name = "notifications")
+@Table(name = "reports")
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
-public class Notification {
+public class Report {
 
     @Id
     @UuidGenerator
@@ -33,33 +33,31 @@ public class Notification {
     private UUID id;
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "user_id", nullable = false, updatable = false)
-    private User user;
+    @JoinColumn(name = "reporter_id", nullable = false, updatable = false)
+    private User reporter;
 
     @Enumerated(EnumType.STRING)
     @JdbcTypeCode(SqlTypes.NAMED_ENUM)
-    @Column(name = "type", nullable = false, columnDefinition = "notify_type")
-    private NotifyType type;
+    @Column(name = "target_type", nullable = false, columnDefinition = "report_target")
+    private ReportTarget targetType;
 
-    @Column(name = "reference_id")
-    private UUID referenceId;
+    @Column(name = "target_id", nullable = false, updatable = false)
+    private UUID targetId;
 
-    @Column(name = "is_read", nullable = false)
-    private boolean isRead = false;
+    @Enumerated(EnumType.STRING)
+    @JdbcTypeCode(SqlTypes.NAMED_ENUM)
+    @Column(name = "reason", nullable = false, columnDefinition = "report_reason")
+    private ReportReason reason;
 
     @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt;
 
     @Builder
-    private Notification(User user, NotifyType type, UUID referenceId) {
-        this.user = user;
-        this.type = type;
-        this.referenceId = referenceId;
-        this.isRead = false;
+    private Report(User reporter, ReportTarget targetType, UUID targetId, ReportReason reason) {
+        this.reporter = reporter;
+        this.targetType = targetType;
+        this.targetId = targetId;
+        this.reason = reason;
         this.createdAt = Instant.now();
-    }
-
-    public void markAsRead() {
-        this.isRead = true;
     }
 }
