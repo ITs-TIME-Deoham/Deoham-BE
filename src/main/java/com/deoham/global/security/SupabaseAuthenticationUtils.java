@@ -13,7 +13,10 @@ public final class SupabaseAuthenticationUtils {
 	}
 
 	public static Optional<SupabasePrincipal> currentPrincipal() {
-		Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+		return fromAuthentication(SecurityContextHolder.getContext().getAuthentication());
+	}
+
+	public static Optional<SupabasePrincipal> fromAuthentication(Authentication authentication) {
 		if (!(authentication instanceof JwtAuthenticationToken jwtAuth)) {
 			return Optional.empty();
 		}

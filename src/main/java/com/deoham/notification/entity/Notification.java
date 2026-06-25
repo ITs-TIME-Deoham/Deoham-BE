@@ -1,6 +1,7 @@
 package com.deoham.notification.entity;
 
 import com.deoham.card.entity.Card;
+import com.deoham.chat.entity.ChatMessage;
 import com.deoham.user.entity.User;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -47,6 +48,10 @@ public class Notification {
     @JoinColumn(name = "card_id")
     private Card card;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "chat_message_id")
+    private ChatMessage chatMessage;
+
     @Column(name = "message", nullable = false, length = 500)
     private String message;
 
@@ -58,10 +63,11 @@ public class Notification {
     private Instant createdAt;
 
     @Builder
-    private Notification(User user, NotificationType type, Card card, String message) {
+    private Notification(User user, NotificationType type, Card card, ChatMessage chatMessage, String message) {
         this.user = user;
         this.type = type;
         this.card = card;
+        this.chatMessage = chatMessage;
         this.message = message;
         this.isRead = false;
     }
