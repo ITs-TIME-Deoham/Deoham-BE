@@ -41,9 +41,8 @@ jobs:
          path: |
            build/libs/*.jar
            Dockerfile
+           Dockerfile.deploy
            compose.yaml
-           monitoring/
-           nginx/
 
  deploy:
    needs: build
@@ -119,7 +118,7 @@ jobs:
          APP_DOMAIN=http://${EC2_HOST}
          APP_FRONTEND_URL=http://localhost:3000
          APP_FRONTEND_URLS=http://localhost:3000,http://localhost:3001,http://${EC2_HOST}:3000
-         SPRING_PROFILES_ACTIVE=dev
+         SPRING_PROFILES_ACTIVE=prod
 
          # Grafana 설정
          GRAFANA_ADMIN_USER=admin
@@ -128,7 +127,7 @@ jobs:
 
          # 배포 디렉토리 생성
          ssh -i private_key.pem -o StrictHostKeyChecking=no ${EC2_USERNAME}@${EC2_HOST} \
-           "mkdir -p /home/${EC2_USERNAME}/planup/build/libs /home/${EC2_USERNAME}/planup/monitoring /home/${EC2_USERNAME}/planup/nginx/conf.d"
+           "mkdir -p /home/${EC2_USERNAME}/planup/build/libs"
 
          # 파일 전송 전에 디스크 정리
          echo "=== Cleaning up disk space before transfer ==="
@@ -160,6 +159,9 @@ jobs:
            Dockerfile ${EC2_USERNAME}@${EC2_HOST}:/home/${EC2_USERNAME}/planup/
 
          rsync -avz -e "ssh -i private_key.pem -o StrictHostKeyChecking=no" \
+           Dockerfile.deploy ${EC2_USERNAME}@${EC2_HOST}:/home/${EC2_USERNAME}/planup/
+
+         rsync -avz -e "ssh -i private_key.pem -o StrictHostKeyChecking=no" \
            compose.yaml ${EC2_USERNAME}@${EC2_HOST}:/home/${EC2_USERNAME}/planup/
 
          rsync -avz -e "ssh -i private_key.pem -o StrictHostKeyChecking=no" \
@@ -167,12 +169,6 @@ jobs:
 
          rsync -avz -e "ssh -i private_key.pem -o StrictHostKeyChecking=no" \
            build/libs/*.jar ${EC2_USERNAME}@${EC2_HOST}:/home/${EC2_USERNAME}/planup/build/libs/
-
-         rsync -avz -e "ssh -i private_key.pem -o StrictHostKeyChecking=no" \
-           monitoring/ ${EC2_USERNAME}@${EC2_HOST}:/home/${EC2_USERNAME}/planup/monitoring/
-
-         rsync -avz -e "ssh -i private_key.pem -o StrictHostKeyChecking=no" \
-           nginx/ ${EC2_USERNAME}@${EC2_HOST}:/home/${EC2_USERNAME}/planup/nginx/
 
          # Docker Compose 배포 스크립트
          cat <<DEPLOY_SCRIPT > deploy.sh
@@ -207,6 +203,7 @@ jobs:
            fi
            if [ \$ATTEMPT -eq \$MAX_ATTEMPTS ]; then
              echo "✗ Health check failed after \$MAX_ATTEMPTS attempts"
+             exit 1
            else
              echo "Attempt \$ATTEMPT/\$MAX_ATTEMPTS: Waiting 10 more seconds..."
            fi
@@ -221,7 +218,7 @@ jobs:
          docker compose logs --tail=100 app
 
          echo "=== Final health check ==="
-         curl -f http://localhost/actuator/health || echo "Health check failed"
+         curl -f http://localhost/actuator/health
 
          echo "=== Final disk space ==="
          df -h

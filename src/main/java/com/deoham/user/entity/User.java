@@ -11,7 +11,9 @@ import lombok.AccessLevel;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.annotations.UuidGenerator;
+import org.hibernate.type.SqlTypes;
 
 import java.util.UUID;
 
@@ -26,41 +28,63 @@ public class User extends BaseEntity {
     @Column(name = "id", nullable = false, updatable = false)
     private UUID id;
 
-    @Column(name = "email", nullable = false, unique = true, length = 255)
-    private String email;
+    @Column(name = "supabase_id", nullable = false, unique = true, updatable = false)
+    private UUID supabaseId;
 
-    @Column(name = "name", nullable = false, length = 100)
-    private String name;
+    @Column(name = "nickname", nullable = false, unique = true, length = 50)
+    private String nickname;
+
+    @Column(name = "profile_image_url")
+    private String profileImageUrl;
+
+
+    @Column(name = "phone_number", length = 20)
+    private String phoneNumber;
+
+    @Column(name = "phone_verified", nullable = false)
+    private boolean phoneVerified = false;
+
+
+    @Column(name = "language", nullable = false, length = 10)
+    private String language = "ko";
 
     @Enumerated(EnumType.STRING)
-    @Column(name = "job_type", length = 100)
-    private JobType jobType;
+    @JdbcTypeCode(SqlTypes.NAMED_ENUM)
+    @Column(name = "gender", columnDefinition = "user_gender")
+    private GenderType gender;
 
-    @Column(name = "phone", length = 20)
-    private String phone;
+    @Column(name = "age")
+    private Integer age;
 
-    @Enumerated(EnumType.STRING)
-    @Column(name = "plan_type", nullable = false, length = 20)
-    private PlanType planType;
+    @Column(name = "help_count", nullable = false)
+    private int helpCount = 0;
 
-    @Column(name = "noti_new_card", nullable = false)
-    private boolean notiNewCard;
-
-    @Column(name = "noti_link_viewed", nullable = false)
-    private boolean notiLinkViewed;
-
-    @Column(name = "noti_counterpart_confirmed", nullable = false)
-    private boolean notiCounterpartConfirmed;
+    @Column(name = "is_active", nullable = false)
+    private boolean isActive = true;
 
     @Builder
-    private User(String email, String name, JobType jobType, String phone, PlanType planType) {
-        this.email = email;
-        this.name = name;
-        this.jobType = jobType;
-        this.phone = phone;
-        this.planType = planType == null ? PlanType.FREE : planType;
-        this.notiNewCard = true;
-        this.notiLinkViewed = true;
-        this.notiCounterpartConfirmed = true;
+    private User(UUID supabaseId, String nickname, String profileImageUrl, GenderType gender, Integer age) {
+        this.supabaseId = supabaseId;
+        this.nickname = nickname;
+        this.profileImageUrl = profileImageUrl;
+        this.gender = gender;
+        this.age = age;
+    }
+
+    public void updateProfile(String nickname, String profileImageUrl) {
+        if (nickname != null) this.nickname = nickname;
+        if (profileImageUrl != null) this.profileImageUrl = profileImageUrl;
+    }
+
+    public void incrementHelpCount() {
+        this.helpCount++;
+    }
+
+    public void updateLanguage(String language) {
+        this.language = language;
+    }
+
+    public void deactivate() {
+        this.isActive = false;
     }
 }

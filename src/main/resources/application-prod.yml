@@ -21,7 +21,6 @@ spring:
   docker:
     compose:
       enabled: false
-
 server:
   tomcat:
     accesslog:
@@ -37,6 +36,12 @@ management:
     health:
       probes:
         enabled: true
+
+fcm:
+  service-account-key-path: ${FCM_KEY_PATH}
+
+kakao-map:
+  rest-api-key: ${KAKAO_MAP_REST_API_KEY}
 
 logging:
   level:

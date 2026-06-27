@@ -44,6 +44,8 @@ dependencies {
 	implementation 'software.amazon.awssdk:s3'
 	implementation 'software.amazon.awssdk:sts'
 
+	implementation 'org.hibernate.orm:hibernate-spatial'
+	implementation 'com.google.firebase:firebase-admin:9.4.3'
 	compileOnly 'org.projectlombok:lombok'
 	developmentOnly 'org.springframework.boot:spring-boot-docker-compose'
 	runtimeOnly 'org.postgresql:postgresql'
