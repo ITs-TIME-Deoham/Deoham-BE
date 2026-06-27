@@ -1,4 +1,4 @@
-package com.deoham.ask.entity;
+package com.deoham.card.entity;
 
 import com.deoham.global.entity.BaseEntity;
 import com.deoham.user.entity.User;
@@ -24,9 +24,9 @@ import java.util.UUID;
 
 @Getter
 @Entity
-@Table(name = "ask_posts")
+@Table(name = "cards")
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
-public class AskPost extends BaseEntity {
+public class Card extends BaseEntity {
 
     @Id
     @UuidGenerator
@@ -39,8 +39,8 @@ public class AskPost extends BaseEntity {
 
     @Enumerated(EnumType.STRING)
     @JdbcTypeCode(SqlTypes.NAMED_ENUM)
-    @Column(name = "category", nullable = false, columnDefinition = "ask_category")
-    private AskCategory category;
+    @Column(name = "category", nullable = false, columnDefinition = "card_category")
+    private CardCategory category;
 
     @Column(name = "title", length = 100)
     private String title;
@@ -67,12 +67,12 @@ public class AskPost extends BaseEntity {
 
     @Enumerated(EnumType.STRING)
     @JdbcTypeCode(SqlTypes.NAMED_ENUM)
-    @Column(name = "status", nullable = false, columnDefinition = "ask_status")
-    private AskStatus status = AskStatus.OPEN;
+    @Column(name = "status", nullable = false, columnDefinition = "card_status")
+    private CardStatus status = CardStatus.OPEN;
 
     @Builder
-    private AskPost(User author, AskCategory category, String title, String description, Point location,
-                    PreferredGender preferredGender, Integer preferredAgeMin, Integer preferredAgeMax) {
+    private Card(User author, CardCategory category, String title, String description, Point location,
+                 PreferredGender preferredGender, Integer preferredAgeMin, Integer preferredAgeMax) {
         this.author = author;
         this.category = category;
         this.title = title;
@@ -81,10 +81,10 @@ public class AskPost extends BaseEntity {
         this.preferredGender = preferredGender;
         this.preferredAgeMin = preferredAgeMin;
         this.preferredAgeMax = preferredAgeMax;
-        this.status = AskStatus.OPEN;
+        this.status = CardStatus.OPEN;
     }
 
-    public void updateStatus(AskStatus status) {
+    public void updateStatus(CardStatus status) {
         this.status = status;
     }
 

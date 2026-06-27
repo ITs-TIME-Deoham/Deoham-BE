@@ -1,4 +1,4 @@
-package com.deoham.ask.entity;
+package com.deoham.card.entity;
 
 import com.deoham.user.entity.User;
 import jakarta.persistence.Column;
@@ -23,9 +23,9 @@ import java.util.UUID;
 
 @Getter
 @Entity
-@Table(name = "ask_applies")
+@Table(name = "card_applies")
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
-public class AskApply {
+public class CardApply {
 
     @Id
     @UuidGenerator
@@ -33,8 +33,8 @@ public class AskApply {
     private UUID id;
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "ask_id", nullable = false, updatable = false)
-    private AskPost ask;
+    @JoinColumn(name = "card_id", nullable = false, updatable = false)
+    private Card card;
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "applicant_id", nullable = false, updatable = false)
@@ -42,25 +42,25 @@ public class AskApply {
 
     @Enumerated(EnumType.STRING)
     @JdbcTypeCode(SqlTypes.NAMED_ENUM)
-    @Column(name = "status", nullable = false, columnDefinition = "apply_status")
-    private ApplyStatus status = ApplyStatus.PENDING;
+    @Column(name = "status", nullable = false, columnDefinition = "card_apply_status")
+    private CardApplyStatus status = CardApplyStatus.PENDING;
 
     @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt;
 
     @Builder
-    private AskApply(AskPost ask, User applicant) {
-        this.ask = ask;
+    private CardApply(Card card, User applicant) {
+        this.card = card;
         this.applicant = applicant;
-        this.status = ApplyStatus.PENDING;
+        this.status = CardApplyStatus.PENDING;
         this.createdAt = Instant.now();
     }
 
     public void accept() {
-        this.status = ApplyStatus.ACCEPTED;
+        this.status = CardApplyStatus.ACCEPTED;
     }
 
     public void reject() {
-        this.status = ApplyStatus.REJECTED;
+        this.status = CardApplyStatus.REJECTED;
     }
 }
