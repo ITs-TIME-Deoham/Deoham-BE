@@ -9,8 +9,8 @@ import org.springframework.data.jpa.repository.JpaRepository;
 
 public interface ChatMessageRepository extends JpaRepository<ChatMessage, UUID> {
 
-    List<ChatMessage> findByChatRoomIdOrderByCreatedAtDesc(UUID chatRoomId, Pageable pageable);
+    List<ChatMessage> findByChatRoomIdOrderBySentAtDesc(UUID chatRoomId, Pageable pageable);
 
-    List<ChatMessage> findByChatRoomIdAndCreatedAtLessThanOrderByCreatedAtDesc(
+    List<ChatMessage> findByChatRoomIdAndSentAtBeforeOrderBySentAtDesc(
             UUID chatRoomId, Instant before, Pageable pageable);
 }

@@ -1,12 +1,13 @@
 package com.deoham.chat.service;
 
+import com.deoham.card.entity.CardApplyStatus;
+import com.deoham.card.repository.CardApplyRepository;
 import com.deoham.chat.dto.ChatTranslationResponse;
 import com.deoham.chat.entity.ChatMessage;
 import com.deoham.chat.entity.ChatMessageTranslation;
 import com.deoham.chat.entity.ChatMessageType;
 import com.deoham.chat.repository.ChatMessageRepository;
 import com.deoham.chat.repository.ChatMessageTranslationRepository;
-import com.deoham.chat.repository.ChatRoomMemberRepository;
 import com.deoham.chat.translation.TranslationProvider;
 import com.deoham.chat.translation.TranslationResult;
 import com.deoham.global.exception.BusinessException;
@@ -24,18 +25,14 @@ public class ChatTranslationService {
 
     private final ChatMessageRepository chatMessageRepository;
     private final ChatMessageTranslationRepository translationRepository;
-    private final ChatRoomMemberRepository chatRoomMemberRepository;
+    private final CardApplyRepository cardApplyRepository;
     private final TranslationProvider translationProvider;
 
     public ChatTranslationResponse translate(UUID requesterId, UUID messageId, String targetLanguage) {
         ChatMessage message = chatMessageRepository.findById(messageId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.NOT_FOUND, "메시지를 찾을 수 없습니다"));
 
-        boolean isMember = chatRoomMemberRepository.existsByChatRoomIdAndUserIdAndLeftAtIsNull(
-                message.getChatRoom().getId(), requesterId);
-        if (!isMember) {
-            throw new BusinessException(ErrorCode.FORBIDDEN, "채팅방 멤버가 아닙니다");
-        }
+        requireParticipant(message, requesterId);
 
         if (message.getMessageType() != ChatMessageType.TEXT) {
             throw new BusinessException(ErrorCode.INVALID_REQUEST, "텍스트 메시지만 번역할 수 있습니다");
@@ -57,6 +54,17 @@ public class ChatTranslationService {
                 .build());
 
         return toResponse(saved, false);
+    }
+
+    private void requireParticipant(ChatMessage message, UUID userId) {
+        var card = message.getChatRoom().getCard();
+        if (card.getRequester().getId().equals(userId)) return;
+        boolean isAccepted = cardApplyRepository.findByCard(card).stream()
+                .anyMatch(a -> a.getStatus() == CardApplyStatus.ACCEPTED
+                            && a.getApplicant().getId().equals(userId));
+        if (!isAccepted) {
+            throw new BusinessException(ErrorCode.FORBIDDEN, "채팅방 참여자가 아닙니다");
+        }
     }
 
     private ChatTranslationResponse toResponse(ChatMessageTranslation translation, boolean cached) {

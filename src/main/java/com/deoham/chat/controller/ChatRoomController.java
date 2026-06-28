@@ -30,30 +30,26 @@ public class ChatRoomController implements ChatRoomControllerDocs {
 
     @Override
     @PostMapping
-    public ApiResponse<ChatRoomResponse> createRoom(@Valid @RequestBody ChatRoomCreateRequest request) {
-        UUID userId = currentUserId();
-        return ApiResponse.ok(chatRoomService.createRoom(userId, request));
+    public ApiResponse<ChatRoomResponse> getOrCreateRoom(@Valid @RequestBody ChatRoomCreateRequest request) {
+        return ApiResponse.ok(chatRoomService.getOrCreateRoom(request.cardId(), currentUserId()));
     }
 
     @Override
     @GetMapping
     public ApiResponse<Page<ChatRoomResponse>> getMyRooms(Pageable pageable) {
-        UUID userId = currentUserId();
-        return ApiResponse.ok(chatRoomService.getMyRooms(userId, pageable));
+        return ApiResponse.ok(chatRoomService.getMyRooms(currentUserId(), pageable));
     }
 
     @Override
     @GetMapping("/{roomId}")
     public ApiResponse<ChatRoomResponse> getRoom(@PathVariable UUID roomId) {
-        UUID userId = currentUserId();
-        return ApiResponse.ok(chatRoomService.getRoom(userId, roomId));
+        return ApiResponse.ok(chatRoomService.getRoom(roomId, currentUserId()));
     }
 
     @Override
-    @PostMapping("/{roomId}/leave")
-    public ApiResponse<Void> leaveRoom(@PathVariable UUID roomId) {
-        UUID userId = currentUserId();
-        chatRoomService.leaveRoom(userId, roomId);
+    @PostMapping("/{roomId}/close")
+    public ApiResponse<Void> closeRoom(@PathVariable UUID roomId) {
+        chatRoomService.closeRoom(roomId, currentUserId());
         return ApiResponse.ok();
     }
 

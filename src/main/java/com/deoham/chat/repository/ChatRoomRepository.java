@@ -1,5 +1,6 @@
 package com.deoham.chat.repository;
 
+import com.deoham.card.entity.CardApplyStatus;
 import com.deoham.chat.entity.ChatRoom;
 import java.util.Optional;
 import java.util.UUID;
@@ -11,18 +12,21 @@ import org.springframework.data.repository.query.Param;
 
 public interface ChatRoomRepository extends JpaRepository<ChatRoom, UUID> {
 
-    @Query("""
-            SELECT m1.chatRoom FROM ChatRoomMember m1
-            JOIN ChatRoomMember m2 ON m1.chatRoom = m2.chatRoom
-            WHERE m1.chatRoom.isDirect = true
-              AND m1.user.id = :userId1 AND m2.user.id = :userId2
-            """)
-    Optional<ChatRoom> findDirectRoomBetween(@Param("userId1") UUID userId1, @Param("userId2") UUID userId2);
+    Optional<ChatRoom> findByCardId(UUID cardId);
 
     @Query("""
-            SELECT m.chatRoom FROM ChatRoomMember m
-            WHERE m.user.id = :userId AND m.leftAt IS NULL
-            ORDER BY m.chatRoom.lastMessageAt DESC NULLS LAST
+            SELECT r FROM ChatRoom r
+            WHERE r.card.requester.id = :userId
+               OR EXISTS (
+                   SELECT a FROM CardApply a
+                   WHERE a.card = r.card
+                     AND a.applicant.id = :userId
+                     AND a.status = :accepted
+               )
+            ORDER BY r.createdAt DESC
             """)
-    Page<ChatRoom> findMyRooms(@Param("userId") UUID userId, Pageable pageable);
+    Page<ChatRoom> findMyRooms(
+            @Param("userId") UUID userId,
+            @Param("accepted") CardApplyStatus accepted,
+            Pageable pageable);
 }

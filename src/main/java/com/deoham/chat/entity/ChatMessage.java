@@ -1,9 +1,9 @@
 package com.deoham.chat.entity;
 
-import com.deoham.global.entity.BaseEntity;
 import com.deoham.user.entity.User;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.EntityListeners;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
 import jakarta.persistence.FetchType;
@@ -17,13 +17,18 @@ import lombok.AccessLevel;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.annotations.UuidGenerator;
+import org.hibernate.type.SqlTypes;
+import org.springframework.data.annotation.CreatedDate;
+import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
 @Getter
 @Entity
-@Table(name = "chat_message")
+@Table(name = "chat_messages")
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
-public class ChatMessage extends BaseEntity {
+@EntityListeners(AuditingEntityListener.class)
+public class ChatMessage {
 
     @Id
     @UuidGenerator
@@ -31,50 +36,39 @@ public class ChatMessage extends BaseEntity {
     private UUID id;
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "chat_room_id", nullable = false)
+    @JoinColumn(name = "chat_room_id", nullable = false, updatable = false)
     private ChatRoom chatRoom;
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "sender_id", nullable = false)
+    @JoinColumn(name = "sender_id", nullable = false, updatable = false)
     private User sender;
 
-    @Enumerated(EnumType.STRING)
-    @Column(name = "message_type", nullable = false, length = 20)
-    private ChatMessageType messageType;
-
-    @Column(name = "content", columnDefinition = "TEXT")
+    @Column(name = "content", nullable = false, columnDefinition = "TEXT")
     private String content;
 
-    @Column(name = "attachment_url", columnDefinition = "TEXT")
-    private String attachmentUrl;
+    @Enumerated(EnumType.STRING)
+    @JdbcTypeCode(SqlTypes.NAMED_ENUM)
+    @Column(name = "message_type", nullable = false, columnDefinition = "chat_message_type")
+    private ChatMessageType messageType;
 
-    @Column(name = "attachment_file_name", length = 255)
-    private String attachmentFileName;
+    @CreatedDate
+    @Column(name = "sent_at", nullable = false, updatable = false)
+    private Instant sentAt;
 
-    @Column(name = "attachment_content_type", length = 100)
-    private String attachmentContentType;
-
-    @Column(name = "attachment_size_bytes")
-    private Long attachmentSizeBytes;
-
-    @Column(name = "deleted_at")
-    private Instant deletedAt;
+    @Column(name = "read_at")
+    private Instant readAt;
 
     @Builder
-    private ChatMessage(ChatRoom chatRoom, User sender, ChatMessageType messageType,
-                         String content, String attachmentUrl, String attachmentFileName,
-                         String attachmentContentType, Long attachmentSizeBytes) {
+    private ChatMessage(ChatRoom chatRoom, User sender, String content, ChatMessageType messageType) {
         this.chatRoom = chatRoom;
         this.sender = sender;
-        this.messageType = messageType;
         this.content = content;
-        this.attachmentUrl = attachmentUrl;
-        this.attachmentFileName = attachmentFileName;
-        this.attachmentContentType = attachmentContentType;
-        this.attachmentSizeBytes = attachmentSizeBytes;
+        this.messageType = messageType;
     }
 
-    public boolean isDeleted() {
-        return deletedAt != null;
+    public void markRead() {
+        if (this.readAt == null) {
+            this.readAt = Instant.now();
+        }
     }
 }

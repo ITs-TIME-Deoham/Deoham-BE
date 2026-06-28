@@ -1,5 +1,5 @@
 package com.deoham.report.entity;
 
 public enum ReportReason {
-    INAPPROPRIATE, FRAUD, OTHER
+    HARASSMENT, OBSCENE_CONTENT, PRIVACY_VIOLATION
 }

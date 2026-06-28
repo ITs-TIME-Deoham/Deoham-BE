@@ -3,7 +3,7 @@ package com.deoham.notification.service;
 import com.deoham.chat.entity.ChatMessage;
 import com.deoham.chat.entity.ChatMessageType;
 import com.deoham.notification.entity.Notification;
-import com.deoham.notification.entity.NotificationType;
+import com.deoham.notification.entity.NotifyType;
 import com.deoham.notification.repository.NotificationRepository;
 import com.deoham.user.entity.User;
 import java.util.List;
@@ -25,21 +25,21 @@ public class NotificationService {
         String preview = buildPreviewText(chatMessage);
         recipients.forEach(recipient -> notificationRepository.save(Notification.builder()
                 .user(recipient)
-                .type(NotificationType.CHAT_MESSAGE_RECEIVED)
-                .chatMessage(chatMessage)
+                .type(NotifyType.CHAT_MESSAGE)
+                .referenceId(chatMessage.getId())
                 .message(preview)
                 .build()));
     }
 
     private String buildPreviewText(ChatMessage chatMessage) {
-        String senderName = chatMessage.getSender().getName();
+        String senderNickname = chatMessage.getSender().getNickname();
         if (chatMessage.getMessageType() == ChatMessageType.TEXT) {
             String content = chatMessage.getContent();
             String trimmed = content.length() > PREVIEW_MAX_LENGTH
                     ? content.substring(0, PREVIEW_MAX_LENGTH) + "..."
                     : content;
-            return senderName + ": " + trimmed;
+            return senderNickname + ": " + trimmed;
         }
-        return senderName + "님이 " + (chatMessage.getMessageType() == ChatMessageType.IMAGE ? "사진을" : "파일을") + " 보냈습니다";
+        return senderNickname + "님이 " + (chatMessage.getMessageType() == ChatMessageType.IMAGE ? "사진을" : "위치를") + " 보냈습니다";
     }
 }

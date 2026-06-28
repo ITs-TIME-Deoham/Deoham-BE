@@ -1,25 +1,24 @@
-package com.deoham.chat.entity;
+package com.deoham.notice.entity;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Embeddable;
+import java.io.Serializable;
+import java.util.UUID;
 import lombok.AllArgsConstructor;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
-
-import java.io.Serializable;
-import java.util.UUID;
 
 @Getter
 @Embeddable
 @EqualsAndHashCode
 @NoArgsConstructor
 @AllArgsConstructor
-public class ChatRoomMemberId implements Serializable {
-
-    @Column(name = "room_id")
-    private UUID roomId;
+public class NoticeReadId implements Serializable {
 
     @Column(name = "user_id")
     private UUID userId;
+
+    @Column(name = "notice_id")
+    private UUID noticeId;
 }

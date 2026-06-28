@@ -10,5 +10,5 @@ import java.util.UUID;
 
 public interface CardRepository extends JpaRepository<Card, UUID> {
 
-    List<Card> findByAuthorAndStatusIn(User author, List<CardStatus> statuses);
+    List<Card> findByRequesterAndStatusIn(User requester, List<CardStatus> statuses);
 }

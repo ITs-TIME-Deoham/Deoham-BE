@@ -1,6 +1,9 @@
 package com.deoham.global.security;
 
-import com.deoham.chat.repository.ChatRoomMemberRepository;
+import com.deoham.card.entity.CardApplyStatus;
+import com.deoham.card.repository.CardApplyRepository;
+import com.deoham.chat.entity.ChatRoom;
+import com.deoham.chat.repository.ChatRoomRepository;
 import java.util.UUID;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -11,10 +14,10 @@ import org.springframework.messaging.simp.stomp.StompCommand;
 import org.springframework.messaging.simp.stomp.StompHeaderAccessor;
 import org.springframework.messaging.support.ChannelInterceptor;
 import org.springframework.messaging.support.MessageHeaderAccessor;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.authentication.AuthenticationServiceException;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.core.Authentication;
-import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.security.oauth2.jwt.JwtDecoder;
 import org.springframework.stereotype.Component;
@@ -27,7 +30,8 @@ public class StompAuthChannelInterceptor implements ChannelInterceptor {
 
     private final JwtDecoder jwtDecoder;
     private final SupabaseJwtAuthenticationConverter authenticationConverter;
-    private final ChatRoomMemberRepository chatRoomMemberRepository;
+    private final ChatRoomRepository chatRoomRepository;
+    private final CardApplyRepository cardApplyRepository;
 
     @Override
     public Message<?> preSend(Message<?> message, MessageChannel channel) {
@@ -54,7 +58,8 @@ public class StompAuthChannelInterceptor implements ChannelInterceptor {
     }
 
     private void authorizeSubscribe(StompHeaderAccessor accessor) {
-        SupabasePrincipal principal = SupabaseAuthenticationUtils.fromAuthentication(accessor.getUser() instanceof Authentication auth ? auth : null)
+        SupabasePrincipal principal = SupabaseAuthenticationUtils.fromAuthentication(
+                accessor.getUser() instanceof Authentication auth ? auth : null)
                 .orElseThrow(() -> new AuthenticationServiceException("인증되지 않은 구독 요청입니다"));
 
         String destination = accessor.getDestination();
@@ -63,9 +68,18 @@ public class StompAuthChannelInterceptor implements ChannelInterceptor {
             return;
         }
 
-        boolean isMember = chatRoomMemberRepository.existsByChatRoomIdAndUserIdAndLeftAtIsNull(roomId, principal.userId());
-        if (!isMember) {
-            throw new AccessDeniedException("채팅방 멤버가 아닙니다");
+        ChatRoom room = chatRoomRepository.findById(roomId)
+                .orElseThrow(() -> new AccessDeniedException("채팅방을 찾을 수 없습니다"));
+
+        UUID userId = principal.userId();
+        var card = room.getCard();
+        if (card.getRequester().getId().equals(userId)) return;
+
+        boolean isAccepted = cardApplyRepository.findByCard(card).stream()
+                .anyMatch(a -> a.getStatus() == CardApplyStatus.ACCEPTED
+                            && a.getApplicant().getId().equals(userId));
+        if (!isAccepted) {
+            throw new AccessDeniedException("채팅방 참여자가 아닙니다");
         }
     }
 

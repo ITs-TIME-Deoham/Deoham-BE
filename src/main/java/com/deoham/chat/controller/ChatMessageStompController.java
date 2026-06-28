@@ -29,8 +29,8 @@ public class ChatMessageStompController {
 
     @MessageMapping("/chat/rooms/{roomId}/messages")
     public void sendMessage(@DestinationVariable UUID roomId,
-                             @Payload ChatMessageSendRequest request,
-                             Principal principal) {
+                            @Payload ChatMessageSendRequest request,
+                            Principal principal) {
         UUID senderId = resolveUserId(principal);
         ChatMessageResponse saved = chatMessageService.sendMessage(roomId, senderId, request);
         messagingTemplate.convertAndSend("/sub/chat/rooms/" + roomId, saved);
