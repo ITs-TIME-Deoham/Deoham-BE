@@ -4,6 +4,7 @@ import com.deoham.card.entity.Card;
 import com.deoham.card.entity.CardApplyStatus;
 import com.deoham.card.repository.CardApplyRepository;
 import com.deoham.card.repository.CardRepository;
+import com.deoham.chat.dto.ChatRoomLocationResponse;
 import com.deoham.chat.dto.ChatRoomResponse;
 import com.deoham.chat.entity.ChatRoom;
 import com.deoham.chat.repository.ChatRoomRepository;
@@ -46,6 +47,13 @@ public class ChatRoomService {
     public Page<ChatRoomResponse> getMyRooms(UUID userId, Pageable pageable) {
         return chatRoomRepository.findMyRooms(userId, CardApplyStatus.ACCEPTED, pageable)
                 .map(this::toResponse);
+    }
+
+    public ChatRoomLocationResponse getCardLocation(UUID roomId, UUID userId) {
+        ChatRoom room = findRoomOrThrow(roomId);
+        requireParticipant(room.getCard(), userId);
+        var point = room.getCard().getLocation();
+        return new ChatRoomLocationResponse(point.getY(), point.getX(), room.getCard().getCity());
     }
 
     @Transactional

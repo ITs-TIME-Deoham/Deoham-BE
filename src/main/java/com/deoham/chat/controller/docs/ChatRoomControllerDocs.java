@@ -1,6 +1,7 @@
 package com.deoham.chat.controller.docs;
 
 import com.deoham.chat.dto.ChatRoomCreateRequest;
+import com.deoham.chat.dto.ChatRoomLocationResponse;
 import com.deoham.chat.dto.ChatRoomResponse;
 import com.deoham.global.response.ApiResponse;
 import io.swagger.v3.oas.annotations.Operation;
@@ -62,6 +63,18 @@ public interface ChatRoomControllerDocs {
                             {"success":false,"data":null,"error":{"code":"FORBIDDEN","message":"채팅방 참여자가 아닙니다"}}
                             """)))
     ApiResponse<ChatRoomResponse> getRoom(@Parameter(description = "채팅방 UUID") UUID roomId);
+
+    @Operation(
+            summary = "카드 위치 조회",
+            description = "채팅방에 연결된 카드의 약속 장소 좌표를 반환합니다. 앱에서 지도 핀 표시에 사용합니다."
+    )
+    @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "조회 성공")
+    @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "403", description = "참여자가 아님",
+            content = @Content(mediaType = "application/json",
+                    examples = @ExampleObject(value = """
+                            {"success":false,"data":null,"error":{"code":"FORBIDDEN","message":"채팅방 참여자가 아닙니다"}}
+                            """)))
+    ApiResponse<ChatRoomLocationResponse> getCardLocation(@Parameter(description = "채팅방 UUID") UUID roomId);
 
     @Operation(
             summary = "채팅방 종료",
