@@ -3,10 +3,9 @@ package com.deoham.user.entity;
 import com.deoham.global.entity.BaseEntity;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
-import jakarta.persistence.EnumType;
-import jakarta.persistence.Enumerated;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
+import java.util.UUID;
 import lombok.AccessLevel;
 import lombok.Builder;
 import lombok.Getter;
@@ -14,8 +13,6 @@ import lombok.NoArgsConstructor;
 import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.annotations.UuidGenerator;
 import org.hibernate.type.SqlTypes;
-
-import java.util.UUID;
 
 @Getter
 @Entity
@@ -28,8 +25,8 @@ public class User extends BaseEntity {
     @Column(name = "id", nullable = false, updatable = false)
     private UUID id;
 
-    @Column(name = "supabase_id", nullable = false, unique = true, updatable = false)
-    private UUID supabaseId;
+    @Column(name = "firebase_uid", nullable = false, unique = true, updatable = false, length = 128)
+    private String firebaseUid;
 
     @Column(name = "nickname", nullable = false, unique = true, length = 50)
     private String nickname;
@@ -37,18 +34,18 @@ public class User extends BaseEntity {
     @Column(name = "profile_image_url")
     private String profileImageUrl;
 
-
     @Column(name = "phone_number", length = 20)
     private String phoneNumber;
 
     @Column(name = "phone_verified", nullable = false)
     private boolean phoneVerified = false;
 
+    @Column(name = "is_verified", nullable = false)
+    private boolean isVerified = false;
 
     @Column(name = "language", nullable = false, length = 10)
     private String language = "ko";
 
-    @Enumerated(EnumType.STRING)
     @JdbcTypeCode(SqlTypes.NAMED_ENUM)
     @Column(name = "gender", columnDefinition = "user_gender")
     private GenderType gender;
@@ -59,16 +56,23 @@ public class User extends BaseEntity {
     @Column(name = "help_count", nullable = false)
     private int helpCount = 0;
 
-    @Column(name = "is_active", nullable = false)
-    private boolean isActive = true;
+    @JdbcTypeCode(SqlTypes.NAMED_ENUM)
+    @Column(name = "role", nullable = false, columnDefinition = "user_role")
+    private UserRole role = UserRole.USER;
+
+    @JdbcTypeCode(SqlTypes.NAMED_ENUM)
+    @Column(name = "status", nullable = false, columnDefinition = "user_status")
+    private UserStatus status = UserStatus.ACTIVE;
 
     @Builder
-    private User(UUID supabaseId, String nickname, String profileImageUrl, GenderType gender, Integer age) {
-        this.supabaseId = supabaseId;
+    private User(String firebaseUid, String nickname, String profileImageUrl, GenderType gender, Integer age) {
+        this.firebaseUid = firebaseUid;
         this.nickname = nickname;
         this.profileImageUrl = profileImageUrl;
         this.gender = gender;
         this.age = age;
+        this.role = UserRole.USER;
+        this.status = UserStatus.ACTIVE;
     }
 
     public void updateProfile(String nickname, String profileImageUrl) {
@@ -84,7 +88,15 @@ public class User extends BaseEntity {
         this.language = language;
     }
 
-    public void deactivate() {
-        this.isActive = false;
+    public void verify() {
+        this.isVerified = true;
+    }
+
+    public void suspend() {
+        this.status = UserStatus.SUSPENDED;
+    }
+
+    public void delete() {
+        this.status = UserStatus.DELETED;
     }
 }
