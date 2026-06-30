@@ -5,8 +5,8 @@ services:
       dockerfile: Dockerfile.deploy
     env_file:
       - .env
-    volumes:
-      - ./secrets/fcm-service-account.json:/app/secrets/fcm-service-account.json:ro
+    # volumes:
+    #   - ./secrets/fcm-service-account.json:/app/secrets/fcm-service-account.json:ro
     ports:
       - "80:8080"
     depends_on:

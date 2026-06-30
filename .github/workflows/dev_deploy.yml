@@ -67,34 +67,31 @@ jobs:
           SPRING_DATA_REDIS_PORT=6379
           SPRING_DATA_REDIS_SSL=false
 
-          # Supabase JWT
-          SUPABASE_JWT_ISSUER=${{ secrets.SUPABASE_JWT_ISSUER }}
-          SUPABASE_JWT_JWKS_URI=${{ secrets.SUPABASE_JWT_JWKS_URI }}
+          # Supabase JWT — Firebase 전환 전 임시 플레이스홀더 (Swagger 접근용)
+          SUPABASE_JWT_ISSUER=https://placeholder.supabase.co/auth/v1
+          SUPABASE_JWT_JWKS_URI=https://placeholder.supabase.co/auth/v1/.well-known/jwks.json
           SUPABASE_JWT_AUDIENCE=authenticated
 
-          # AWS S3 (EC2 IAM 역할로 자격증명 자동 처리 — 키 불필요)
+          # AWS S3 (필수 — @NotBlank/@Positive, EC2 IAM 역할로 자격증명 자동 처리)
           AWS_S3_REGION=${{ secrets.AWS_S3_REGION }}
           AWS_S3_BUCKET=${{ secrets.AWS_S3_BUCKET }}
           AWS_S3_PRESIGNED_TTL=${{ secrets.AWS_S3_PRESIGNED_TTL }}
 
-          # FCM
-          FCM_KEY_PATH=/app/secrets/fcm-service-account.json
+          # CORS — 앱 프로젝트라 불필요, 필요 시 활성화
+          # CORS_ALLOWED_ORIGINS=${{ secrets.CORS_ALLOWED_ORIGINS }}
 
-          # Kakao Map
-          KAKAO_MAP_REST_API_KEY=${{ secrets.KAKAO_MAP_REST_API_KEY }}
+          # FCM — Java 바인딩 없음, 구현 완료 후 활성화
+          # FCM_KEY_PATH=/app/secrets/fcm-service-account.json
 
-          # CORS
-          CORS_ALLOWED_ORIGINS=${{ secrets.CORS_ALLOWED_ORIGINS }}
+          # Kakao Map — Java 바인딩 없음, 구현 완료 후 활성화
+          # KAKAO_MAP_REST_API_KEY=${{ secrets.KAKAO_MAP_REST_API_KEY }}
           ENVEOF
-
-      - name: Write FCM service account key
-        run: echo '${{ secrets.FCM_SERVICE_ACCOUNT_JSON }}' > fcm-service-account.json
 
       - name: Prepare EC2 directories
         run: |
           ssh -i private_key.pem -o StrictHostKeyChecking=no \
             ${{ secrets.EC2_USERNAME }}@${{ secrets.EC2_HOST }} \
-            "mkdir -p ~/deoham/build/libs ~/deoham/secrets"
+            "mkdir -p ~/deoham/build/libs"
 
       - name: Transfer files
         run: |
@@ -105,10 +102,6 @@ jobs:
           scp -i private_key.pem -o StrictHostKeyChecking=no \
             build/libs/*.jar \
             ${{ secrets.EC2_USERNAME }}@${{ secrets.EC2_HOST }}:~/deoham/build/libs/
-
-          scp -i private_key.pem -o StrictHostKeyChecking=no \
-            fcm-service-account.json \
-            ${{ secrets.EC2_USERNAME }}@${{ secrets.EC2_HOST }}:~/deoham/secrets/
 
       - name: Deploy on EC2
         run: |
@@ -145,4 +138,4 @@ jobs:
 
       - name: Cleanup sensitive files
         if: always()
-        run: rm -f private_key.pem .env fcm-service-account.json
+        run: rm -f private_key.pem .env
