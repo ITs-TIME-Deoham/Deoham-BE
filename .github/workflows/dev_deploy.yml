@@ -1,235 +1,148 @@
-name: Planup Dev CI/CD
+name: Dev Deploy
 
 on:
- push:
-   branches: [ develop ]
+  push:
+    branches: [develop]
 
 jobs:
- build:
-   runs-on: ubuntu-latest
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
 
-   steps:
-     - name: Checkout Repository
-       uses: actions/checkout@v4
+    steps:
+      - uses: actions/checkout@v4
 
-     - name: Set up JDK 17
-       uses: actions/setup-java@v4
-       with:
-         distribution: 'temurin'
-         java-version: '17'
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
 
-     - name: Cache Gradle dependencies
-       uses: actions/cache@v3
-       with:
-         path: |
-           ~/.gradle/caches
-           ~/.gradle/wrapper
-         key: gradle-${{ runner.os }}-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties') }}
-         restore-keys: |
-           gradle-${{ runner.os }}-
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v4
 
-     - name: Grant execute permission for Gradlew
-       run: chmod +x gradlew
+      - name: Grant execute permission for gradlew
+        run: chmod +x gradlew
 
-     - name: Build with Gradle
-       run: ./gradlew build -x test --no-daemon --parallel --build-cache
+      - name: Build JAR
+        run: ./gradlew bootJar -x test --no-daemon
 
-     - name: Upload Build Artifact
-       uses: actions/upload-artifact@v4
-       with:
-         name: build-files
-         path: |
-           build/libs/*.jar
-           Dockerfile
-           Dockerfile.deploy
-           compose.yaml
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-files
+          path: |
+            build/libs/*.jar
+            Dockerfile.deploy
+            compose.yaml
 
- deploy:
-   needs: build
-   runs-on: ubuntu-latest
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
 
-   steps:
-     - name: Checkout Repository
-       uses: actions/checkout@v4
+    steps:
+      - name: Download artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: build-files
 
-     - name: Download Build Artifact
-       uses: actions/download-artifact@v4
-       with:
-         name: build-files
+      - name: Write SSH key
+        run: |
+          echo "${{ secrets.EC2_SSH_KEY }}" > private_key.pem
+          chmod 600 private_key.pem
 
-     - name: Deploy to EC2 with Docker
-       shell: bash
-       env:
-         EC2_SSH_KEY: ${{ secrets.EC2_SSH_KEY }}
-         EC2_USERNAME: ${{ secrets.EC2_USERNAME }}
-         EC2_HOST: ${{ secrets.EC2_HOST }}
-         DB_PORT: ${{ secrets.DB_PORT }}
-         DB_NAME: ${{ secrets.DB_NAME }}
-         DB_USER: ${{ secrets.DB_USER }}
-         DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
-         JWT_SECRET: ${{ secrets.JWT_SECRET }}
-         AWS_ACCESS_KEY: ${{ secrets.AWS_ACCESS_KEY }}
-         AWS_SECRET_KEY: ${{ secrets.AWS_SECRET_KEY }}
-         AWS_S3_BUCKET: ${{ secrets.AWS_S3_BUCKET }}
-         MAIL_USERNAME: ${{ secrets.MAIL_USERNAME }}
-         MAIL_PASSWORD: ${{ secrets.MAIL_PASSWORD }}
-         REST_API_KEY: ${{ secrets.REST_API_KEY }}
-         GOOGLE_API_KEY: ${{ secrets.GOOGLE_API_KEY }}
-         APP_FRONTEND_URL: ${{ secrets.APP_FRONTEND_URL }}
-         GRAFANA_ADMIN_PASSWORD: ${{ secrets.GRAFANA_ADMIN_PASSWORD }}
-       run: |
-         echo "$EC2_SSH_KEY" > private_key.pem
-         chmod 600 private_key.pem
+      - name: Create .env
+        run: |
+          cat > .env << 'ENVEOF'
+          SPRING_PROFILES_ACTIVE=prod
 
-         # .env 파일 생성
-         cat <<EOF > .env
-         # 데이터베이스 설정
-         DB_HOST=mysql
-         DB_PORT=${DB_PORT}
-         DB_NAME=${DB_NAME}
-         DB_USER=${DB_USER}
-         DB_PASSWORD=${DB_PASSWORD}
+          # DataSource — compose 내부 postgres 컨테이너
+          SPRING_DATASOURCE_URL=jdbc:postgresql://postgres:5432/deoham
+          SPRING_DATASOURCE_USERNAME=deoham
+          SPRING_DATASOURCE_PASSWORD=deoham
 
-         # Redis 설정
-         SPRING_DATA_REDIS_HOST=redis
-         SPRING_DATA_REDIS_PORT=6379
+          # Redis — compose 내부 redis 컨테이너
+          SPRING_DATA_REDIS_HOST=redis
+          SPRING_DATA_REDIS_PORT=6379
+          SPRING_DATA_REDIS_SSL=false
 
-         # JWT 설정
-         JWT_SECRET=${JWT_SECRET}
+          # Supabase JWT
+          SUPABASE_JWT_ISSUER=${{ secrets.SUPABASE_JWT_ISSUER }}
+          SUPABASE_JWT_JWKS_URI=${{ secrets.SUPABASE_JWT_JWKS_URI }}
+          SUPABASE_JWT_AUDIENCE=authenticated
 
-         # AWS 설정
-         AWS_ACCESS_KEY=${AWS_ACCESS_KEY}
-         AWS_SECRET_KEY=${AWS_SECRET_KEY}
-         AWS_S3_BUCKET=${AWS_S3_BUCKET}
+          # AWS S3 (EC2 IAM 역할로 자격증명 자동 처리 — 키 불필요)
+          AWS_S3_REGION=${{ secrets.AWS_S3_REGION }}
+          AWS_S3_BUCKET=${{ secrets.AWS_S3_BUCKET }}
+          AWS_S3_PRESIGNED_TTL=${{ secrets.AWS_S3_PRESIGNED_TTL }}
 
-         # 메일 설정
-         MAIL_HOST=smtp.gmail.com
-         MAIL_USERNAME=${MAIL_USERNAME}
-         MAIL_PASSWORD=${MAIL_PASSWORD}
+          # FCM
+          FCM_KEY_PATH=/app/secrets/fcm-service-account.json
 
-         # 카카오 OAuth
-         REST_API_KEY=${REST_API_KEY}
-         KAKAO_REDIRECT_URI=http://${EC2_HOST}/test/kakao/callback
+          # Kakao Map
+          KAKAO_MAP_REST_API_KEY=${{ secrets.KAKAO_MAP_REST_API_KEY }}
 
-         # Google Gemini
-         GOOGLE_API_KEY=${GOOGLE_API_KEY}
+          # CORS
+          CORS_ALLOWED_ORIGINS=${{ secrets.CORS_ALLOWED_ORIGINS }}
+          ENVEOF
 
-         # 애플리케이션 설정
-         APP_DOMAIN=http://${EC2_HOST}
-         APP_FRONTEND_URL=http://localhost:3000
-         APP_FRONTEND_URLS=http://localhost:3000,http://localhost:3001,http://${EC2_HOST}:3000
-         SPRING_PROFILES_ACTIVE=prod
+      - name: Write FCM service account key
+        run: echo '${{ secrets.FCM_SERVICE_ACCOUNT_JSON }}' > fcm-service-account.json
 
-         # Grafana 설정
-         GRAFANA_ADMIN_USER=admin
-         GRAFANA_ADMIN_PASSWORD=${GRAFANA_ADMIN_PASSWORD}
-         EOF
+      - name: Prepare EC2 directories
+        run: |
+          ssh -i private_key.pem -o StrictHostKeyChecking=no \
+            ${{ secrets.EC2_USERNAME }}@${{ secrets.EC2_HOST }} \
+            "mkdir -p ~/deoham/build/libs ~/deoham/secrets"
 
-         # 배포 디렉토리 생성
-         ssh -i private_key.pem -o StrictHostKeyChecking=no ${EC2_USERNAME}@${EC2_HOST} \
-           "mkdir -p /home/${EC2_USERNAME}/planup/build/libs"
+      - name: Transfer files
+        run: |
+          scp -i private_key.pem -o StrictHostKeyChecking=no \
+            Dockerfile.deploy compose.yaml .env \
+            ${{ secrets.EC2_USERNAME }}@${{ secrets.EC2_HOST }}:~/deoham/
 
-         # 파일 전송 전에 디스크 정리
-         echo "=== Cleaning up disk space before transfer ==="
-         ssh -i private_key.pem -o StrictHostKeyChecking=no ${EC2_USERNAME}@${EC2_HOST} << 'CLEANUP'
-           cd /home/${EC2_USERNAME}/planup
+          scp -i private_key.pem -o StrictHostKeyChecking=no \
+            build/libs/*.jar \
+            ${{ secrets.EC2_USERNAME }}@${{ secrets.EC2_HOST }}:~/deoham/build/libs/
 
-           echo "Current disk usage:"
-           df -h
+          scp -i private_key.pem -o StrictHostKeyChecking=no \
+            fcm-service-account.json \
+            ${{ secrets.EC2_USERNAME }}@${{ secrets.EC2_HOST }}:~/deoham/secrets/
 
-           echo "Stopping existing containers..."
-           compose down 2>/dev/null || true
+      - name: Deploy on EC2
+        run: |
+          ssh -i private_key.pem -o StrictHostKeyChecking=no \
+            ${{ secrets.EC2_USERNAME }}@${{ secrets.EC2_HOST }} << 'ENDSSH'
+            set -e
+            cd ~/deoham
 
-           echo "Cleaning Docker resources..."
-         # docker system prune -af --volumes 2>/dev/null || true
-           docker image prune -af || true
-           docker builder prune -af || true
+            echo "=== Cleaning old images ==="
+            docker compose down || true
+            docker image prune -af || true
 
-           echo "Removing old build files..."
-           rm -rf /home/${EC2_USERNAME}/planup/build/libs/*.jar 2>/dev/null || true
+            echo "=== Building and starting containers ==="
+            docker compose up -d --build
 
-           echo "Disk usage after cleanup:"
-           df -h
-         CLEANUP
+            echo "=== Waiting for startup (30s) ==="
+            sleep 30
 
-         # 파일 전송
-         echo "=== Transferring files to EC2 ==="
+            echo "=== Health check ==="
+            for i in $(seq 1 6); do
+              if curl -sf http://localhost/actuator/health > /dev/null; then
+                echo "Application is healthy"
+                docker compose ps
+                exit 0
+              fi
+              echo "Attempt $i/6 failed, retrying in 10s..."
+              sleep 10
+            done
 
-         rsync -avz -e "ssh -i private_key.pem -o StrictHostKeyChecking=no" \
-           Dockerfile ${EC2_USERNAME}@${EC2_HOST}:/home/${EC2_USERNAME}/planup/
+            echo "Health check failed — last 100 log lines:"
+            docker compose logs --tail=100 app
+            exit 1
+          ENDSSH
 
-         rsync -avz -e "ssh -i private_key.pem -o StrictHostKeyChecking=no" \
-           Dockerfile.deploy ${EC2_USERNAME}@${EC2_HOST}:/home/${EC2_USERNAME}/planup/
-
-         rsync -avz -e "ssh -i private_key.pem -o StrictHostKeyChecking=no" \
-           compose.yaml ${EC2_USERNAME}@${EC2_HOST}:/home/${EC2_USERNAME}/planup/
-
-         rsync -avz -e "ssh -i private_key.pem -o StrictHostKeyChecking=no" \
-           .env ${EC2_USERNAME}@${EC2_HOST}:/home/${EC2_USERNAME}/planup/
-
-         rsync -avz -e "ssh -i private_key.pem -o StrictHostKeyChecking=no" \
-           build/libs/*.jar ${EC2_USERNAME}@${EC2_HOST}:/home/${EC2_USERNAME}/planup/build/libs/
-
-         # Docker Compose 배포 스크립트
-         cat <<DEPLOY_SCRIPT > deploy.sh
-         #!/bin/bash
-         set -e
-
-         cd /home/${EC2_USERNAME}/planup
-
-         echo "=== Checking disk space ==="
-         df -h
-
-         echo "=== Stopping existing containers ==="
-         docker compose down || true
-
-         echo "=== Cleaning old images ==="
-         docker image prune -af || true
-
-         echo "=== Building and starting containers ==="
-         docker compose up -d --build
-
-         echo "=== Waiting for services to be healthy ==="
-         echo "Initial startup delay: 60 seconds..."
-         sleep 60
-
-         echo "=== Checking application health ==="
-         MAX_ATTEMPTS=6
-         ATTEMPT=1
-         while [ \$ATTEMPT -le \$MAX_ATTEMPTS ]; do
-           if curl -f http://localhost/actuator/health > /dev/null 2>&1; then
-             echo "✓ Application is healthy!"
-             break
-           fi
-           if [ \$ATTEMPT -eq \$MAX_ATTEMPTS ]; then
-             echo "✗ Health check failed after \$MAX_ATTEMPTS attempts"
-             exit 1
-           else
-             echo "Attempt \$ATTEMPT/\$MAX_ATTEMPTS: Waiting 10 more seconds..."
-           fi
-           ATTEMPT=\$((ATTEMPT + 1))
-           sleep 10
-         done
-
-         echo "=== Container status ==="
-         docker compose ps
-
-         echo "=== Application logs (last 100 lines) ==="
-         docker compose logs --tail=100 app
-
-         echo "=== Final health check ==="
-         curl -f http://localhost/actuator/health
-
-         echo "=== Final disk space ==="
-         df -h
-
-         echo "=== Deployment completed ==="
-         DEPLOY_SCRIPT
-
-         # 배포 스크립트 전송 및 실행
-         scp -i private_key.pem -o StrictHostKeyChecking=no deploy.sh ${EC2_USERNAME}@${EC2_HOST}:/home/${EC2_USERNAME}/planup/
-
-         ssh -i private_key.pem -o StrictHostKeyChecking=no ${EC2_USERNAME}@${EC2_HOST} \
-           "chmod +x /home/${EC2_USERNAME}/planup/deploy.sh && /home/${EC2_USERNAME}/planup/deploy.sh"
-
-         rm -f private_key.pem .env deploy.sh
+      - name: Cleanup sensitive files
+        if: always()
+        run: rm -f private_key.pem .env fcm-service-account.json

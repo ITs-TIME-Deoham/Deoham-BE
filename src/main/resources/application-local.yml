@@ -28,7 +28,7 @@ deoham:
       audience: authenticated
   s3:
     region: ${AWS_S3_REGION:ap-northeast-2}
-    bucket: ${AWS_S3_BUCKET:deoham-bucket}
+    bucket: ${AWS_S3_BUCKET:ondo-2026-itstime}
 
 fcm:
   service-account-key-path: src/main/resources/firebase/local-service-account.json
