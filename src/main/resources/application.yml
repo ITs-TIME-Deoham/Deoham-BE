@@ -19,7 +19,6 @@ spring:
     default-property-inclusion: non_null
     deserialization:
       fail-on-unknown-properties: false
-
 server:
   port: ${SERVER_PORT:8080}
   shutdown: graceful
@@ -40,10 +39,18 @@ management:
 springdoc:
   swagger-ui:
     path: /swagger-ui.html
-    operations-sorter: alpha
     tags-sorter: alpha
+    operations-sorter: method
+    try-it-out-enabled: true
+    display-request-duration: true
+    filter: true
+    disable-swagger-default-url: true
+    default-models-expand-depth: 1
   api-docs:
     path: /v3/api-docs
+  default-consumes-media-type: application/json
+  default-produces-media-type: application/json
+  show-actuator: false
 
 deoham:
   cors:
@@ -61,6 +68,12 @@ deoham:
     region: ${AWS_S3_REGION:ap-northeast-2}
     bucket: ${AWS_S3_BUCKET}
     presigned-url-ttl-seconds: ${AWS_S3_PRESIGNED_TTL:600}
+
+fcm:
+  service-account-key-path: ${FCM_KEY_PATH}
+
+kakao-map:
+  rest-api-key: ${KAKAO_MAP_REST_API_KEY}
 
 logging:
   level:
