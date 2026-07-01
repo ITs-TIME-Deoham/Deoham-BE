@@ -198,6 +198,6 @@ class ChatTranslationServiceTest {
     // ───────────────────────────────────────────────────────────────────────────
 
     private User savedUser(String email, String name) {
-        return userRepository.save(User.builder().email(email).name(name).build());
+        return userRepository.save(User.builder().firebaseUid(email).nickname(name).build());
     }
 }
