@@ -2,6 +2,7 @@ package com.deoham.chat.controller;
 
 import com.deoham.chat.controller.docs.ChatRoomControllerDocs;
 import com.deoham.chat.dto.ChatRoomCreateRequest;
+import com.deoham.chat.dto.ChatRoomLocationResponse;
 import com.deoham.chat.dto.ChatRoomResponse;
 import com.deoham.chat.service.ChatRoomService;
 import com.deoham.global.exception.BusinessException;
@@ -44,6 +45,12 @@ public class ChatRoomController implements ChatRoomControllerDocs {
     @GetMapping("/{roomId}")
     public ApiResponse<ChatRoomResponse> getRoom(@PathVariable UUID roomId) {
         return ApiResponse.ok(chatRoomService.getRoom(roomId, currentUserId()));
+    }
+
+    @Override
+    @GetMapping("/{roomId}/location")
+    public ApiResponse<ChatRoomLocationResponse> getCardLocation(@PathVariable UUID roomId) {
+        return ApiResponse.ok(chatRoomService.getCardLocation(roomId, currentUserId()));
     }
 
     @Override

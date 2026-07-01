@@ -1,21 +1,4 @@
 services:
-  app:
-    build:
-      context: .
-      dockerfile: Dockerfile.deploy
-    env_file:
-      - .env
-    # volumes:
-    #   - ./secrets/fcm-service-account.json:/app/secrets/fcm-service-account.json:ro
-    ports:
-      - "80:8080"
-    depends_on:
-      postgres:
-        condition: service_healthy
-      redis:
-        condition: service_healthy
-    restart: unless-stopped
-
   postgres:
     image: postgis/postgis:16-3.4
     environment:
@@ -23,7 +6,7 @@ services:
       POSTGRES_USER: deoham
       POSTGRES_PASSWORD: deoham
     ports:
-      - "5300:5432"
+      - "5432:5432"
     volumes:
       - deoham_pg_data:/var/lib/postgresql/data
     healthcheck:

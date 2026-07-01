@@ -56,7 +56,13 @@ public class SecurityConfig {
 	private final RestAccessDeniedHandler accessDeniedHandler;
 
 	@Bean
-	public SecurityFilterChain securityFilterChain(HttpSecurity http, JwtDecoder jwtDecoder) throws Exception {
+	public SupabaseJwtAuthenticationConverter jwtAuthenticationConverter() {
+		return new SupabaseJwtAuthenticationConverter();
+	}
+
+	@Bean
+	public SecurityFilterChain securityFilterChain(HttpSecurity http, JwtDecoder jwtDecoder,
+			SupabaseJwtAuthenticationConverter jwtAuthenticationConverter) throws Exception {
 		http
 				.csrf(AbstractHttpConfigurer::disable)
 				.formLogin(AbstractHttpConfigurer::disable)
@@ -70,7 +76,7 @@ public class SecurityConfig {
 				.oauth2ResourceServer(oauth2 -> oauth2
 						.jwt(jwt -> jwt
 								.decoder(jwtDecoder)
-								.jwtAuthenticationConverter(new SupabaseJwtAuthenticationConverter()))
+								.jwtAuthenticationConverter(jwtAuthenticationConverter))
 						.authenticationEntryPoint(authenticationEntryPoint)
 						.accessDeniedHandler(accessDeniedHandler))
 				.exceptionHandling(ex -> ex
