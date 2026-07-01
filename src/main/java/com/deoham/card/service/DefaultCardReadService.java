@@ -1,7 +1,7 @@
 package com.deoham.card.service;
 
 import com.deoham.card.dto.response.CardDetailResponse;
-import com.deoham.card.dto.response.CardSummaryResponse;
+import com.deoham.card.dto.response.PaginatedCardListResponse;
 import com.deoham.card.entity.Card;
 import com.deoham.card.entity.CardCategory;
 import com.deoham.card.entity.CardStatus;
@@ -13,7 +13,9 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.nio.charset.StandardCharsets;
 import java.time.Instant;
+import java.util.Base64;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -22,6 +24,7 @@ import java.util.UUID;
 @RequiredArgsConstructor
 public class DefaultCardReadService implements CardReadService {
 
+    private static final int PAGE_SIZE = 20;
     private final CardRepository cardRepository;
 
     @Override
@@ -33,20 +36,33 @@ public class DefaultCardReadService implements CardReadService {
 
     @Override
     @Transactional(readOnly = true)
-    public List<CardSummaryResponse> getNearbyCards(double lat, double lng, double radiusMeters) {
-        return cardRepository.findNearbyCards(lat, lng, radiusMeters).stream()
-                .map(row -> new CardSummaryResponse(
+    public PaginatedCardListResponse getNearbyCards(double lat, double lng, String cursor) {
+        CursorData cursorData = parseCursor(cursor);
+        List<Object[]> rows = cardRepository.findNearbyCards(lat, lng, cursorData.distance(), cursorData.cardId());
+
+        boolean hasMore = rows.size() > PAGE_SIZE;
+        List<CardDetailResponse> cards = rows.stream()
+                .limit(PAGE_SIZE)
+                .map(row -> new CardDetailResponse(
                         (UUID) row[0],
-                        CardCategory.valueOf((String) row[1]),
-                        CardStatus.valueOf((String) row[2]),
-                        toInstant(row[3]),
-                        row[4] != null ? PreferredGender.valueOf((String) row[4]) : null,
-                        (Integer) row[5],
-                        (Integer) row[6],
-                        ((Number) row[7]).doubleValue(),
-                        toInstant(row[8])
+                        (UUID) row[1],
+                        (String) row[2],
+                        CardCategory.valueOf((String) row[3]),
+                        (String) row[4],
+                        toInstant(row[5]),
+                        CardStatus.valueOf((String) row[6]),
+                        row[7] != null ? PreferredGender.valueOf((String) row[7]) : null,
+                        (Integer) row[8],
+                        (Integer) row[9],
+                        (Integer) row[10],
+                        toInstant(row[11]),
+                        toInstant(row[12]),
+                        ((Number) row[13]).doubleValue()
                 ))
                 .toList();
+
+        String nextCursor = hasMore ? encodeCursor(((Number) rows.get(PAGE_SIZE - 1)[13]).doubleValue(), rows.get(PAGE_SIZE - 1)[0].toString()) : null;
+        return new PaginatedCardListResponse(cards, nextCursor);
     }
 
     @Override
@@ -71,7 +87,8 @@ public class DefaultCardReadService implements CardReadService {
                 card.getPreferredAgeMax(),
                 card.getRetryCount(),
                 card.getCreatedAt(),
-                card.getUpdatedAt()
+                card.getUpdatedAt(),
+                null  // distanceMeters: null for non-nearby cards (only populated in getNearbyCards)
         );
     }
 
@@ -79,5 +96,30 @@ public class DefaultCardReadService implements CardReadService {
         if (value instanceof java.sql.Timestamp ts) return ts.toInstant();
         if (value instanceof java.time.OffsetDateTime odt) return odt.toInstant();
         return (Instant) value;
+    }
+
+    private String encodeCursor(double distance, String cardId) {
+        String cursorData = distance + "|" + cardId;
+        return Base64.getEncoder().encodeToString(cursorData.getBytes(StandardCharsets.UTF_8));
+    }
+
+    private CursorData parseCursor(String cursor) {
+        if (cursor == null || cursor.isEmpty()) {
+            return new CursorData(null, null);
+        }
+        try {
+            String decoded = new String(Base64.getDecoder().decode(cursor), StandardCharsets.UTF_8);
+            String[] parts = decoded.split("\\|");
+            if (parts.length != 2) {
+                return new CursorData(null, null);
+            }
+            double distance = Double.parseDouble(parts[0]);
+            return new CursorData(distance, parts[1]);
+        } catch (Exception e) {
+            return new CursorData(null, null);
+        }
+    }
+
+    private record CursorData(Double distance, String cardId) {
     }
 }

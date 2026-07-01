@@ -66,7 +66,8 @@ public class DefaultCardWriteService implements CardWriteService {
                 card.getPreferredAgeMax(),
                 card.getRetryCount(),
                 card.getCreatedAt(),
-                card.getUpdatedAt()
+                card.getUpdatedAt(),
+                null  // distanceMeters: not applicable for created cards
         );
     }
 

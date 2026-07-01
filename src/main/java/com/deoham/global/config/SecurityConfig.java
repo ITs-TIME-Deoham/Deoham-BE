@@ -1,7 +1,5 @@
 package com.deoham.global.config;
 
-import com.deoham.global.security.AppJwtAuthenticationConverter;
-import com.deoham.global.security.JwtProperties;
 import com.deoham.global.security.RestAccessDeniedHandler;
 import com.deoham.global.security.RestAuthenticationEntryPoint;
 import com.deoham.global.security.jwt.JwtAuthenticationFilter;

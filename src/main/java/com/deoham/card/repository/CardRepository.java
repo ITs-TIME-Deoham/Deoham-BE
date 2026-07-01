@@ -19,23 +19,34 @@ public interface CardRepository extends JpaRepository<Card, UUID> {
 
     @Query(value = """
             SELECT c.id,
+                   c.requester_id,
+                   u.profile_image_url,
                    c.category::text,
-                   c.status::text,
+                   c.description,
                    c.expires_at,
+                   c.status::text,
                    c.preferred_gender::text,
                    c.preferred_age_min,
                    c.preferred_age_max,
-                   ST_Distance(c.location, ST_SetSRID(ST_MakePoint(:lng, :lat), 4326)::geography) AS distance_meters,
-                   c.created_at
+                   c.retry_count,
+                   c.created_at,
+                   c.updated_at,
+                   ST_Distance(c.location, ST_SetSRID(ST_MakePoint(:lng, :lat), 4326)::geography) AS distance_meters
             FROM cards c
+            JOIN users u ON c.requester_id = u.id
             WHERE c.status = 'OPEN'
               AND c.expires_at > now()
-              AND ST_DWithin(c.location, ST_SetSRID(ST_MakePoint(:lng, :lat), 4326)::geography, :radiusMeters)
-            ORDER BY distance_meters
+              AND ST_DWithin(c.location, ST_SetSRID(ST_MakePoint(:lng, :lat), 4326)::geography, 100)
+              AND ((:cursorDistance IS NULL)
+                   OR (ST_Distance(c.location, ST_SetSRID(ST_MakePoint(:lng, :lat), 4326)::geography) > :cursorDistance)
+                   OR (ST_Distance(c.location, ST_SetSRID(ST_MakePoint(:lng, :lat), 4326)::geography) = :cursorDistance AND c.id::text > :cursorCardId))
+            ORDER BY distance_meters ASC, c.id ASC
+            LIMIT 21
             """, nativeQuery = true)
     List<Object[]> findNearbyCards(
             @Param("lat") double lat,
             @Param("lng") double lng,
-            @Param("radiusMeters") double radiusMeters
+            @Param("cursorDistance") Double cursorDistance,
+            @Param("cursorCardId") String cursorCardId
     );
 }

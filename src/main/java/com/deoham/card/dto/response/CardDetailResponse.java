@@ -47,6 +47,9 @@ public record CardDetailResponse(
         Instant createdAt,
 
         @Schema(description = "Updated time")
-        Instant updatedAt
+        Instant updatedAt,
+
+        @Schema(description = "Distance from current location in meters (nullable, only populated in nearby cards list)")
+        Double distanceMeters
 ) {
 }
