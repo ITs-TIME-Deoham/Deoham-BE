@@ -1,8 +1,9 @@
 package com.deoham.user.controller;
 
 import com.deoham.global.response.ApiResponse;
+import com.deoham.global.security.AuthenticationUtils;
 import com.deoham.user.dto.UserMeResponse;
-import com.deoham.user.service.UserService;
+import com.deoham.user.service.UserReadService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
@@ -17,37 +18,38 @@ import org.springframework.web.bind.annotation.RestController;
 
 @RestController
 @RequestMapping("/api/users")
-@Tag(name = "User", description = "유저 API")
+@Tag(name = "User", description = "User API")
 @RequiredArgsConstructor
 public class UserController {
 
-    private final UserService userService;
+    private final UserReadService userReadService;
 
-//     @GetMapping("/me")
-//     @Operation(
-//             summary = "내 프로필 조회",
-//             description = "토큰으로 인증된 유저의 프로필을 반환합니다.",
-//             security = @SecurityRequirement(name = "bearerAuth")
-//     )
-//     @ApiResponses({
-//             @io.swagger.v3.oas.annotations.responses.ApiResponse(
-//                     responseCode = "200",
-//                     description = "성공",
-//                     content = @Content(schema = @Schema(implementation = UserMeResponse.class))
-//             ),
-//             @io.swagger.v3.oas.annotations.responses.ApiResponse(
-//                     responseCode = "401",
-//                     description = "인증 실패 (토큰 없음 또는 만료)",
-//                     content = @Content
-//             ),
-//             @io.swagger.v3.oas.annotations.responses.ApiResponse(
-//                     responseCode = "404",
-//                     description = "가입되지 않은 유저",
-//                     content = @Content
-//             )
-//     })
+    @GetMapping("/me")
+    @Operation(
+            summary = "Get my profile",
+            description = "Returns the authenticated user's profile using the JWT access token.",
+            security = @SecurityRequirement(name = "bearerAuth")
+    )
+    @ApiResponses({
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                    responseCode = "200",
+                    description = "Success",
+                    content = @Content(schema = @Schema(implementation = UserMeResponse.class))
+            ),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                    responseCode = "401",
+                    description = "Authentication failed",
+                    content = @Content
+            ),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                    responseCode = "404",
+                    description = "User not found",
+                    content = @Content
+            )
+    })
     public ResponseEntity<ApiResponse<UserMeResponse>> getMe() {
-        // TODO: implement
-        return null;
+        return ResponseEntity.ok(ApiResponse.ok(
+                userReadService.getMe(AuthenticationUtils.requireCurrentUserId())
+        ));
     }
 }

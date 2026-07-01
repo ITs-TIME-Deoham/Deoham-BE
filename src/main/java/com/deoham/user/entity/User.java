@@ -25,9 +25,6 @@ public class User extends BaseEntity {
     @Column(name = "id", nullable = false, updatable = false)
     private UUID id;
 
-    @Column(name = "firebase_uid", nullable = false, unique = true, updatable = false, length = 128)
-    private String firebaseUid;
-
     @Column(name = "nickname", nullable = false, unique = true, length = 50)
     private String nickname;
 
@@ -65,8 +62,7 @@ public class User extends BaseEntity {
     private UserStatus status = UserStatus.ACTIVE;
 
     @Builder
-    private User(String firebaseUid, String nickname, String profileImageUrl, GenderType gender, Integer age) {
-        this.firebaseUid = firebaseUid;
+    private User(String nickname, String profileImageUrl, GenderType gender, Integer age) {
         this.nickname = nickname;
         this.profileImageUrl = profileImageUrl;
         this.gender = gender;

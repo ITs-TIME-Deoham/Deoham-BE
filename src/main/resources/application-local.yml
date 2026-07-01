@@ -20,21 +20,20 @@ spring:
         format_sql: true
 deoham:
   cors:
-    allowed-origins: http://localhost:3000,http://localhost:5173
-  supabase:
-    jwt:
-      issuer: ${SUPABASE_JWT_ISSUER:https://YOUR-PROJECT-REF.supabase.co/auth/v1}
-      jwks-uri: ${SUPABASE_JWT_JWKS_URI:https://YOUR-PROJECT-REF.supabase.co/auth/v1/.well-known/jwks.json}
-      audience: authenticated
+    allowed-origins: http://localhost:5173,http://localhost:3000,https://ondo-fe.vercel.app
+  jwt:
+    secret: deoham-local-dev-secret-key-do-not-use-in-production-1234
+    access-token-expiry-seconds: 3600
+    refresh-token-expiry-seconds: 1209600
+  kakao:
+    rest-api-key: ${KAKAO_REST_API_KEY:dummy-for-local}
+    redirect-uri: ${KAKAO_REDIRECT_URI:http://localhost:3000/api/auth/kakao/callback}
   s3:
     region: ${AWS_S3_REGION:ap-northeast-2}
     bucket: ${AWS_S3_BUCKET:ondo-2026-itstime}
 
 fcm:
   service-account-key-path: src/main/resources/firebase/local-service-account.json
-
-kakao-map:
-  rest-api-key: ${KAKAO_MAP_REST_API_KEY:}
 
 logging:
   level:

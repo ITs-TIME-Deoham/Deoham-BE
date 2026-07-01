@@ -54,16 +54,14 @@ springdoc:
 
 deoham:
   cors:
-    allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:3000}
-  supabase:
-    jwt:
-      issuer: ${SUPABASE_JWT_ISSUER}
-      jwks-uri: ${SUPABASE_JWT_JWKS_URI}
-      audience: ${SUPABASE_JWT_AUDIENCE:authenticated}
-    auth:
-      url: ${SUPABASE_URL}
-      anon-key: ${SUPABASE_ANON_KEY}
-      redirect-url: ${SUPABASE_REDIRECT_URL}
+    allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:5173,http://localhost:3000,https://ondo-fe.vercel.app}
+  jwt:
+    secret: ${JWT_SECRET}
+    access-token-expiry-seconds: ${JWT_ACCESS_EXPIRY:3600}
+    refresh-token-expiry-seconds: ${JWT_REFRESH_EXPIRY:1209600}
+  kakao:
+    rest-api-key: ${KAKAO_REST_API_KEY}
+    redirect-uri: ${KAKAO_REDIRECT_URI}
   s3:
     region: ${AWS_S3_REGION:ap-northeast-2}
     bucket: ${AWS_S3_BUCKET}
@@ -71,9 +69,6 @@ deoham:
 
 fcm:
   service-account-key-path: ${FCM_KEY_PATH}
-
-kakao-map:
-  rest-api-key: ${KAKAO_MAP_REST_API_KEY}
 
 logging:
   level:
