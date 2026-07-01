@@ -73,6 +73,11 @@ public class AuthService {
         KakaoTokenResponse kakaoToken = kakaoOAuthClient.exchangeCode(code);
         KakaoUserInfo userInfo = kakaoOAuthClient.getUserInfo(kakaoToken.accessToken());
         String kakaoId = userInfo.id().toString();
+        String email = userInfo.email();
+
+        if (email == null) {
+            throw new BusinessException(ErrorCode.INVALID_REQUEST, "카카오 이메일 동의가 필요합니다.");
+        }
 
         UserSocialAccount socialAccount = userSocialAccountRepository
                 .findByProviderAndProviderUid(OauthProvider.KAKAO, kakaoId)
@@ -89,11 +94,11 @@ public class AuthService {
                     .user(user)
                     .provider(OauthProvider.KAKAO)
                     .providerUid(kakaoId)
-                    .providerEmail(userInfo.email())
+                    .providerEmail(email)
                     .build());
         } else {
             user = socialAccount.getUser();
-            socialAccount.updateProviderEmail(userInfo.email());
+            socialAccount.updateProviderEmail(email);
         }
 
         String accessToken = jwtTokenProvider.generateAccessToken(

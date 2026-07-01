@@ -1,11 +1,13 @@
 package com.deoham.card.service;
 
+import com.deoham.card.dto.response.CardApplySummaryResponse;
 import com.deoham.card.dto.response.CardDetailResponse;
 import com.deoham.card.dto.response.PaginatedCardListResponse;
 import com.deoham.card.entity.Card;
 import com.deoham.card.entity.CardCategory;
 import com.deoham.card.entity.CardStatus;
 import com.deoham.card.entity.PreferredGender;
+import com.deoham.card.repository.CardApplyRepository;
 import com.deoham.card.repository.CardRepository;
 import com.deoham.global.exception.BusinessException;
 import com.deoham.global.exception.ErrorCode;
@@ -26,6 +28,7 @@ public class DefaultCardReadService implements CardReadService {
 
     private static final int PAGE_SIZE = 20;
     private final CardRepository cardRepository;
+    private final CardApplyRepository cardApplyRepository;
 
     @Override
     @Transactional(readOnly = true)
@@ -73,6 +76,28 @@ public class DefaultCardReadService implements CardReadService {
         return toDetailResponse(card);
     }
 
+    @Override
+    @Transactional(readOnly = true)
+    public List<CardApplySummaryResponse> getApplies(UUID cardId, UUID userId) {
+        Card card = cardRepository.findById(cardId)
+                .orElseThrow(() -> new BusinessException(ErrorCode.NOT_FOUND, "카드를 찾을 수 없습니다."));
+
+        if (!card.getRequester().getId().equals(userId)) {
+            throw new BusinessException(ErrorCode.FORBIDDEN, "카드 작성자만 신청 목록을 조회할 수 있습니다.");
+        }
+
+        return cardApplyRepository.findByCard(card).stream()
+                .map(apply -> new CardApplySummaryResponse(
+                        apply.getId(),
+                        apply.getApplicant().getId(),
+                        apply.getApplicant().getNickname(),
+                        apply.getApplicant().getProfileImageUrl(),
+                        apply.getStatus(),
+                        apply.getAppliedAt()
+                ))
+                .toList();
+    }
+
     private CardDetailResponse toDetailResponse(Card card) {
         return new CardDetailResponse(
                 card.getId(),
@@ -93,9 +118,15 @@ public class DefaultCardReadService implements CardReadService {
     }
 
     private static Instant toInstant(Object value) {
+        if (value == null) return null;
+        if (value instanceof Instant inst) return inst;
         if (value instanceof java.sql.Timestamp ts) return ts.toInstant();
         if (value instanceof java.time.OffsetDateTime odt) return odt.toInstant();
-        return (Instant) value;
+        if (value instanceof java.time.ZonedDateTime zdt) return zdt.toInstant();
+        if (value instanceof java.time.LocalDateTime ldt) return ldt.atZone(java.time.ZoneOffset.UTC).toInstant();
+        if (value instanceof java.sql.Date sqlDate) return sqlDate.toLocalDate().atStartOfDay(java.time.ZoneOffset.UTC).toInstant();
+        if (value instanceof java.util.Date date) return date.toInstant();
+        throw new IllegalArgumentException("Unsupported timestamp type: " + value.getClass().getName());
     }
 
     private String encodeCursor(double distance, String cardId) {

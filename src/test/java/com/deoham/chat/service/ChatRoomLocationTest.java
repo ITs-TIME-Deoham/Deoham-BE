@@ -64,7 +64,6 @@ class ChatRoomLocationTest {
         Card card = cardRepository.save(Card.builder()
                 .requester(requester)
                 .category(CardCategory.OTHER)
-                .title("테스트 카드")
                 .description("설명")
                 .location(point(TEST_LNG, TEST_LAT))
                 .city(TEST_CITY)

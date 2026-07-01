@@ -1,8 +1,10 @@
 package com.deoham.card.service;
 
 import com.deoham.card.dto.request.CreateCardRequest;
+import com.deoham.card.dto.response.CardApplySummaryResponse;
 import com.deoham.card.dto.response.CardDetailResponse;
 import com.deoham.card.entity.Card;
+import com.deoham.card.entity.CardApply;
 import com.deoham.card.entity.CardApplyStatus;
 import com.deoham.card.entity.CardStatus;
 import com.deoham.card.repository.CardApplyRepository;
@@ -105,6 +107,63 @@ public class DefaultCardWriteService implements CardWriteService {
         }
         card.incrementRetryCount();
         card.updateExpiresAt(Instant.now().plus(Card.EXPIRY_DURATION));
+    }
+
+    @Override
+    @Transactional
+    public CardApplySummaryResponse submitApply(UUID cardId, UUID applicantId) {
+        Card card = cardRepository.findById(cardId)
+                .orElseThrow(() -> new BusinessException(ErrorCode.NOT_FOUND, "카드를 찾을 수 없습니다."));
+
+        if (card.getStatus() != CardStatus.OPEN) {
+            throw new BusinessException(ErrorCode.CONFLICT, "OPEN 상태의 카드에만 신청할 수 있습니다.");
+        }
+
+        User applicant = userRepository.findById(applicantId)
+                .orElseThrow(() -> new BusinessException(ErrorCode.NOT_FOUND, "사용자를 찾을 수 없습니다."));
+
+        if (card.getRequester().getId().equals(applicantId)) {
+            throw new BusinessException(ErrorCode.FORBIDDEN, "본인 카드에는 신청할 수 없습니다.");
+        }
+
+        if (cardApplyRepository.existsByCardAndApplicant(card, applicant)) {
+            throw new BusinessException(ErrorCode.CONFLICT, "이미 신청한 카드입니다.");
+        }
+
+        CardApply apply = CardApply.builder()
+                .card(card)
+                .applicant(applicant)
+                .build();
+
+        cardApplyRepository.save(apply);
+
+        return new CardApplySummaryResponse(
+                apply.getId(),
+                apply.getApplicant().getId(),
+                apply.getApplicant().getNickname(),
+                apply.getApplicant().getProfileImageUrl(),
+                apply.getStatus(),
+                apply.getAppliedAt()
+        );
+    }
+
+    @Override
+    @Transactional
+    public void cancelApply(UUID cardId, UUID userId) {
+        Card card = cardRepository.findById(cardId)
+                .orElseThrow(() -> new BusinessException(ErrorCode.NOT_FOUND, "카드를 찾을 수 없습니다."));
+
+        User applicant = userRepository.findById(userId)
+                .orElseThrow(() -> new BusinessException(ErrorCode.NOT_FOUND, "사용자를 찾을 수 없습니다."));
+
+        CardApply apply = cardApplyRepository.findByCardAndApplicant(card, applicant)
+                .orElseThrow(() -> new BusinessException(ErrorCode.NOT_FOUND, "신청을 찾을 수 없습니다."));
+
+        if (apply.getStatus() != CardApplyStatus.PENDING) {
+            throw new BusinessException(ErrorCode.CONFLICT, "PENDING 상태의 신청만 취소할 수 있습니다.");
+        }
+
+        cardApplyRepository.delete(apply);
     }
 
     private Card findCardAndValidateOwner(UUID cardId, UUID userId) {

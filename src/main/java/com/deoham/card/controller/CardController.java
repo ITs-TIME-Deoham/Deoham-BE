@@ -79,7 +79,7 @@ public class CardController {
         return ResponseEntity.status(HttpStatus.CREATED).body(ApiResponse.ok(cardWriteService.createCard(request, userId)));
     }
 
-    @Tag(name = "Card")
+    @Tag(name = "CardApply")
     @Operation(
             summary = "주변 카드 목록 조회",
             description = """
@@ -146,7 +146,7 @@ public class CardController {
             description = """
                     로그인 직후 가장 먼저 호출해 현재 사용자가 생성한 진행 중 카드가 있는지 확인합니다.
                     현재 로그인한 사용자의 OPEN 또는 MATCHED 상태 카드를 반환합니다.
-                    OPEN 카드는 아직 매칭되지 않은 도움 요청이고, MATCHED 카드는 신청 수락 후 진행 중인 카드입니다.
+                    OPEN 카드는 아직 매칭되지 않은 도움 요청이고, MATCHED 카드는 신청 접수 후 진행 중인 카드입니다.
                     활성 카드가 없으면 data가 null이며, 이 경우 사용자는 새 카드를 생성할 수 있습니다.
                     """
     )
@@ -228,8 +228,8 @@ public class CardController {
             summary = "카드 완료",
             description = """
                     MATCHED 상태의 카드를 COMPLETED로 변경합니다.
-                    신청 수락 후 실제 도움이 완료되었을 때 카드 작성자가 호출합니다.
-                    완료 시 수락된 신청자의 help_count가 증가하고, 카드는 활성 카드 조회 대상에서 제외됩니다.
+                    신청 매칭 후 실제 도움이 완료되었을 때 카드 작성자가 호출합니다.
+                    완료 시 매칭된 신청자의 help_count가 증가하고, 카드는 활성 카드 조회 대상에서 제외됩니다.
                     """
     )
     @ApiResponses({
@@ -295,9 +295,9 @@ public class CardController {
             summary = "신청 제출",
             description = """
                     도움을 제공하려는 사용자가 OPEN 상태의 카드에 신청합니다.
-                    일반적인 흐름은 주변 카드 목록 조회 → 카드 상세 조회 → 신청 제출입니다.
+                    일반적인 흐름은 주변 카드 목록 조회 → 신청 제출입니다.
                     카드 작성자는 본인 카드에 신청할 수 없으며, 카드 1개당 1회만 신청 가능합니다.
-                    신청은 PENDING 상태로 생성되고, 카드 작성자의 수락 또는 거절을 기다립니다.
+                    신청은 PENDING 상태로 생성되고, 카드 작성자의 수락 또는 거절을 기다리는 절차 없이 바로 매칭됩니다.
                     """
     )
     @ApiResponses({
@@ -313,40 +313,12 @@ public class CardController {
                     responseCode = "409", description = "이미 신청했거나 카드가 OPEN 상태가 아님")
     })
     @PostMapping("/cards/{cardId}/applies")
-    public ResponseEntity<ApiResponse<Void>> submitApply(
+    public ResponseEntity<ApiResponse<CardApplySummaryResponse>> submitApply(
             @Parameter(description = "카드 ID", required = true)
             @PathVariable UUID cardId
     ) {
-        throw new UnsupportedOperationException("Not implemented yet");
-    }
-
-    @Tag(name = "CardApply")
-    @Operation(
-            summary = "신청 취소",
-            description = """
-                    신청자가 본인이 제출한 PENDING 상태의 신청을 취소합니다.
-                    아직 카드 작성자가 수락하거나 거절하지 않은 신청만 취소할 수 있습니다.
-                    이미 ACCEPTED 또는 REJECTED 상태가 된 신청은 취소할 수 없습니다.
-                    """
-    )
-    @ApiResponses({
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(
-                    responseCode = "204", description = "취소 성공"),
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(
-                    responseCode = "401", description = "인증 필요"),
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(
-                    responseCode = "403", description = "본인 신청이 아님"),
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(
-                    responseCode = "404", description = "신청을 찾을 수 없음"),
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(
-                    responseCode = "409", description = "PENDING 상태가 아님 (이미 수락 또는 거절됨)")
-    })
-    @DeleteMapping("/cards/{cardId}/applies")
-    public ResponseEntity<ApiResponse<Void>> cancelApply(
-            @Parameter(description = "카드 ID", required = true)
-            @PathVariable UUID cardId
-    ) {
-        throw new UnsupportedOperationException("Not implemented yet");
+        UUID userId = AuthenticationUtils.currentPrincipal().orElseThrow().userId();
+        return ResponseEntity.status(HttpStatus.CREATED).body(ApiResponse.ok(cardWriteService.submitApply(cardId, userId)));
     }
 
     @Tag(name = "CardApply")
@@ -354,8 +326,7 @@ public class CardController {
             summary = "신청 목록 조회",
             description = """
                     카드에 달린 신청 목록을 반환합니다.
-                    카드 작성자만 호출할 수 있으며, OPEN 상태 카드에 들어온 도움 신청을 검토할 때 사용합니다.
-                    작성자는 목록에서 신청자를 선택해 수락하거나 거절할 수 있습니다.
+                    카드 작성자만 호출할 수 있으며, 매칭된 신청자 정보를 확인할 때 사용합니다.
                     """
     )
     @ApiResponses({
@@ -375,74 +346,8 @@ public class CardController {
             @Parameter(description = "카드 ID", required = true)
             @PathVariable UUID cardId
     ) {
-        throw new UnsupportedOperationException("Not implemented yet");
+        UUID userId = AuthenticationUtils.currentPrincipal().orElseThrow().userId();
+        return ResponseEntity.ok(ApiResponse.ok(cardReadService.getApplies(cardId, userId)));
     }
 
-    @Tag(name = "CardApply")
-    @Operation(
-            summary = "신청 수락",
-            description = """
-                    카드 작성자가 PENDING 신청 중 하나를 수락해 매칭을 확정합니다.
-                    수락 시 아래 작업이 하나의 트랜잭션으로 처리됩니다.
-                    1. 해당 신청 상태 → ACCEPTED
-                    2. 카드 상태 → MATCHED
-                    3. 나머지 PENDING 신청 → REJECTED
-                    4. 채팅방 생성
-                    수락 이후 카드는 GET /api/cards/my/active에서 MATCHED 상태로 조회되며, 도움 완료 후 PATCH /api/cards/{cardId}/complete로 종료합니다.
-                    """
-    )
-    @ApiResponses({
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(
-                    responseCode = "204", description = "수락 성공 (채팅방 생성됨)"),
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(
-                    responseCode = "401", description = "인증 필요"),
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(
-                    responseCode = "403", description = "카드 작성자가 아님"),
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(
-                    responseCode = "404", description = "신청을 찾을 수 없음"),
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(
-                    responseCode = "409", description = "PENDING 상태가 아니거나 카드가 OPEN 상태가 아님")
-    })
-    @PatchMapping("/cards/{cardId}/applies/{applyId}/accept")
-    public ResponseEntity<ApiResponse<Void>> acceptApply(
-            @Parameter(description = "카드 ID", required = true)
-            @PathVariable UUID cardId,
-
-            @Parameter(description = "신청 ID", required = true)
-            @PathVariable UUID applyId
-    ) {
-        throw new UnsupportedOperationException("Not implemented yet");
-    }
-
-    @Tag(name = "CardApply")
-    @Operation(
-            summary = "신청 거절",
-            description = """
-                    카드 작성자가 PENDING 신청을 거절합니다.
-                    거절된 신청은 REJECTED 상태가 되며, 카드가 OPEN 상태라면 다른 신청을 계속 검토할 수 있습니다.
-                    카드 작성자만 호출할 수 있습니다.
-                    """
-    )
-    @ApiResponses({
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(
-                    responseCode = "204", description = "거절 성공"),
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(
-                    responseCode = "401", description = "인증 필요"),
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(
-                    responseCode = "403", description = "카드 작성자가 아님"),
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(
-                    responseCode = "404", description = "신청을 찾을 수 없음"),
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(
-                    responseCode = "409", description = "PENDING 상태가 아님")
-    })
-    @PatchMapping("/cards/{cardId}/applies/{applyId}/reject")
-    public ResponseEntity<ApiResponse<Void>> rejectApply(
-            @Parameter(description = "카드 ID", required = true)
-            @PathVariable UUID cardId,
-
-            @Parameter(description = "신청 ID", required = true)
-            @PathVariable UUID applyId
-    ) {
-        throw new UnsupportedOperationException("Not implemented yet");
-    }
 }
