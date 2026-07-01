@@ -5,8 +5,11 @@ import com.deoham.chat.dto.ChatMessagePageResponse;
 import com.deoham.chat.dto.ChatMessageResponse;
 import com.deoham.chat.dto.ChatMessageSendRequest;
 import com.deoham.chat.service.ChatMessageService;
+import com.deoham.global.exception.BusinessException;
+import com.deoham.global.exception.ErrorCode;
 import com.deoham.global.response.ApiResponse;
-import com.deoham.global.security.AuthenticationUtils;
+import com.deoham.global.security.SupabaseAuthenticationUtils;
+import com.deoham.global.security.SupabasePrincipal;
 import jakarta.validation.Valid;
 import java.time.Instant;
 import java.util.UUID;
@@ -44,6 +47,8 @@ public class ChatMessageController implements ChatMessageControllerDocs {
     }
 
     private UUID currentUserId() {
-        return AuthenticationUtils.requireCurrentUserId();
+        SupabasePrincipal principal = SupabaseAuthenticationUtils.currentPrincipal()
+                .orElseThrow(() -> new BusinessException(ErrorCode.UNAUTHORIZED));
+        return principal.userId();
     }
 }

@@ -9,7 +9,6 @@ import com.deoham.card.dto.response.MyCardSummaryResponse;
 import com.deoham.card.service.CardReadService;
 import com.deoham.card.service.CardWriteService;
 import com.deoham.global.response.ApiResponse;
-import io.swagger.v3.oas.annotations.Hidden;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.ArraySchema;
@@ -36,7 +35,6 @@ import org.springframework.web.bind.annotation.RestController;
 import java.util.List;
 import java.util.UUID;
 
-@Hidden
 @RestController
 @RequestMapping("/api")
 @RequiredArgsConstructor

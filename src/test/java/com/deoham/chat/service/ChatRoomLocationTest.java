@@ -57,9 +57,9 @@ class ChatRoomLocationTest {
 
     @BeforeEach
     void setUp() {
-        requester = savedUser("요청자");
-        applicant = savedUser("신청자");
-        stranger  = savedUser("제3자");
+        requester = savedUser("req@test.com", "requester-uid", "요청자");
+        applicant = savedUser("app@test.com", "applicant-uid", "신청자");
+        stranger  = savedUser("str@test.com", "stranger-uid",  "제3자");
 
         Card card = cardRepository.save(Card.builder()
                 .requester(requester)
@@ -129,8 +129,9 @@ class ChatRoomLocationTest {
     // 헬퍼
     // ───────────────────────────────────────────────────────────────────────────
 
-    private User savedUser(String nickname) {
+    private User savedUser(String email, String firebaseUid, String nickname) {
         return userRepository.save(User.builder()
+                .firebaseUid(firebaseUid)
                 .nickname(nickname)
                 .build());
     }

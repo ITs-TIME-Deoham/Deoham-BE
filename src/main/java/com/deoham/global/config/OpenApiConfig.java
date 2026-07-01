@@ -24,7 +24,7 @@ public class OpenApiConfig {
 				.info(new Info()
 						.title("Deoham API")
 						.description("Deoham backend REST API\n\n" +
-								"인증이 필요한 API는 `Authorization: Bearer <access_token>` 헤더가 필요합니다.\n" +
+								"모든 API는 `Authorization: Bearer <Supabase JWT>` 헤더가 필요합니다.\n" +
 								"우측 상단 **Authorize** 버튼에서 토큰을 입력하세요.")
 						.version("v0.0.1")
 						.contact(new Contact()
@@ -44,6 +44,6 @@ public class OpenApiConfig {
 								.type(SecurityScheme.Type.HTTP)
 								.scheme("bearer")
 								.bearerFormat("JWT")
-								.description("자체 발급 access token — `Authorization: Bearer <token>`")));
+								.description("Supabase access token — `Authorization: Bearer <token>`")));
 	}
 }

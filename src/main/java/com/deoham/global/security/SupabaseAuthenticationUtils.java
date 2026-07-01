@@ -1,7 +1,5 @@
 package com.deoham.global.security;
 
-import com.deoham.global.exception.BusinessException;
-import com.deoham.global.exception.ErrorCode;
 import java.util.Optional;
 import java.util.UUID;
 import org.springframework.security.core.Authentication;
@@ -9,25 +7,16 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationToken;
 
-public final class AuthenticationUtils {
+public final class SupabaseAuthenticationUtils {
 
-	private AuthenticationUtils() {
+	private SupabaseAuthenticationUtils() {
 	}
 
-	public static Optional<AuthPrincipal> currentPrincipal() {
+	public static Optional<SupabasePrincipal> currentPrincipal() {
 		return fromAuthentication(SecurityContextHolder.getContext().getAuthentication());
 	}
 
-	public static AuthPrincipal requireCurrentPrincipal() {
-		return currentPrincipal()
-				.orElseThrow(() -> new BusinessException(ErrorCode.UNAUTHORIZED));
-	}
-
-	public static UUID requireCurrentUserId() {
-		return requireCurrentPrincipal().userId();
-	}
-
-	public static Optional<AuthPrincipal> fromAuthentication(Authentication authentication) {
+	public static Optional<SupabasePrincipal> fromAuthentication(Authentication authentication) {
 		if (!(authentication instanceof JwtAuthenticationToken jwtAuth)) {
 			return Optional.empty();
 		}
@@ -42,13 +31,10 @@ public final class AuthenticationUtils {
 		} catch (IllegalArgumentException ex) {
 			return Optional.empty();
 		}
-		return Optional.of(new AuthPrincipal(
+		return Optional.of(new SupabasePrincipal(
 				userId,
 				jwt.getClaimAsString("email"),
-				jwt.getClaimAsString("role"),
-				null,
-				null,
-				null
+				jwt.getClaimAsString("role")
 		));
 	}
 }
