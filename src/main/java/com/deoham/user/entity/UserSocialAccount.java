@@ -81,4 +81,18 @@ public class UserSocialAccount {
         this.refreshToken = refreshToken;
         this.tokenExpiresAt = tokenExpiresAt;
     }
+
+    public void updateProviderEmail(String providerEmail) {
+        this.providerEmail = providerEmail;
+    }
+
+    public void updateRefreshToken(String refreshToken, Instant tokenExpiresAt) {
+        this.refreshToken = refreshToken;
+        this.tokenExpiresAt = tokenExpiresAt;
+    }
+
+    public void revokeRefreshToken() {
+        this.refreshToken = null;
+        this.tokenExpiresAt = null;
+    }
 }

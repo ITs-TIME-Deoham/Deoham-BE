@@ -23,7 +23,7 @@ services:
       POSTGRES_USER: deoham
       POSTGRES_PASSWORD: deoham
     ports:
-      - "5432:5432"
+      - "5300:5432"
     volumes:
       - deoham_pg_data:/var/lib/postgresql/data
     healthcheck:

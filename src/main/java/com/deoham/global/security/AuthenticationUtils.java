@@ -1,5 +1,7 @@
 package com.deoham.global.security;
 
+import com.deoham.global.exception.BusinessException;
+import com.deoham.global.exception.ErrorCode;
 import java.util.Optional;
 import java.util.UUID;
 import org.springframework.security.core.Authentication;
@@ -14,6 +16,15 @@ public final class AuthenticationUtils {
 
 	public static Optional<AuthPrincipal> currentPrincipal() {
 		return fromAuthentication(SecurityContextHolder.getContext().getAuthentication());
+	}
+
+	public static AuthPrincipal requireCurrentPrincipal() {
+		return currentPrincipal()
+				.orElseThrow(() -> new BusinessException(ErrorCode.UNAUTHORIZED));
+	}
+
+	public static UUID requireCurrentUserId() {
+		return requireCurrentPrincipal().userId();
 	}
 
 	public static Optional<AuthPrincipal> fromAuthentication(Authentication authentication) {
@@ -34,7 +45,10 @@ public final class AuthenticationUtils {
 		return Optional.of(new AuthPrincipal(
 				userId,
 				jwt.getClaimAsString("email"),
-				jwt.getClaimAsString("role")
+				jwt.getClaimAsString("role"),
+				null,
+				null,
+				null
 		));
 	}
 }

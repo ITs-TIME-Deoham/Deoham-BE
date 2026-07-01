@@ -4,7 +4,7 @@ import com.deoham.global.security.AppJwtAuthenticationConverter;
 import com.deoham.global.security.JwtProperties;
 import com.deoham.global.security.RestAccessDeniedHandler;
 import com.deoham.global.security.RestAuthenticationEntryPoint;
-import java.nio.charset.StandardCharsets;
+import com.deoham.global.security.jwt.JwtAuthenticationFilter;
 import java.util.List;
 import javax.crypto.spec.SecretKeySpec;
 import lombok.RequiredArgsConstructor;
@@ -17,10 +17,8 @@ import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
 import org.springframework.security.config.http.SessionCreationPolicy;
-import org.springframework.security.oauth2.jwt.JwtDecoder;
-import org.springframework.security.oauth2.jwt.JwtValidators;
-import org.springframework.security.oauth2.jwt.NimbusJwtDecoder;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
@@ -28,7 +26,7 @@ import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 @Configuration
 @EnableWebSecurity
 @EnableMethodSecurity
-@EnableConfigurationProperties({ JwtProperties.class, CorsProperties.class })
+@EnableConfigurationProperties({ CorsProperties.class, KakaoOAuthProperties.class })
 @RequiredArgsConstructor
 public class SecurityConfig {
 
@@ -40,19 +38,18 @@ public class SecurityConfig {
 			"/swagger-ui/**",
 			"/v3/api-docs",
 			"/v3/api-docs/**",
-			"/api/auth/**"
+			"/api/auth/kakao",          // Kakao OAuth 시작 (리다이렉트)
+			"/api/auth/kakao/callback", // 인가 코드 → JWT 교환
+			"/api/auth/refresh"         // 액세스 토큰 갱신
 	};
 
-	private final JwtProperties jwtProperties;
 	private final CorsProperties corsProperties;
 	private final RestAuthenticationEntryPoint authenticationEntryPoint;
 	private final RestAccessDeniedHandler accessDeniedHandler;
+	private final JwtAuthenticationFilter jwtAuthenticationFilter;
 
 	@Bean
-	public SecurityFilterChain securityFilterChain(
-			HttpSecurity http,
-			JwtDecoder jwtDecoder,
-			AppJwtAuthenticationConverter jwtAuthenticationConverter) throws Exception {
+	public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
 		http
 				.csrf(AbstractHttpConfigurer::disable)
 				.formLogin(AbstractHttpConfigurer::disable)
@@ -63,30 +60,11 @@ public class SecurityConfig {
 						.requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
 						.requestMatchers(PUBLIC_ENDPOINTS).permitAll()
 						.anyRequest().authenticated())
-				.oauth2ResourceServer(oauth2 -> oauth2
-						.jwt(jwt -> jwt
-								.decoder(jwtDecoder)
-								.jwtAuthenticationConverter(jwtAuthenticationConverter))
-						.authenticationEntryPoint(authenticationEntryPoint)
-						.accessDeniedHandler(accessDeniedHandler))
+				.addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)
 				.exceptionHandling(ex -> ex
 						.authenticationEntryPoint(authenticationEntryPoint)
 						.accessDeniedHandler(accessDeniedHandler));
 		return http.build();
-	}
-
-	@Bean
-	public AppJwtAuthenticationConverter appJwtAuthenticationConverter() {
-		return new AppJwtAuthenticationConverter();
-	}
-
-	@Bean
-	public JwtDecoder jwtDecoder() {
-		SecretKeySpec key = new SecretKeySpec(
-				jwtProperties.secret().getBytes(StandardCharsets.UTF_8), "HmacSHA256");
-		NimbusJwtDecoder decoder = NimbusJwtDecoder.withSecretKey(key).build();
-		decoder.setJwtValidator(JwtValidators.createDefault());
-		return decoder;
 	}
 
 	private CorsConfigurationSource corsConfigurationSource() {
