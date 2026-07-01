@@ -135,19 +135,26 @@ jobs:
             sleep 30
 
             echo "=== Health check ==="
-            for i in $(seq 1 6); do
+            healthy=0
+            for i in $(seq 1 12); do
               if curl -sf http://localhost/actuator/health > /dev/null; then
                 echo "Application is healthy"
-                docker compose ps || true
-                exit 0
+                healthy=1
+                break
               fi
-              echo "Attempt $i/6 failed, retrying in 10s..."
+              echo "Attempt $i/12 failed, retrying in 10s..."
               sleep 10
             done
 
-            echo "Health check failed — last 100 log lines:"
-            docker compose logs --tail=100 app
-            exit 1
+            docker compose ps || true
+
+            if [ "$healthy" -ne 1 ]; then
+              echo "Health check failed — last 100 log lines:"
+              docker compose logs --tail=100 app
+              exit 1
+            fi
+
+            echo "=== Deploy succeeded ==="
           ENDSSH
 
       - name: Cleanup sensitive files
