@@ -22,9 +22,9 @@ public interface ChatTranslationControllerDocs {
                     **캐싱**: 동일한 `(messageId, targetLanguage)` 조합은 DB에 캐시되어, 이후 요청은 번역 제공자를 재호출하지 않고 즉시 반환합니다.
                     응답의 `cached` 필드로 캐시 적중 여부를 확인할 수 있습니다.
 
-                    **번역 대상**: `TEXT` 타입 메시지만 번역 가능합니다. `IMAGE`, `FILE` 타입 메시지에 요청하면 400을 반환합니다.
+                    **번역 대상**: `TEXT` 타입 메시지만 번역 가능합니다. `IMAGE`, `LOCATION` 타입 메시지에 요청하면 400을 반환합니다.
 
-                    **접근 권한**: 해당 메시지가 속한 채팅방의 활성 멤버만 번역을 요청할 수 있습니다.
+                    **접근 권한**: 해당 메시지가 속한 채팅방의 참여자(카드 요청자 또는 수락된 신청자)만 번역을 요청할 수 있습니다.
 
                     **`targetLanguage` 값**: 번역 제공자가 지원하는 언어 코드를 사용합니다 (예: `ko`, `en`, `ja`, `zh`).
                     현재 번역 제공자는 설정에 따라 다를 수 있으며, 지원 언어 코드는 제공자 문서를 참고하세요.
@@ -65,7 +65,7 @@ public interface ChatTranslationControllerDocs {
     )
     @io.swagger.v3.oas.annotations.responses.ApiResponse(
             responseCode = "403",
-            description = "메시지가 속한 채팅방의 멤버가 아님",
+            description = "메시지가 속한 채팅방의 참여자가 아님",
             content = @Content(
                     mediaType = "application/json",
                     examples = @ExampleObject(
@@ -73,7 +73,7 @@ public interface ChatTranslationControllerDocs {
                                     {
                                       "success": false,
                                       "data": null,
-                                      "error": { "code": "FORBIDDEN", "message": "채팅방 멤버가 아닙니다" }
+                                      "error": { "code": "FORBIDDEN", "message": "채팅방 참여자가 아닙니다" }
                                     }
                                     """
                     )

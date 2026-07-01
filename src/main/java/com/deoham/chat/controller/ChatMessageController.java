@@ -15,6 +15,7 @@ import java.time.Instant;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -44,6 +45,13 @@ public class ChatMessageController implements ChatMessageControllerDocs {
             @RequestParam(required = false) Instant before,
             @RequestParam(defaultValue = "30") int size) {
         return ApiResponse.ok(chatMessageService.getMessages(roomId, currentUserId(), before, size));
+    }
+
+    @Override
+    @PatchMapping("/read")
+    public ApiResponse<Void> markMessagesAsRead(@PathVariable UUID roomId) {
+        chatMessageService.markMessagesAsRead(roomId, currentUserId());
+        return ApiResponse.ok();
     }
 
     private UUID currentUserId() {

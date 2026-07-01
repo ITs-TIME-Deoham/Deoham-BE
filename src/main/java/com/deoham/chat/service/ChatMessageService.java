@@ -6,6 +6,7 @@ import com.deoham.card.repository.CardApplyRepository;
 import com.deoham.chat.dto.ChatMessagePageResponse;
 import com.deoham.chat.dto.ChatMessageResponse;
 import com.deoham.chat.dto.ChatMessageSendRequest;
+import com.deoham.chat.dto.ChatReadEvent;
 import com.deoham.chat.entity.ChatMessage;
 import com.deoham.chat.entity.ChatRoom;
 import com.deoham.chat.repository.ChatMessageRepository;
@@ -20,6 +21,7 @@ import java.util.List;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.PageRequest;
+import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -33,6 +35,7 @@ public class ChatMessageService {
     private final CardApplyRepository cardApplyRepository;
     private final UserRepository userRepository;
     private final NotificationService notificationService;
+    private final SimpMessagingTemplate messagingTemplate;
 
     @Transactional
     public ChatMessageResponse sendMessage(UUID roomId, UUID senderId, ChatMessageSendRequest request) {
@@ -50,6 +53,25 @@ public class ChatMessageService {
 
         notifyOtherParticipant(room, senderId, saved);
         return toResponse(saved);
+    }
+
+    @Transactional
+    public void markMessagesAsRead(UUID roomId, UUID userId) {
+        ChatRoom room = findActiveRoomOrThrow(roomId);
+        requireParticipant(room.getCard(), userId);
+
+        List<ChatMessage> unread =
+                chatMessageRepository.findByChatRoomIdAndSenderIdNotAndReadAtIsNull(roomId, userId);
+        if (unread.isEmpty()) {
+            return;
+        }
+
+        List<UUID> readMessageIds = unread.stream().map(ChatMessage::getId).toList();
+        unread.forEach(ChatMessage::markRead);
+
+        messagingTemplate.convertAndSend(
+                "/sub/chat/rooms/" + roomId + "/read",
+                new ChatReadEvent(roomId, userId, readMessageIds, Instant.now()));
     }
 
     public ChatMessagePageResponse getMessages(UUID roomId, UUID userId, Instant before, int size) {

@@ -13,4 +13,6 @@ public interface ChatMessageRepository extends JpaRepository<ChatMessage, UUID> 
 
     List<ChatMessage> findByChatRoomIdAndSentAtBeforeOrderBySentAtDesc(
             UUID chatRoomId, Instant before, Pageable pageable);
+
+    List<ChatMessage> findByChatRoomIdAndSenderIdNotAndReadAtIsNull(UUID chatRoomId, UUID senderId);
 }
