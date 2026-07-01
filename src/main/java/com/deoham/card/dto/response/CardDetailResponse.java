@@ -16,32 +16,14 @@ public record CardDetailResponse(
         @Schema(description = "Requester ID")
         UUID requesterId,
 
-        @Schema(description = "Requester nickname")
-        String requesterNickname,
-
         @Schema(description = "Requester profile image URL")
         String requesterProfileImageUrl,
 
         @Schema(description = "Category")
         CardCategory category,
 
-        @Schema(description = "Title")
-        String title,
-
         @Schema(description = "Description")
         String description,
-
-        @Schema(description = "Latitude")
-        Double latitude,
-
-        @Schema(description = "Longitude")
-        Double longitude,
-
-        @Schema(description = "City")
-        String city,
-
-        @Schema(description = "Search radius in meters")
-        Integer radiusM,
 
         @Schema(description = "Expiration time")
         Instant expiresAt,

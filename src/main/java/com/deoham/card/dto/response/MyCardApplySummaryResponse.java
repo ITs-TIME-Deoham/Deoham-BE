@@ -16,9 +16,6 @@ public record MyCardApplySummaryResponse(
         @Schema(description = "Card ID")
         UUID cardId,
 
-        @Schema(description = "Card title")
-        String cardTitle,
-
         @Schema(description = "Card category")
         CardCategory cardCategory,
 

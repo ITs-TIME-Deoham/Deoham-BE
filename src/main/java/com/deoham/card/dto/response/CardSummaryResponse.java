@@ -16,17 +16,8 @@ public record CardSummaryResponse(
         @Schema(description = "Category")
         CardCategory category,
 
-        @Schema(description = "Title")
-        String title,
-
         @Schema(description = "Status")
         CardStatus status,
-
-        @Schema(description = "City")
-        String city,
-
-        @Schema(description = "Search radius in meters")
-        Integer radiusM,
 
         @Schema(description = "Expiration time")
         Instant expiresAt,

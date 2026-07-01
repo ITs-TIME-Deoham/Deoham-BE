@@ -4,11 +4,11 @@ import com.deoham.card.dto.request.CreateCardRequest;
 import com.deoham.card.dto.response.CardApplySummaryResponse;
 import com.deoham.card.dto.response.CardDetailResponse;
 import com.deoham.card.dto.response.CardSummaryResponse;
-import com.deoham.card.dto.response.MyCardApplySummaryResponse;
-import com.deoham.card.dto.response.MyCardSummaryResponse;
 import com.deoham.card.service.CardReadService;
 import com.deoham.card.service.CardWriteService;
 import com.deoham.global.response.ApiResponse;
+import com.deoham.global.security.AuthenticationUtils;
+import io.swagger.v3.oas.annotations.Hidden;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.ArraySchema;
@@ -20,6 +20,7 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -70,7 +71,8 @@ public class CardController {
                     content = @Content(schema = @Schema(implementation = CreateCardRequest.class)))
             @Valid @RequestBody CreateCardRequest request
     ) {
-        throw new UnsupportedOperationException("Not implemented yet");
+        UUID userId = AuthenticationUtils.currentPrincipal().orElseThrow().userId();
+        return ResponseEntity.status(HttpStatus.CREATED).body(ApiResponse.ok(cardWriteService.createCard(request, userId)));
     }
 
     @Tag(name = "Card")
@@ -99,25 +101,26 @@ public class CardController {
             @Parameter(description = "검색 반경 (미터, 기본값 1000)", example = "1000")
             @RequestParam(defaultValue = "1000") Double radiusMeters
     ) {
-        throw new UnsupportedOperationException("Not implemented yet");
+        return ResponseEntity.ok(ApiResponse.ok(cardReadService.getNearbyCards(latitude, longitude, radiusMeters)));
     }
 
     @Tag(name = "Card")
     @Operation(
-            summary = "내 카드 목록 조회",
-            description = "현재 로그인한 사용자가 작성한 카드 목록을 반환합니다."
+            summary = "내 활성 카드 조회",
+            description = "현재 로그인한 사용자의 OPEN 또는 MATCHED 상태 카드를 반환합니다. 없으면 data가 null입니다."
     )
     @ApiResponses({
             @io.swagger.v3.oas.annotations.responses.ApiResponse(
-                    responseCode = "200", description = "조회 성공",
+                    responseCode = "200", description = "조회 성공 (활성 카드 없으면 data: null)",
                     content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE,
-                            array = @ArraySchema(schema = @Schema(implementation = MyCardSummaryResponse.class)))),
+                            schema = @Schema(implementation = CardDetailResponse.class))),
             @io.swagger.v3.oas.annotations.responses.ApiResponse(
                     responseCode = "401", description = "인증 필요")
     })
-    @GetMapping("/cards/my")
-    public ResponseEntity<ApiResponse<List<MyCardSummaryResponse>>> getMyCards() {
-        throw new UnsupportedOperationException("Not implemented yet");
+    @GetMapping("/cards/my/active")
+    public ResponseEntity<ApiResponse<CardDetailResponse>> getMyActiveCard() {
+        UUID userId = AuthenticationUtils.currentPrincipal().orElseThrow().userId();
+        return ResponseEntity.ok(ApiResponse.ok(cardReadService.getMyActiveCard(userId).orElse(null)));
     }
 
     @Tag(name = "Card")
@@ -140,7 +143,7 @@ public class CardController {
             @Parameter(description = "카드 ID", required = true)
             @PathVariable UUID cardId
     ) {
-        throw new UnsupportedOperationException("Not implemented yet");
+        return ResponseEntity.ok(ApiResponse.ok(cardReadService.getCard(cardId)));
     }
 
     @Tag(name = "Card")
@@ -165,7 +168,9 @@ public class CardController {
             @Parameter(description = "카드 ID", required = true)
             @PathVariable UUID cardId
     ) {
-        throw new UnsupportedOperationException("Not implemented yet");
+        UUID userId = AuthenticationUtils.currentPrincipal().orElseThrow().userId();
+        cardWriteService.cancelCard(cardId, userId);
+        return ResponseEntity.noContent().build();
     }
 
     @Tag(name = "Card")
@@ -190,17 +195,50 @@ public class CardController {
             @Parameter(description = "카드 ID", required = true)
             @PathVariable UUID cardId
     ) {
-        throw new UnsupportedOperationException("Not implemented yet");
+        UUID userId = AuthenticationUtils.currentPrincipal().orElseThrow().userId();
+        cardWriteService.completeCard(cardId, userId);
+        return ResponseEntity.noContent().build();
+    }
+
+    @Tag(name = "Card")
+    @Operation(
+            summary = "카드 재요청",
+            description = """
+                    OPEN 상태의 카드를 재요청합니다. 카드 작성자만 호출할 수 있으며, 최대 3회까지 가능합니다.
+                    재요청 시 retryCount가 1 증가하고 만료 시간이 초기화됩니다.
+                    """
+    )
+    @ApiResponses({
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                    responseCode = "204", description = "재요청 성공"),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                    responseCode = "401", description = "인증 필요"),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                    responseCode = "403", description = "카드 작성자가 아님"),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                    responseCode = "404", description = "카드를 찾을 수 없음"),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                    responseCode = "409", description = "재요청 불가 (OPEN 상태가 아니거나 재요청 횟수 3회 초과)")
+    })
+    @PatchMapping("/cards/{cardId}/retry")
+    public ResponseEntity<ApiResponse<Void>> retryCard(
+            @Parameter(description = "카드 ID", required = true)
+            @PathVariable UUID cardId
+    ) {
+        UUID userId = AuthenticationUtils.currentPrincipal().orElseThrow().userId();
+        cardWriteService.retryCard(cardId, userId);
+        return ResponseEntity.noContent().build();
     }
 
     // ----------------------------------------------------------------
-    // CardApply (신청서) endpoints
+    // CardApply (신청) endpoints
     // ----------------------------------------------------------------
 
+    @Hidden
     @Tag(name = "CardApply")
     @Operation(
-            summary = "신청서 제출",
-            description = "OPEN 상태의 카드에 신청서를 제출합니다. 카드 작성자는 본인 카드에 신청할 수 없으며, 카드 1개당 1회만 신청 가능합니다."
+            summary = "신청 제출",
+            description = "OPEN 상태의 카드에 도움을 신청합니다. 카드 작성자는 본인 카드에 신청할 수 없으며, 카드 1개당 1회만 신청 가능합니다."
     )
     @ApiResponses({
             @io.swagger.v3.oas.annotations.responses.ApiResponse(
@@ -222,10 +260,11 @@ public class CardController {
         throw new UnsupportedOperationException("Not implemented yet");
     }
 
+    @Hidden
     @Tag(name = "CardApply")
     @Operation(
-            summary = "신청서 취소",
-            description = "본인이 제출한 PENDING 상태의 신청서를 취소합니다."
+            summary = "신청 취소",
+            description = "본인이 제출한 PENDING 상태의 신청을 취소합니다."
     )
     @ApiResponses({
             @io.swagger.v3.oas.annotations.responses.ApiResponse(
@@ -233,9 +272,9 @@ public class CardController {
             @io.swagger.v3.oas.annotations.responses.ApiResponse(
                     responseCode = "401", description = "인증 필요"),
             @io.swagger.v3.oas.annotations.responses.ApiResponse(
-                    responseCode = "403", description = "본인 신청서가 아님"),
+                    responseCode = "403", description = "본인 신청가 아님"),
             @io.swagger.v3.oas.annotations.responses.ApiResponse(
-                    responseCode = "404", description = "신청서를 찾을 수 없음"),
+                    responseCode = "404", description = "신청를 찾을 수 없음"),
             @io.swagger.v3.oas.annotations.responses.ApiResponse(
                     responseCode = "409", description = "PENDING 상태가 아님 (이미 수락 또는 거절됨)")
     })
@@ -247,10 +286,11 @@ public class CardController {
         throw new UnsupportedOperationException("Not implemented yet");
     }
 
+    @Hidden
     @Tag(name = "CardApply")
     @Operation(
-            summary = "신청서 목록 조회",
-            description = "카드에 달린 신청서 목록을 반환합니다. 카드 작성자만 호출할 수 있습니다."
+            summary = "신청 목록 조회",
+            description = "카드에 달린 신청 목록을 반환합니다. 카드 작성자만 호출할 수 있습니다."
     )
     @ApiResponses({
             @io.swagger.v3.oas.annotations.responses.ApiResponse(
@@ -272,14 +312,15 @@ public class CardController {
         throw new UnsupportedOperationException("Not implemented yet");
     }
 
+    @Hidden
     @Tag(name = "CardApply")
     @Operation(
-            summary = "신청서 수락",
+            summary = "신청 수락",
             description = """
-                    신청서를 수락합니다. 수락 시 아래 작업이 하나의 트랜잭션으로 처리됩니다.
-                    1. 해당 신청서 상태 → ACCEPTED
+                    신청을 수락합니다. 수락 시 아래 작업이 하나의 트랜잭션으로 처리됩니다.
+                    1. 해당 신청 상태 → ACCEPTED
                     2. 카드 상태 → MATCHED
-                    3. 나머지 PENDING 신청서 → REJECTED
+                    3. 나머지 PENDING 신청 → REJECTED
                     4. 채팅방 생성
                     카드 작성자만 호출할 수 있습니다.
                     """
@@ -292,7 +333,7 @@ public class CardController {
             @io.swagger.v3.oas.annotations.responses.ApiResponse(
                     responseCode = "403", description = "카드 작성자가 아님"),
             @io.swagger.v3.oas.annotations.responses.ApiResponse(
-                    responseCode = "404", description = "신청서를 찾을 수 없음"),
+                    responseCode = "404", description = "신청를 찾을 수 없음"),
             @io.swagger.v3.oas.annotations.responses.ApiResponse(
                     responseCode = "409", description = "PENDING 상태가 아니거나 카드가 OPEN 상태가 아님")
     })
@@ -301,16 +342,17 @@ public class CardController {
             @Parameter(description = "카드 ID", required = true)
             @PathVariable UUID cardId,
 
-            @Parameter(description = "신청서 ID", required = true)
+            @Parameter(description = "신청 ID", required = true)
             @PathVariable UUID applyId
     ) {
         throw new UnsupportedOperationException("Not implemented yet");
     }
 
+    @Hidden
     @Tag(name = "CardApply")
     @Operation(
-            summary = "신청서 거절",
-            description = "신청서를 거절합니다. 카드 작성자만 호출할 수 있습니다."
+            summary = "신청 거절",
+            description = "신청을 거절합니다. 카드 작성자만 호출할 수 있습니다."
     )
     @ApiResponses({
             @io.swagger.v3.oas.annotations.responses.ApiResponse(
@@ -320,7 +362,7 @@ public class CardController {
             @io.swagger.v3.oas.annotations.responses.ApiResponse(
                     responseCode = "403", description = "카드 작성자가 아님"),
             @io.swagger.v3.oas.annotations.responses.ApiResponse(
-                    responseCode = "404", description = "신청서를 찾을 수 없음"),
+                    responseCode = "404", description = "신청를 찾을 수 없음"),
             @io.swagger.v3.oas.annotations.responses.ApiResponse(
                     responseCode = "409", description = "PENDING 상태가 아님")
     })
@@ -329,27 +371,9 @@ public class CardController {
             @Parameter(description = "카드 ID", required = true)
             @PathVariable UUID cardId,
 
-            @Parameter(description = "신청서 ID", required = true)
+            @Parameter(description = "신청 ID", required = true)
             @PathVariable UUID applyId
     ) {
-        throw new UnsupportedOperationException("Not implemented yet");
-    }
-
-    @Tag(name = "CardApply")
-    @Operation(
-            summary = "내 신청서 목록 조회",
-            description = "현재 로그인한 사용자가 제출한 신청서 목록을 반환합니다."
-    )
-    @ApiResponses({
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(
-                    responseCode = "200", description = "조회 성공",
-                    content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE,
-                            array = @ArraySchema(schema = @Schema(implementation = MyCardApplySummaryResponse.class)))),
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(
-                    responseCode = "401", description = "인증 필요")
-    })
-    @GetMapping("/applies/my")
-    public ResponseEntity<ApiResponse<List<MyCardApplySummaryResponse>>> getMyApplies() {
         throw new UnsupportedOperationException("Not implemented yet");
     }
 }
