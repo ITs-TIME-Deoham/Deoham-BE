@@ -4,6 +4,8 @@ import com.deoham.card.entity.CardApplyStatus;
 import com.deoham.card.repository.CardApplyRepository;
 import com.deoham.chat.entity.ChatRoom;
 import com.deoham.chat.repository.ChatRoomRepository;
+import com.deoham.global.security.jwt.JwtTokenProvider;
+import java.util.List;
 import java.util.UUID;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -18,8 +20,9 @@ import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.authentication.AuthenticationServiceException;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.oauth2.jwt.Jwt;
-import org.springframework.security.oauth2.jwt.JwtDecoder;
+import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationToken;
 import org.springframework.stereotype.Component;
 
 @Component
@@ -28,8 +31,7 @@ public class StompAuthChannelInterceptor implements ChannelInterceptor {
 
     private static final Pattern ROOM_DESTINATION_PATTERN = Pattern.compile("/sub/chat/rooms/([^/]+)");
 
-    private final JwtDecoder jwtDecoder;
-    private final SupabaseJwtAuthenticationConverter authenticationConverter;
+    private final JwtTokenProvider jwtTokenProvider;
     private final ChatRoomRepository chatRoomRepository;
     private final CardApplyRepository cardApplyRepository;
 
@@ -52,15 +54,16 @@ public class StompAuthChannelInterceptor implements ChannelInterceptor {
     private void authenticateConnect(StompHeaderAccessor accessor) {
         String authHeader = accessor.getFirstNativeHeader("Authorization");
         String token = extractBearerToken(authHeader);
-        Jwt jwt = jwtDecoder.decode(token);
-        Authentication authentication = authenticationConverter.convert(jwt);
-        accessor.setUser(authentication);
+        Jwt jwt = jwtTokenProvider.parseToken(token);
+        String role = jwt.getClaimAsString("role");
+        var authorities = List.of(new SimpleGrantedAuthority("ROLE_" + (role != null ? role : "USER")));
+        accessor.setUser(new JwtAuthenticationToken(jwt, authorities));
     }
 
     private void authorizeSubscribe(StompHeaderAccessor accessor) {
-        SupabasePrincipal principal = SupabaseAuthenticationUtils.fromAuthentication(
+        AuthPrincipal principal = AuthenticationUtils.fromAuthentication(
                 accessor.getUser() instanceof Authentication auth ? auth : null)
-                .orElseThrow(() -> new AuthenticationServiceException("인증되지 않은 구독 요청입니다"));
+                .orElseThrow(() -> new AuthenticationServiceException("Unauthenticated subscription request."));
 
         String destination = accessor.getDestination();
         UUID roomId = extractRoomId(destination);
@@ -69,7 +72,7 @@ public class StompAuthChannelInterceptor implements ChannelInterceptor {
         }
 
         ChatRoom room = chatRoomRepository.findById(roomId)
-                .orElseThrow(() -> new AccessDeniedException("채팅방을 찾을 수 없습니다"));
+                .orElseThrow(() -> new AccessDeniedException("Chat room not found."));
 
         UUID userId = principal.userId();
         var card = room.getCard();
@@ -79,7 +82,7 @@ public class StompAuthChannelInterceptor implements ChannelInterceptor {
                 .anyMatch(a -> a.getStatus() == CardApplyStatus.ACCEPTED
                             && a.getApplicant().getId().equals(userId));
         if (!isAccepted) {
-            throw new AccessDeniedException("채팅방 참여자가 아닙니다");
+            throw new AccessDeniedException("User is not a chat room participant.");
         }
     }
 
@@ -100,7 +103,7 @@ public class StompAuthChannelInterceptor implements ChannelInterceptor {
 
     private static String extractBearerToken(String authHeader) {
         if (authHeader == null || !authHeader.startsWith("Bearer ")) {
-            throw new BadCredentialsException("Authorization 헤더가 없습니다");
+            throw new BadCredentialsException("Authorization header is missing.");
         }
         return authHeader.substring("Bearer ".length());
     }

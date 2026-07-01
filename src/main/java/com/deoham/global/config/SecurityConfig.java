@@ -2,9 +2,7 @@ package com.deoham.global.config;
 
 import com.deoham.global.security.RestAccessDeniedHandler;
 import com.deoham.global.security.RestAuthenticationEntryPoint;
-import com.deoham.global.security.SupabaseJwtAuthenticationConverter;
-import com.deoham.global.security.SupabaseJwtProperties;
-import java.util.Collection;
+import com.deoham.global.security.jwt.JwtAuthenticationFilter;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
@@ -16,16 +14,8 @@ import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
 import org.springframework.security.config.http.SessionCreationPolicy;
-import org.springframework.security.oauth2.core.DelegatingOAuth2TokenValidator;
-import org.springframework.security.oauth2.core.OAuth2Error;
-import org.springframework.security.oauth2.core.OAuth2TokenValidator;
-import org.springframework.security.oauth2.core.OAuth2TokenValidatorResult;
-import org.springframework.security.oauth2.jwt.Jwt;
-import org.springframework.security.oauth2.jwt.JwtDecoder;
-import org.springframework.security.oauth2.jwt.JwtIssuerValidator;
-import org.springframework.security.oauth2.jwt.JwtValidators;
-import org.springframework.security.oauth2.jwt.NimbusJwtDecoder;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
@@ -33,7 +23,7 @@ import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 @Configuration
 @EnableWebSecurity
 @EnableMethodSecurity
-@EnableConfigurationProperties({ SupabaseJwtProperties.class, CorsProperties.class })
+@EnableConfigurationProperties({ CorsProperties.class, KakaoOAuthProperties.class })
 @RequiredArgsConstructor
 public class SecurityConfig {
 
@@ -44,22 +34,19 @@ public class SecurityConfig {
 			"/swagger-ui.html",
 			"/swagger-ui/**",
 			"/v3/api-docs",
-			"/v3/api-docs/**"
+			"/v3/api-docs/**",
+			"/api/auth/kakao",          // Kakao OAuth 시작 (리다이렉트)
+			"/api/auth/kakao/callback", // 인가 코드 → JWT 교환
+			"/api/auth/refresh"         // 액세스 토큰 갱신
 	};
 
-	private final SupabaseJwtProperties jwtProperties;
 	private final CorsProperties corsProperties;
 	private final RestAuthenticationEntryPoint authenticationEntryPoint;
 	private final RestAccessDeniedHandler accessDeniedHandler;
+	private final JwtAuthenticationFilter jwtAuthenticationFilter;
 
 	@Bean
-	public SupabaseJwtAuthenticationConverter jwtAuthenticationConverter() {
-		return new SupabaseJwtAuthenticationConverter();
-	}
-
-	@Bean
-	public SecurityFilterChain securityFilterChain(HttpSecurity http, JwtDecoder jwtDecoder,
-			SupabaseJwtAuthenticationConverter jwtAuthenticationConverter) throws Exception {
+	public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
 		http
 				.csrf(AbstractHttpConfigurer::disable)
 				.formLogin(AbstractHttpConfigurer::disable)
@@ -70,48 +57,11 @@ public class SecurityConfig {
 						.requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
 						.requestMatchers(PUBLIC_ENDPOINTS).permitAll()
 						.anyRequest().authenticated())
-				.oauth2ResourceServer(oauth2 -> oauth2
-						.jwt(jwt -> jwt
-								.decoder(jwtDecoder)
-								.jwtAuthenticationConverter(jwtAuthenticationConverter))
-						.authenticationEntryPoint(authenticationEntryPoint)
-						.accessDeniedHandler(accessDeniedHandler))
+				.addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)
 				.exceptionHandling(ex -> ex
 						.authenticationEntryPoint(authenticationEntryPoint)
 						.accessDeniedHandler(accessDeniedHandler));
 		return http.build();
-	}
-
-	@Bean
-	public JwtDecoder jwtDecoder() {
-		NimbusJwtDecoder decoder = NimbusJwtDecoder.withJwkSetUri(jwtProperties.jwksUri()).build();
-
-		OAuth2TokenValidator<Jwt> defaultValidator = JwtValidators.createDefault();
-		OAuth2TokenValidator<Jwt> issuerValidator = new JwtIssuerValidator(jwtProperties.issuer());
-		OAuth2TokenValidator<Jwt> audienceValidator = audienceValidator(jwtProperties.audience());
-
-		decoder.setJwtValidator(new DelegatingOAuth2TokenValidator<>(
-				defaultValidator, issuerValidator, audienceValidator));
-		return decoder;
-	}
-
-	private static OAuth2TokenValidator<Jwt> audienceValidator(String requiredAudience) {
-		OAuth2Error error = new OAuth2Error(
-				"invalid_token",
-				"Required audience '" + requiredAudience + "' not present",
-				null);
-		return jwt -> {
-			Object aud = jwt.getClaim("aud");
-			boolean valid;
-			if (aud instanceof String s) {
-				valid = s.equals(requiredAudience);
-			} else if (aud instanceof Collection<?> c) {
-				valid = c.contains(requiredAudience);
-			} else {
-				valid = false;
-			}
-			return valid ? OAuth2TokenValidatorResult.success() : OAuth2TokenValidatorResult.failure(error);
-		};
 	}
 
 	private CorsConfigurationSource corsConfigurationSource() {
