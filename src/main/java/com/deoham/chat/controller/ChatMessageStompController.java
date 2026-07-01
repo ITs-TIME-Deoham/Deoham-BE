@@ -5,8 +5,8 @@ import com.deoham.chat.dto.ChatMessageSendRequest;
 import com.deoham.chat.service.ChatMessageService;
 import com.deoham.global.exception.BusinessException;
 import com.deoham.global.exception.ErrorCode;
-import com.deoham.global.security.SupabaseAuthenticationUtils;
-import com.deoham.global.security.SupabasePrincipal;
+import com.deoham.global.security.AuthenticationUtils;
+import com.deoham.global.security.AuthPrincipal;
 import java.security.Principal;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
@@ -45,8 +45,8 @@ public class ChatMessageStompController {
         if (!(principal instanceof Authentication authentication)) {
             throw new BusinessException(ErrorCode.UNAUTHORIZED);
         }
-        SupabasePrincipal supabasePrincipal = SupabaseAuthenticationUtils.fromAuthentication(authentication)
+        AuthPrincipal authPrincipal = AuthenticationUtils.fromAuthentication(authentication)
                 .orElseThrow(() -> new BusinessException(ErrorCode.UNAUTHORIZED));
-        return supabasePrincipal.userId();
+        return authPrincipal.userId();
     }
 }

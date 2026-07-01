@@ -5,9 +5,9 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ## Stack
 
 - Spring Boot 3.5.14, Java 17, Gradle
-- PostgreSQL (Supabase) + Flyway
+- PostgreSQL + Flyway
 - Redis
-- Spring Security 6 + OAuth2 Resource Server (Supabase JWT, ES256/JWKS)
+- Spring Security 6 + OAuth2 Resource Server (self-issued HS256 JWT)
 - SpringDoc OpenAPI 2.8.x
 - AWS SDK v2 (S3 + STS) for file storage
 - Testcontainers (Postgres + Redis) for integration tests
@@ -36,21 +36,19 @@ App URL: `http://localhost:8080`. Swagger UI: `/swagger-ui.html`. Health: `/actu
 
 ## Architecture
 
-### Auth flow (option A — Supabase as identity provider, no own JWT)
+### Auth flow (standard OAuth + self-issued JWT)
 
-1. Frontend signs in via Supabase (Kakao OAuth).
-2. Frontend sends Supabase access token as `Authorization: Bearer <jwt>` to this backend.
-3. Spring's OAuth2 resource server validates the JWT against Supabase's JWKS endpoint (asymmetric ES256 verification).
-4. Three validators are chained (see `SecurityConfig.jwtDecoder`):
-   - default (exp/nbf), `JwtIssuerValidator(issuer)`, custom `audienceValidator` (handles both string and array `aud` forms).
-5. `SupabaseJwtAuthenticationConverter` maps the `role` claim to `ROLE_<role>` authority and sets `sub` (UUID) as principal name.
-6. Service code calls `SupabaseAuthenticationUtils.currentPrincipal()` to get a typed `SupabasePrincipal(userId, email, role)`.
-
-The backend never issues its own tokens. Logout = client drops the Supabase token.
+1. Frontend initiates social login (e.g., Kakao OAuth) via `/api/auth/**`.
+2. Backend handles the OAuth callback, creates/updates the user record.
+3. Backend issues its own HS256 JWT signed with `JWT_SECRET`.
+4. Frontend sends the JWT as `Authorization: Bearer <jwt>` on every request.
+5. Spring's OAuth2 resource server validates the JWT signature + expiry (`SecurityConfig.jwtDecoder`).
+6. `AppJwtAuthenticationConverter` maps the `role` claim to `ROLE_<role>` authority and sets `sub` (UUID) as principal name.
+7. Service code calls `AuthenticationUtils.currentPrincipal()` to get a typed `AuthPrincipal(userId, email, role)`.
 
 ### Profiles
 
-- `application.yml` — defaults (port, JPA settings, JSON, Swagger, Supabase/CORS/S3 keys with placeholders).
+- `application.yml` — defaults (port, JPA settings, JSON, Swagger, JWT/CORS/S3 keys with placeholders).
 - `application-local.yml` — points at the docker-compose Postgres+Redis on localhost; verbose logging.
 - `application-prod.yml` — fully env-driven; disables `spring.docker.compose`; tunes Hikari + access logs.
 
@@ -58,25 +56,13 @@ The backend never issues its own tokens. Logout = client drops the Supabase toke
 
 ### Required env vars (prod)
 
-- `SPRING_DATASOURCE_URL` — Supabase Postgres JDBC URL
+- `SPRING_DATASOURCE_URL` — Postgres JDBC URL
 - `SPRING_DATASOURCE_USERNAME`, `SPRING_DATASOURCE_PASSWORD`
 - `SPRING_DATA_REDIS_HOST`, `SPRING_DATA_REDIS_PORT`, `SPRING_DATA_REDIS_PASSWORD`, `SPRING_DATA_REDIS_SSL`
-- `SUPABASE_JWT_ISSUER` — e.g. `https://<project-ref>.supabase.co/auth/v1`
-- `SUPABASE_JWT_JWKS_URI` — e.g. `https://<project-ref>.supabase.co/auth/v1/.well-known/jwks.json`
-- `SUPABASE_JWT_AUDIENCE` — defaults to `authenticated`
+- `JWT_SECRET` — HS256 signing secret (minimum 32 chars / 256 bits)
 - `AWS_S3_REGION`, `AWS_S3_BUCKET`, `AWS_S3_PRESIGNED_TTL`
 - AWS credentials via standard chain (env, IAM role, etc.)
 - `CORS_ALLOWED_ORIGINS` — comma-separated
-
-### Supabase Postgres connection notes
-
-- **Connection target**: prefer the **Supavisor session-mode pooler** (`aws-0-<region>.pooler.supabase.com:5432`, username `postgres.<project-ref>`) over the direct `db.<project-ref>.supabase.co:5432` host (the latter is IPv6-only on newer projects). Spring + HikariCP needs persistent stateful connections, so **session mode is correct — do not use port 6543 (transaction mode), it breaks prepared statements / `SET` and Hibernate.**
-- `?sslmode=require` in the JDBC URL.
-- Flyway has `baseline-on-migrate: true` because Supabase ships with `auth`, `storage`, `realtime` schemas. Our migrations only touch `public` (default).
-
-### JWT signing keys (Supabase)
-
-Project must use **asymmetric signing keys (ES256)** in Supabase dashboard → Project Settings → JWT Keys. Legacy HS256 (shared secret) projects need the security config swapped to a `MacAlgorithm.HS256` decoder — not what's wired up today.
 
 ### Package layout
 
@@ -85,12 +71,13 @@ com.deoham
 ├── DeohamApplication
 └── global
     ├── config         # SecurityConfig, RedisConfig, OpenApiConfig, S3Config + *Properties
-    ├── security       # SupabaseJwt*, SupabasePrincipal, RestAuthenticationEntryPoint, RestAccessDeniedHandler
+    ├── security       # JwtProperties, AppJwtAuthenticationConverter, AuthPrincipal, AuthenticationUtils,
+    │                  # RestAuthenticationEntryPoint, RestAccessDeniedHandler, StompAuthChannelInterceptor
     ├── exception      # ErrorCode, BusinessException, GlobalExceptionHandler
     └── response       # ApiResponse<T>
 ```
 
-Domain code goes under `com.deoham.<feature>` (e.g. `com.deoham.user`) — controller + service + repository + entity per feature, not layered globally. (No domain modules exist yet.)
+Domain code goes under `com.deoham.<feature>` (e.g. `com.deoham.user`) — controller + service + repository + entity per feature, not layered globally.
 
 ### Response envelope
 
@@ -107,7 +94,6 @@ Filter-thrown auth errors go through `RestAuthenticationEntryPoint` / `RestAcces
 
 ## Things that bite
 
-- **Don't enable transaction-mode pooler (port 6543)** for the JDBC URL — Hibernate/HikariCP break.
-- **`audience` validator must accept both `String` and `Collection<String>`** — Supabase emits `aud: "authenticated"` (single string), but the JWT spec allows arrays; defensive check is in `SecurityConfig.audienceValidator`.
 - **Filter-time auth failures don't hit `@RestControllerAdvice`** — they hit the `AuthenticationEntryPoint` / `AccessDeniedHandler`. Both paths must produce the same `ApiResponse` shape.
 - **`open-in-view: false`** is set — lazy associations outside `@Transactional` will throw. Keep transaction boundaries explicit.
+- **`JWT_SECRET` must be ≥ 32 chars** — NimbusJwtDecoder with HmacSHA256 requires a 256-bit key minimum.

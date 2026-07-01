@@ -3,26 +3,34 @@ package com.deoham.card.dto.response;
 import com.deoham.card.entity.CardCategory;
 import com.deoham.card.entity.CardStatus;
 import io.swagger.v3.oas.annotations.media.Schema;
-
 import java.time.Instant;
 import java.util.UUID;
 
-@Schema(description = "내가 작성한 Card 요약 응답")
+@Schema(description = "My card summary response")
 public record MyCardSummaryResponse(
 
         @Schema(description = "Card ID")
         UUID id,
 
-        @Schema(description = "카테고리")
+        @Schema(description = "Category")
         CardCategory category,
 
-        @Schema(description = "제목")
+        @Schema(description = "Title")
         String title,
 
-        @Schema(description = "상태")
+        @Schema(description = "Status")
         CardStatus status,
 
-        @Schema(description = "생성 시각")
+        @Schema(description = "City")
+        String city,
+
+        @Schema(description = "Search radius in meters")
+        Integer radiusM,
+
+        @Schema(description = "Expiration time")
+        Instant expiresAt,
+
+        @Schema(description = "Created time")
         Instant createdAt
 ) {
 }

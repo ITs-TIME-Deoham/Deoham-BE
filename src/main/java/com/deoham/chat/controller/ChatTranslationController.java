@@ -7,8 +7,8 @@ import com.deoham.chat.service.ChatTranslationService;
 import com.deoham.global.exception.BusinessException;
 import com.deoham.global.exception.ErrorCode;
 import com.deoham.global.response.ApiResponse;
-import com.deoham.global.security.SupabaseAuthenticationUtils;
-import com.deoham.global.security.SupabasePrincipal;
+import com.deoham.global.security.AuthenticationUtils;
+import com.deoham.global.security.AuthPrincipal;
 import jakarta.validation.Valid;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
@@ -30,7 +30,7 @@ public class ChatTranslationController implements ChatTranslationControllerDocs 
     public ApiResponse<ChatTranslationResponse> translate(
             @PathVariable UUID messageId,
             @Valid @RequestBody ChatTranslationRequest request) {
-        SupabasePrincipal principal = SupabaseAuthenticationUtils.currentPrincipal()
+        AuthPrincipal principal = AuthenticationUtils.currentPrincipal()
                 .orElseThrow(() -> new BusinessException(ErrorCode.UNAUTHORIZED));
         return ApiResponse.ok(chatTranslationService.translate(principal.userId(), messageId, request.targetLanguage()));
     }

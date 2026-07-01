@@ -24,7 +24,7 @@ public class OpenApiConfig {
 				.info(new Info()
 						.title("Deoham API")
 						.description("Deoham backend REST API\n\n" +
-								"모든 API는 `Authorization: Bearer <Supabase JWT>` 헤더가 필요합니다.\n" +
+								"모든 API는 `Authorization: Bearer <JWT>` 헤더가 필요합니다.\n" +
 								"우측 상단 **Authorize** 버튼에서 토큰을 입력하세요.")
 						.version("v0.0.1")
 						.contact(new Contact()
@@ -36,7 +36,7 @@ public class OpenApiConfig {
 				))
 				.tags(List.of(
 						new Tag().name("Card").description("도움 요청 카드 생성·조회·상태 변경"),
-						new Tag().name("CardApply").description("카드 신청서 제출·수락·거절")
+						new Tag().name("CardApply").description("매칭 신청서 제출·수락·거절")
 				))
 				.addSecurityItem(new SecurityRequirement().addList(SECURITY_SCHEME_NAME))
 				.components(new Components().addSecuritySchemes(SECURITY_SCHEME_NAME,
@@ -44,6 +44,6 @@ public class OpenApiConfig {
 								.type(SecurityScheme.Type.HTTP)
 								.scheme("bearer")
 								.bearerFormat("JWT")
-								.description("Supabase access token — `Authorization: Bearer <token>`")));
+								.description("JWT access token — `Authorization: Bearer <token>`")));
 	}
 }

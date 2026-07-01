@@ -2,29 +2,28 @@ package com.deoham.card.dto.response;
 
 import com.deoham.card.entity.CardApplyStatus;
 import io.swagger.v3.oas.annotations.media.Schema;
-
 import java.time.Instant;
 import java.util.UUID;
 
-@Schema(description = "Card 신청서 요약 응답")
+@Schema(description = "Card apply summary response")
 public record CardApplySummaryResponse(
 
-        @Schema(description = "신청서 ID")
+        @Schema(description = "Apply ID")
         UUID id,
 
-        @Schema(description = "신청자 ID")
+        @Schema(description = "Applicant ID")
         UUID applicantId,
 
-        @Schema(description = "신청자 닉네임")
+        @Schema(description = "Applicant nickname")
         String applicantNickname,
 
-        @Schema(description = "신청자 프로필 이미지 URL")
+        @Schema(description = "Applicant profile image URL")
         String applicantProfileImageUrl,
 
-        @Schema(description = "신청 상태")
+        @Schema(description = "Apply status")
         CardApplyStatus status,
 
-        @Schema(description = "신청 시각")
-        Instant createdAt
+        @Schema(description = "Applied time")
+        Instant appliedAt
 ) {
 }

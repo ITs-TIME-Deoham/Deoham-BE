@@ -4,38 +4,46 @@ import com.deoham.card.entity.CardCategory;
 import com.deoham.card.entity.CardStatus;
 import com.deoham.card.entity.PreferredGender;
 import io.swagger.v3.oas.annotations.media.Schema;
-
 import java.time.Instant;
 import java.util.UUID;
 
-@Schema(description = "Card 요약 응답")
+@Schema(description = "Card summary response")
 public record CardSummaryResponse(
 
         @Schema(description = "Card ID")
         UUID id,
 
-        @Schema(description = "카테고리")
+        @Schema(description = "Category")
         CardCategory category,
 
-        @Schema(description = "제목")
+        @Schema(description = "Title")
         String title,
 
-        @Schema(description = "상태")
+        @Schema(description = "Status")
         CardStatus status,
 
-        @Schema(description = "선호 성별")
+        @Schema(description = "City")
+        String city,
+
+        @Schema(description = "Search radius in meters")
+        Integer radiusM,
+
+        @Schema(description = "Expiration time")
+        Instant expiresAt,
+
+        @Schema(description = "Preferred gender")
         PreferredGender preferredGender,
 
-        @Schema(description = "선호 최소 나이")
+        @Schema(description = "Preferred minimum age")
         Integer preferredAgeMin,
 
-        @Schema(description = "선호 최대 나이")
+        @Schema(description = "Preferred maximum age")
         Integer preferredAgeMax,
 
-        @Schema(description = "현재 위치로부터의 거리 (미터)")
+        @Schema(description = "Distance from current location in meters")
         Double distanceMeters,
 
-        @Schema(description = "생성 시각")
+        @Schema(description = "Created time")
         Instant createdAt
 ) {
 }
