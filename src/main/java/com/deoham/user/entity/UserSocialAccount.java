@@ -76,9 +76,14 @@ public class UserSocialAccount {
         this.createdAt = Instant.now();
     }
 
-    public void updateTokens(String accessToken, String refreshToken, Instant tokenExpiresAt) {
-        this.accessToken = accessToken;
-        this.refreshToken = refreshToken;
-        this.tokenExpiresAt = tokenExpiresAt;
-    }
+	public void updateTokens(String accessToken, String refreshToken, Instant tokenExpiresAt) {
+		this.accessToken = accessToken;
+		this.refreshToken = refreshToken;
+		this.tokenExpiresAt = tokenExpiresAt;
+	}
+
+	public void revokeRefreshToken() {
+		this.refreshToken = null;
+		this.tokenExpiresAt = null;
+	}
 }

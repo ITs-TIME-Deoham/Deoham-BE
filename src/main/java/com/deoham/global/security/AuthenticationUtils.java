@@ -7,16 +7,16 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationToken;
 
-public final class SupabaseAuthenticationUtils {
+public final class AuthenticationUtils {
 
-	private SupabaseAuthenticationUtils() {
+	private AuthenticationUtils() {
 	}
 
-	public static Optional<SupabasePrincipal> currentPrincipal() {
+	public static Optional<AuthPrincipal> currentPrincipal() {
 		return fromAuthentication(SecurityContextHolder.getContext().getAuthentication());
 	}
 
-	public static Optional<SupabasePrincipal> fromAuthentication(Authentication authentication) {
+	public static Optional<AuthPrincipal> fromAuthentication(Authentication authentication) {
 		if (!(authentication instanceof JwtAuthenticationToken jwtAuth)) {
 			return Optional.empty();
 		}
@@ -31,7 +31,7 @@ public final class SupabaseAuthenticationUtils {
 		} catch (IllegalArgumentException ex) {
 			return Optional.empty();
 		}
-		return Optional.of(new SupabasePrincipal(
+		return Optional.of(new AuthPrincipal(
 				userId,
 				jwt.getClaimAsString("email"),
 				jwt.getClaimAsString("role")
