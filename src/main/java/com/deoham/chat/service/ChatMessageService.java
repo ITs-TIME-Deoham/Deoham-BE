@@ -6,7 +6,9 @@ import com.deoham.card.repository.CardApplyRepository;
 import com.deoham.chat.dto.ChatMessagePageResponse;
 import com.deoham.chat.dto.ChatMessageResponse;
 import com.deoham.chat.dto.ChatMessageSendRequest;
+import com.deoham.chat.dto.ChatReadEvent;
 import com.deoham.chat.entity.ChatMessage;
+import com.deoham.chat.entity.ChatMessageType;
 import com.deoham.chat.entity.ChatRoom;
 import com.deoham.chat.repository.ChatMessageRepository;
 import com.deoham.chat.repository.ChatRoomRepository;
@@ -15,11 +17,14 @@ import com.deoham.global.exception.ErrorCode;
 import com.deoham.notification.service.NotificationService;
 import com.deoham.user.entity.User;
 import com.deoham.user.repository.UserRepository;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.PageRequest;
+import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -33,6 +38,8 @@ public class ChatMessageService {
     private final CardApplyRepository cardApplyRepository;
     private final UserRepository userRepository;
     private final NotificationService notificationService;
+    private final SimpMessagingTemplate messagingTemplate;
+    private final ObjectMapper objectMapper;
 
     @Transactional
     public ChatMessageResponse sendMessage(UUID roomId, UUID senderId, ChatMessageSendRequest request) {
@@ -44,12 +51,31 @@ public class ChatMessageService {
         ChatMessage saved = chatMessageRepository.save(ChatMessage.builder()
                 .chatRoom(room)
                 .sender(sender)
-                .content(request.content())
+                .content(resolveContent(request))
                 .messageType(request.messageType())
                 .build());
 
         notifyOtherParticipant(room, senderId, saved);
         return toResponse(saved);
+    }
+
+    @Transactional
+    public void markMessagesAsRead(UUID roomId, UUID userId) {
+        ChatRoom room = findActiveRoomOrThrow(roomId);
+        requireParticipant(room.getCard(), userId);
+
+        List<ChatMessage> unread =
+                chatMessageRepository.findByChatRoomIdAndSenderIdNotAndReadAtIsNull(roomId, userId);
+        if (unread.isEmpty()) {
+            return;
+        }
+
+        List<UUID> readMessageIds = unread.stream().map(ChatMessage::getId).toList();
+        unread.forEach(ChatMessage::markRead);
+
+        messagingTemplate.convertAndSend(
+                "/sub/chat/rooms/" + roomId + "/read",
+                new ChatReadEvent(roomId, userId, readMessageIds, Instant.now()));
     }
 
     public ChatMessagePageResponse getMessages(UUID roomId, UUID userId, Instant before, int size) {
@@ -93,6 +119,23 @@ public class ChatMessageService {
         if (!isAcceptedApplicant) {
             throw new BusinessException(ErrorCode.FORBIDDEN, "채팅방 참여자가 아닙니다");
         }
+    }
+
+    private String resolveContent(ChatMessageSendRequest request) {
+        if (request.messageType() == ChatMessageType.LOCATION) {
+            if (request.location() == null) {
+                throw new BusinessException(ErrorCode.INVALID_REQUEST, "LOCATION 타입은 location 필드가 필요합니다");
+            }
+            try {
+                return objectMapper.writeValueAsString(request.location());
+            } catch (JsonProcessingException e) {
+                throw new BusinessException(ErrorCode.INVALID_REQUEST, "위치 정보 직렬화에 실패했습니다");
+            }
+        }
+        if (request.content() == null || request.content().isBlank()) {
+            throw new BusinessException(ErrorCode.INVALID_REQUEST, "content는 필수입니다");
+        }
+        return request.content();
     }
 
     private ChatRoom findActiveRoomOrThrow(UUID roomId) {

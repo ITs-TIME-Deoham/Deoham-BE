@@ -10,10 +10,17 @@ concurrency:
   group: ci-${{ github.ref }}
   cancel-in-progress: true
 
+env:
+  # GHCR 이미지 경로 (소문자 고정)
+  IMAGE_NAME: ghcr.io/its-time-ondo/ondo-be
+
 jobs:
   build:
     runs-on: ubuntu-latest
     timeout-minutes: 20
+    permissions:
+      contents: read
+      packages: write        # GHCR push 용
     steps:
       - uses: actions/checkout@v4
 
@@ -39,27 +46,32 @@ jobs:
           name: test-reports
           path: build/reports/tests/
 
-      - name: Upload build artifact
+      # --- 이미지 빌드 & push (develop push 일 때만) ---
+      # EC2(t3.micro) 대신 러너에서 이미지를 만들어 GHCR 에 올린다 → 배포 시 EC2 메모리 스파이크 제거
+      - name: Log in to GHCR
         if: github.event_name == 'push' && github.ref == 'refs/heads/develop'
-        uses: actions/upload-artifact@v4
-        with:
-          name: build-files
-          path: |
-            build/libs/*.jar
-            Dockerfile.deploy
-            compose.yaml
+        run: echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
+
+      - name: Build & push image
+        if: github.event_name == 'push' && github.ref == 'refs/heads/develop'
+        run: |
+          docker build -f Dockerfile.deploy \
+            -t "$IMAGE_NAME:latest" \
+            -t "$IMAGE_NAME:${{ github.sha }}" .
+          docker push "$IMAGE_NAME:latest"
+          docker push "$IMAGE_NAME:${{ github.sha }}"
 
   deploy:
     needs: build
     if: github.event_name == 'push' && github.ref == 'refs/heads/develop'
     runs-on: ubuntu-latest
     timeout-minutes: 15
+    permissions:
+      contents: read
+      packages: read         # EC2 에서 GHCR pull 시 이 토큰을 넘겨 로그인
 
     steps:
-      - name: Download artifact
-        uses: actions/download-artifact@v4
-        with:
-          name: build-files
+      - uses: actions/checkout@v4   # compose.yaml 확보용
 
       - name: Write SSH key
         run: |
@@ -100,61 +112,89 @@ jobs:
           # Kakao Map — Java 바인딩 없음, 구현 완료 후 활성화
           # KAKAO_MAP_REST_API_KEY=${{ secrets.KAKAO_MAP_REST_API_KEY }}
           ENVEOF
+          # compose 가 pull 할 이미지 태그 (커밋 SHA 로 핀 고정) — compose 의 ${APP_IMAGE} 로 치환됨
+          echo "APP_IMAGE=$IMAGE_NAME:${{ github.sha }}" >> .env
 
-      - name: Prepare EC2 directories
+      # A. 스왑 보장 — t3.micro(1GB) OOM 방지. 없을 때만 2G swapfile 생성 (재부팅에도 유지)
+      - name: Ensure swap on EC2 (idempotent)
+        run: |
+          ssh -i private_key.pem -o StrictHostKeyChecking=no \
+            ${{ secrets.EC2_USERNAME }}@${{ secrets.EC2_HOST }} 'bash -s' << 'ENDSSH'
+          set -e
+          if sudo swapon --show | grep -q '/swapfile'; then
+            echo "swap already present"
+          else
+            echo "Creating 2G swapfile..."
+            sudo fallocate -l 2G /swapfile || sudo dd if=/dev/zero of=/swapfile bs=1M count=2048
+            sudo chmod 600 /swapfile
+            sudo mkswap /swapfile
+            sudo swapon /swapfile
+            grep -q '/swapfile' /etc/fstab || echo '/swapfile none swap sw 0 0' | sudo tee -a /etc/fstab
+            sudo sysctl -w vm.swappiness=10
+            grep -q 'vm.swappiness' /etc/sysctl.conf || echo 'vm.swappiness=10' | sudo tee -a /etc/sysctl.conf
+          fi
+          free -h
+          ENDSSH
+
+      - name: Prepare EC2 directory
         run: |
           ssh -i private_key.pem -o StrictHostKeyChecking=no \
             ${{ secrets.EC2_USERNAME }}@${{ secrets.EC2_HOST }} \
-            "mkdir -p ~/deoham/build/libs"
+            "mkdir -p ~/deoham"
 
-      - name: Transfer files
+      - name: Transfer compose & env
         run: |
           scp -i private_key.pem -o StrictHostKeyChecking=no \
-            Dockerfile.deploy compose.yaml .env \
+            compose.yaml .env \
             ${{ secrets.EC2_USERNAME }}@${{ secrets.EC2_HOST }}:~/deoham/
 
-          scp -i private_key.pem -o StrictHostKeyChecking=no \
-            build/libs/*.jar \
-            ${{ secrets.EC2_USERNAME }}@${{ secrets.EC2_HOST }}:~/deoham/build/libs/
-
+      # B. EC2 는 빌드 없이 GHCR 에서 pull 만 한다
       - name: Deploy on EC2
+        env:
+          GHCR_USER: ${{ github.actor }}
+          GHCR_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           ssh -i private_key.pem -o StrictHostKeyChecking=no \
-            ${{ secrets.EC2_USERNAME }}@${{ secrets.EC2_HOST }} << 'ENDSSH'
-            set -e
-            cd ~/deoham
+            ${{ secrets.EC2_USERNAME }}@${{ secrets.EC2_HOST }} \
+            "GHCR_USER='$GHCR_USER' GHCR_TOKEN='$GHCR_TOKEN' bash -s" << 'ENDSSH'
+          set -e
+          cd ~/deoham
 
-            echo "=== Cleaning old images ==="
-            docker compose down || true
-            docker image prune -af || true
+          echo "=== GHCR login ==="
+          echo "$GHCR_TOKEN" | docker login ghcr.io -u "$GHCR_USER" --password-stdin
 
-            echo "=== Building and starting containers ==="
-            docker compose up -d --build
+          echo "=== Pull & start ==="
+          docker compose pull
+          docker compose up -d
 
-            echo "=== Waiting for startup (30s) ==="
-            sleep 30
+          echo "=== Prune old images ==="
+          docker image prune -af || true
+          docker logout ghcr.io || true
 
-            echo "=== Health check ==="
-            healthy=0
-            for i in $(seq 1 12); do
-              if curl -sf http://localhost/actuator/health > /dev/null; then
-                echo "Application is healthy"
-                healthy=1
-                break
-              fi
-              echo "Attempt $i/12 failed, retrying in 10s..."
-              sleep 10
-            done
+          echo "=== Waiting for startup (30s) ==="
+          sleep 30
 
-            docker compose ps || true
-
-            if [ "$healthy" -ne 1 ]; then
-              echo "Health check failed — last 100 log lines:"
-              docker compose logs --tail=100 app
-              exit 1
+          echo "=== Health check ==="
+          healthy=0
+          for i in $(seq 1 12); do
+            if curl -sf http://localhost/actuator/health > /dev/null; then
+              echo "Application is healthy"
+              healthy=1
+              break
             fi
+            echo "Attempt $i/12 failed, retrying in 10s..."
+            sleep 10
+          done
 
-            echo "=== Deploy succeeded ==="
+          docker compose ps || true
+
+          if [ "$healthy" -ne 1 ]; then
+            echo "Health check failed — last 100 log lines:"
+            docker compose logs --tail=100 app
+            exit 1
+          fi
+
+          echo "=== Deploy succeeded ==="
           ENDSSH
 
       - name: Cleanup sensitive files

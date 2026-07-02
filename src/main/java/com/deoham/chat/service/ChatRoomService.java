@@ -7,10 +7,15 @@ import com.deoham.card.repository.CardRepository;
 import com.deoham.chat.dto.ChatRoomLocationResponse;
 import com.deoham.chat.dto.ChatRoomResponse;
 import com.deoham.chat.entity.ChatRoom;
+import com.deoham.chat.repository.ChatMessageRepository;
 import com.deoham.chat.repository.ChatRoomRepository;
+import com.deoham.chat.repository.UnreadCountProjection;
 import com.deoham.global.exception.BusinessException;
 import com.deoham.global.exception.ErrorCode;
+import java.util.List;
+import java.util.Map;
 import java.util.UUID;
+import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -23,6 +28,7 @@ import org.springframework.transaction.annotation.Transactional;
 public class ChatRoomService {
 
     private final ChatRoomRepository chatRoomRepository;
+    private final ChatMessageRepository chatMessageRepository;
     private final CardRepository cardRepository;
     private final CardApplyRepository cardApplyRepository;
 
@@ -35,18 +41,29 @@ public class ChatRoomService {
         ChatRoom room = chatRoomRepository.findByCardId(cardId)
                 .orElseGet(() -> chatRoomRepository.save(ChatRoom.builder().card(card).build()));
 
-        return toResponse(room);
+        return toResponse(room, unreadCountOf(room, userId));
     }
 
     public ChatRoomResponse getRoom(UUID roomId, UUID userId) {
         ChatRoom room = findRoomOrThrow(roomId);
         requireParticipant(room.getCard(), userId);
-        return toResponse(room);
+        return toResponse(room, unreadCountOf(room, userId));
     }
 
     public Page<ChatRoomResponse> getMyRooms(UUID userId, Pageable pageable) {
-        return chatRoomRepository.findMyRooms(userId, CardApplyStatus.ACCEPTED, pageable)
-                .map(this::toResponse);
+        Page<ChatRoom> rooms = chatRoomRepository.findMyRooms(userId, CardApplyStatus.ACCEPTED, pageable);
+
+        List<UUID> roomIds = rooms.getContent().stream().map(ChatRoom::getId).toList();
+        Map<UUID, Long> unreadCounts = roomIds.isEmpty()
+                ? Map.of()
+                : chatMessageRepository.countUnreadGroupedByRoom(roomIds, userId).stream()
+                        .collect(Collectors.toMap(UnreadCountProjection::getRoomId, UnreadCountProjection::getUnreadCount));
+
+        return rooms.map(room -> toResponse(room, unreadCounts.getOrDefault(room.getId(), 0L)));
+    }
+
+    private long unreadCountOf(ChatRoom room, UUID userId) {
+        return chatMessageRepository.countByChatRoomIdAndSenderIdNotAndReadAtIsNull(room.getId(), userId);
     }
 
     public ChatRoomLocationResponse getCardLocation(UUID roomId, UUID userId) {
@@ -78,12 +95,13 @@ public class ChatRoomService {
                 .orElseThrow(() -> new BusinessException(ErrorCode.NOT_FOUND, "채팅방을 찾을 수 없습니다"));
     }
 
-    private ChatRoomResponse toResponse(ChatRoom room) {
+    private ChatRoomResponse toResponse(ChatRoom room, long unreadCount) {
         return new ChatRoomResponse(
                 room.getId(),
                 room.getCard().getId(),
                 room.getStatus().name(),
                 room.getCreatedAt(),
-                room.getClosedAt());
+                room.getClosedAt(),
+                unreadCount);
     }
 }
