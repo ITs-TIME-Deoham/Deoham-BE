@@ -4,59 +4,52 @@ import com.deoham.card.entity.CardCategory;
 import com.deoham.card.entity.CardStatus;
 import com.deoham.card.entity.PreferredGender;
 import io.swagger.v3.oas.annotations.media.Schema;
-
 import java.time.Instant;
 import java.util.UUID;
 
-@Schema(description = "Card 상세 응답")
+@Schema(description = "Card detail response")
 public record CardDetailResponse(
 
         @Schema(description = "Card ID")
         UUID id,
 
-        @Schema(description = "작성자 ID")
-        UUID authorId,
+        @Schema(description = "Requester ID")
+        UUID requesterId,
 
-        @Schema(description = "작성자 닉네임")
-        String authorNickname,
+        @Schema(description = "Requester profile image URL")
+        String requesterProfileImageUrl,
 
-        @Schema(description = "작성자 프로필 이미지 URL")
-        String authorProfileImageUrl,
-
-        @Schema(description = "카테고리")
+        @Schema(description = "Category")
         CardCategory category,
 
-        @Schema(description = "제목")
-        String title,
-
-        @Schema(description = "상세 내용")
+        @Schema(description = "Description")
         String description,
 
-        @Schema(description = "위도")
-        Double latitude,
+        @Schema(description = "Expiration time")
+        Instant expiresAt,
 
-        @Schema(description = "경도")
-        Double longitude,
-
-        @Schema(description = "상태")
+        @Schema(description = "Status")
         CardStatus status,
 
-        @Schema(description = "선호 성별")
+        @Schema(description = "Preferred gender")
         PreferredGender preferredGender,
 
-        @Schema(description = "선호 최소 나이")
+        @Schema(description = "Preferred minimum age")
         Integer preferredAgeMin,
 
-        @Schema(description = "선호 최대 나이")
+        @Schema(description = "Preferred maximum age")
         Integer preferredAgeMax,
 
-        @Schema(description = "재시도 횟수")
+        @Schema(description = "Retry count")
         int retryCount,
 
-        @Schema(description = "생성 시각")
+        @Schema(description = "Created time")
         Instant createdAt,
 
-        @Schema(description = "수정 시각")
-        Instant updatedAt
+        @Schema(description = "Updated time")
+        Instant updatedAt,
+
+        @Schema(description = "Distance from current location in meters (nullable, only populated in nearby cards list)")
+        Double distanceMeters
 ) {
 }

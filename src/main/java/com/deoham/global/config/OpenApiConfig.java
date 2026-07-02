@@ -36,7 +36,7 @@ public class OpenApiConfig {
 				))
 				.tags(List.of(
 						new Tag().name("Card").description("도움 요청 카드 생성·조회·상태 변경"),
-						new Tag().name("CardApply").description("카드 신청서 제출·수락·거절")
+						new Tag().name("CardApply").description("매칭 신청·수락·거절")
 				))
 				.addSecurityItem(new SecurityRequirement().addList(SECURITY_SCHEME_NAME))
 				.components(new Components().addSecuritySchemes(SECURITY_SCHEME_NAME,

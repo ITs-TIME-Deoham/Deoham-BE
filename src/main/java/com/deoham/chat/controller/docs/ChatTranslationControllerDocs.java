@@ -5,19 +5,17 @@ import com.deoham.chat.dto.ChatTranslationResponse;
 import com.deoham.global.response.ApiResponse;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
-import io.swagger.v3.oas.annotations.media.Content;
-import io.swagger.v3.oas.annotations.media.ExampleObject;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import java.util.UUID;
 
-@Tag(name = "채팅 번역", description = "채팅 메시지 번역 API")
+@Tag(name = "Chat Translation", description = "Chat message translation APIs")
 public interface ChatTranslationControllerDocs {
 
     @Operation(
-            summary = "메시지 번역",
+            summary = "Translate message",
             description = """
-                    특정 채팅 메시지를 지정한 언어로 번역합니다.
+                    Translates a chat message into the requested language.
 
                     **캐싱**: 동일한 `(messageId, targetLanguage)` 조합은 DB에 캐시되어, 이후 요청은 번역 제공자를 재호출하지 않고 즉시 반환합니다.
                     응답의 `cached` 필드로 캐시 적중 여부를 확인할 수 있습니다.
@@ -96,6 +94,6 @@ public interface ChatTranslationControllerDocs {
             )
     )
     ApiResponse<ChatTranslationResponse> translate(
-            @Parameter(description = "번역할 메시지 UUID") UUID messageId,
+            @Parameter(description = "Message UUID") UUID messageId,
             @Valid ChatTranslationRequest request);
 }

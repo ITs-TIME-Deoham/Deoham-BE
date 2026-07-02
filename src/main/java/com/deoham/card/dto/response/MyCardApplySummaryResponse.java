@@ -4,32 +4,28 @@ import com.deoham.card.entity.CardApplyStatus;
 import com.deoham.card.entity.CardCategory;
 import com.deoham.card.entity.CardStatus;
 import io.swagger.v3.oas.annotations.media.Schema;
-
 import java.time.Instant;
 import java.util.UUID;
 
-@Schema(description = "내가 제출한 신청서 요약 응답")
+@Schema(description = "My card apply summary response")
 public record MyCardApplySummaryResponse(
 
-        @Schema(description = "신청서 ID")
+        @Schema(description = "Apply ID")
         UUID id,
 
         @Schema(description = "Card ID")
         UUID cardId,
 
-        @Schema(description = "Card 제목")
-        String cardTitle,
-
-        @Schema(description = "Card 카테고리")
+        @Schema(description = "Card category")
         CardCategory cardCategory,
 
-        @Schema(description = "Card 상태")
+        @Schema(description = "Card status")
         CardStatus cardStatus,
 
-        @Schema(description = "신청 상태")
+        @Schema(description = "Apply status")
         CardApplyStatus status,
 
-        @Schema(description = "신청 시각")
-        Instant createdAt
+        @Schema(description = "Applied time")
+        Instant appliedAt
 ) {
 }

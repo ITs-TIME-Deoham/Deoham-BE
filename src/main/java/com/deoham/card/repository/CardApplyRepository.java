@@ -2,6 +2,7 @@ package com.deoham.card.repository;
 
 import com.deoham.card.entity.Card;
 import com.deoham.card.entity.CardApply;
+import com.deoham.card.entity.CardApplyStatus;
 import com.deoham.user.entity.User;
 import org.springframework.data.jpa.repository.JpaRepository;
 
@@ -16,4 +17,6 @@ public interface CardApplyRepository extends JpaRepository<CardApply, UUID> {
     List<CardApply> findByCard(Card card);
 
     Optional<CardApply> findByCardAndApplicant(Card card, User applicant);
+
+    Optional<CardApply> findByCardAndStatus(Card card, CardApplyStatus status);
 }

@@ -6,6 +6,7 @@ import com.deoham.global.security.SupabaseJwtAuthenticationConverter;
 import com.deoham.global.security.SupabaseJwtProperties;
 import java.util.Collection;
 import java.util.List;
+import javax.crypto.spec.SecretKeySpec;
 import lombok.RequiredArgsConstructor;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;

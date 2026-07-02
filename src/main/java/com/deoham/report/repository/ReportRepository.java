@@ -1,5 +1,6 @@
 package com.deoham.report.repository;
 
+import com.deoham.card.entity.Card;
 import com.deoham.report.entity.Report;
 import com.deoham.report.entity.ReportTarget;
 import com.deoham.user.entity.User;

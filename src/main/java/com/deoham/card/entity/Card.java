@@ -9,6 +9,7 @@ import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
+import java.time.Duration;
 import java.time.Instant;
 import java.util.UUID;
 import lombok.AccessLevel;
@@ -26,6 +27,9 @@ import org.locationtech.jts.geom.Point;
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class Card extends BaseEntity {
 
+    public static final int MAX_RETRY_COUNT = 3;
+    public static final Duration EXPIRY_DURATION = Duration.ofHours(2);
+
     @Id
     @UuidGenerator
     @Column(name = "id", nullable = false, updatable = false)
@@ -38,9 +42,6 @@ public class Card extends BaseEntity {
     @JdbcTypeCode(SqlTypes.NAMED_ENUM)
     @Column(name = "category", nullable = false, columnDefinition = "card_category")
     private CardCategory category;
-
-    @Column(name = "title", nullable = false, length = 100)
-    private String title;
 
     @Column(name = "description", columnDefinition = "TEXT")
     private String description;
@@ -75,12 +76,11 @@ public class Card extends BaseEntity {
     private CardStatus status = CardStatus.OPEN;
 
     @Builder
-    private Card(User requester, CardCategory category, String title, String description,
+    private Card(User requester, CardCategory category, String description,
                  Point location, String city, Integer radiusM, Instant expiresAt,
                  PreferredGender preferredGender, Integer preferredAgeMin, Integer preferredAgeMax) {
         this.requester = requester;
         this.category = category;
-        this.title = title;
         this.description = description;
         this.location = location;
         this.city = city;
@@ -98,5 +98,9 @@ public class Card extends BaseEntity {
 
     public void incrementRetryCount() {
         this.retryCount++;
+    }
+
+    public void updateExpiresAt(Instant expiresAt) {
+        this.expiresAt = expiresAt;
     }
 }
