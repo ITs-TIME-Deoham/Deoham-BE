@@ -95,6 +95,9 @@ jobs:
           SPRING_DATA_REDIS_PORT=6379
           SPRING_DATA_REDIS_SSL=false
 
+          # JWT — HS256 signing secret (최소 32자)
+          JWT_SECRET=${{ secrets.JWT_SECRET }}
+
           # Supabase JWT — Firebase 전환 전 임시 플레이스홀더 (Swagger 접근용)
           SUPABASE_JWT_ISSUER=https://placeholder.supabase.co/auth/v1
           SUPABASE_JWT_JWKS_URI=https://placeholder.supabase.co/auth/v1/.well-known/jwks.json
