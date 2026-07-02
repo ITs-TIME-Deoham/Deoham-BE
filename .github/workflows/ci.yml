@@ -55,6 +55,8 @@ jobs:
       - name: Build & push image
         if: github.event_name == 'push' && github.ref == 'refs/heads/develop'
         run: |
+          # .dockerignore 가 build/ 를 제외하므로 부팅 JAR 을 컨텍스트 루트로 복사
+          cp build/libs/*.jar app.jar
           docker build -f Dockerfile.deploy \
             -t "$IMAGE_NAME:latest" \
             -t "$IMAGE_NAME:${{ github.sha }}" .
