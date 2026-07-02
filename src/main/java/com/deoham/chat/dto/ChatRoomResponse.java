@@ -20,6 +20,9 @@ public record ChatRoomResponse(
         Instant createdAt,
 
         @Schema(description = "채팅방 종료 시각. ACTIVE 상태이면 null.", example = "2024-01-02T00:00:00Z", nullable = true)
-        Instant closedAt
+        Instant closedAt,
+
+        @Schema(description = "내가 아직 읽지 않은, 상대방이 보낸 메시지 수", example = "3")
+        long unreadCount
 ) {
 }
