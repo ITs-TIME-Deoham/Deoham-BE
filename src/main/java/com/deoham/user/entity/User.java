@@ -66,7 +66,7 @@ public class User extends BaseEntity {
 
     @Builder
     private User(String firebaseUid, String nickname, String profileImageUrl, GenderType gender, Integer age) {
-        this.firebaseUid = firebaseUid;
+        this.firebaseUid = firebaseUid != null ? firebaseUid : UUID.randomUUID().toString();
         this.nickname = nickname;
         this.profileImageUrl = profileImageUrl;
         this.gender = gender;

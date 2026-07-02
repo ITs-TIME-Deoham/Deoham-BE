@@ -13,6 +13,7 @@ import com.deoham.global.exception.ErrorCode;
 import com.deoham.global.security.AuthenticationUtils;
 import com.deoham.global.security.JwtProperties;
 import com.deoham.global.security.JwtTokenProvider;
+import com.deoham.user.entity.GenderType;
 import com.deoham.user.entity.OauthProvider;
 import com.deoham.user.entity.User;
 import com.deoham.user.entity.UserSocialAccount;
@@ -21,6 +22,7 @@ import com.deoham.user.repository.UserSocialAccountRepository;
 import java.net.URI;
 import java.security.SecureRandom;
 import java.time.Instant;
+import java.time.LocalDate;
 import java.util.Base64;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
@@ -60,7 +62,7 @@ public class AuthService {
 				.queryParam("client_id", kakaoOAuthProperties.restApiKey())
 				.queryParam("redirect_uri", kakaoOAuthProperties.redirectUri())
 				.queryParam("response_type", "code")
-				.queryParam("scope", "account_email")
+				.queryParam("scope", "account_email,profile")
 				.queryParam("state", state)
 				.build()
 				.toUri();
@@ -83,6 +85,8 @@ public class AuthService {
 		if (isNewUser) {
 			user = userRepository.save(User.builder()
 					.nickname(generateDefaultNickname(kakaoId))
+					.gender(parseGender(userInfo.gender()))
+					.age(calculateAge(userInfo.birthyear()))
 					.build());
 
 			socialAccount = userSocialAccountRepository.save(UserSocialAccount.builder()
@@ -189,5 +193,29 @@ public class AuthService {
 			}
 		}
 		throw new BusinessException(ErrorCode.CONFLICT, "Could not generate a default nickname.");
+	}
+
+	private GenderType parseGender(String gender) {
+		if (gender == null || gender.isBlank()) {
+			throw new BusinessException(ErrorCode.INVALID_REQUEST, "성별 정보가 필요합니다");
+		}
+		return switch (gender.toUpperCase()) {
+			case "MALE" -> GenderType.MALE;
+			case "FEMALE" -> GenderType.FEMALE;
+			default -> throw new BusinessException(ErrorCode.INVALID_REQUEST, "유효하지 않은 성별 정보입니다");
+		};
+	}
+
+	private Integer calculateAge(String birthyear) {
+		if (birthyear == null || birthyear.isBlank()) {
+			return null;
+		}
+		try {
+			int year = Integer.parseInt(birthyear);
+			int currentYear = LocalDate.now().getYear();
+			return currentYear - year;
+		} catch (NumberFormatException e) {
+			return null;
+		}
 	}
 }
