@@ -39,11 +39,11 @@ public interface ChatMessageControllerDocs {
             description = """
                     채팅방에 메시지를 전송합니다.
 
-                    | messageType | content |
-                    |---|---|
-                    | `TEXT` | 텍스트 본문 |
-                    | `IMAGE` | 이미지 URL |
-                    | `LOCATION` | 위치 데이터 (예: JSON 문자열) |
+                    | messageType | content | location |
+                    |---|---|---|
+                    | `TEXT` | 텍스트 본문 | null |
+                    | `IMAGE` | 이미지 URL | null |
+                    | `LOCATION` | null | `{ latitude, longitude, placeName? }` |
                     """
     )
     @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "메시지 전송 성공")
