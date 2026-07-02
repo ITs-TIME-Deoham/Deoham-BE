@@ -65,3 +65,9 @@ dependencies {
 tasks.named('test') {
 	useJUnitPlatform()
 }
+
+// 실행 가능한 부팅 JAR 만 남기고 -plain.jar 는 만들지 않는다
+// (build/libs 에 JAR 이 2개면 배포 시 COPY/cp 가 애매해짐)
+tasks.named('jar') {
+	enabled = false
+}
