@@ -3,8 +3,8 @@ package com.deoham.notification.controller;
 import com.deoham.global.exception.BusinessException;
 import com.deoham.global.exception.ErrorCode;
 import com.deoham.global.response.ApiResponse;
-import com.deoham.global.security.SupabaseAuthenticationUtils;
-import com.deoham.global.security.SupabasePrincipal;
+import com.deoham.global.security.AuthenticationUtils;
+import com.deoham.global.security.AuthPrincipal;
 import com.deoham.notification.controller.docs.NotificationControllerDocs;
 import com.deoham.notification.dto.NotificationResponse;
 import com.deoham.notification.service.NotificationReadService;
@@ -46,7 +46,7 @@ public class NotificationController implements NotificationControllerDocs {
     }
 
     private UUID currentUserId() {
-        SupabasePrincipal principal = SupabaseAuthenticationUtils.currentPrincipal()
+        AuthPrincipal principal = AuthenticationUtils.currentPrincipal()
                 .orElseThrow(() -> new BusinessException(ErrorCode.UNAUTHORIZED));
         return principal.userId();
     }

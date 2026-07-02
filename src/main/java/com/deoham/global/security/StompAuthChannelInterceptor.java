@@ -29,7 +29,7 @@ public class StompAuthChannelInterceptor implements ChannelInterceptor {
     private static final Pattern ROOM_DESTINATION_PATTERN = Pattern.compile("/sub/chat/rooms/([^/]+)");
 
     private final JwtDecoder jwtDecoder;
-    private final SupabaseJwtAuthenticationConverter authenticationConverter;
+    private final AppJwtAuthenticationConverter authenticationConverter;
     private final ChatRoomRepository chatRoomRepository;
     private final CardApplyRepository cardApplyRepository;
 
@@ -58,7 +58,7 @@ public class StompAuthChannelInterceptor implements ChannelInterceptor {
     }
 
     private void authorizeSubscribe(StompHeaderAccessor accessor) {
-        SupabasePrincipal principal = SupabaseAuthenticationUtils.fromAuthentication(
+        AuthPrincipal principal = AuthenticationUtils.fromAuthentication(
                 accessor.getUser() instanceof Authentication auth ? auth : null)
                 .orElseThrow(() -> new AuthenticationServiceException("인증되지 않은 구독 요청입니다"));
 
