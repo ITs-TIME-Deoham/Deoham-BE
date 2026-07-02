@@ -84,7 +84,6 @@ public class AuthService {
 		User user;
 		if (isNewUser) {
 			user = userRepository.save(User.builder()
-					.firebaseUid("kakao_" + kakaoId)
 					.nickname(generateDefaultNickname(kakaoId))
 					.gender(parseGender(userInfo.gender()))
 					.age(calculateAge(userInfo.birthyear()))
@@ -197,13 +196,13 @@ public class AuthService {
 	}
 
 	private GenderType parseGender(String gender) {
-		if (gender == null) {
-			return null;
+		if (gender == null || gender.isBlank()) {
+			throw new BusinessException(ErrorCode.INVALID_REQUEST, "성별 정보가 필요합니다");
 		}
 		return switch (gender.toUpperCase()) {
 			case "MALE" -> GenderType.MALE;
 			case "FEMALE" -> GenderType.FEMALE;
-			default -> null;
+			default -> throw new BusinessException(ErrorCode.INVALID_REQUEST, "유효하지 않은 성별 정보입니다");
 		};
 	}
 
