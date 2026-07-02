@@ -1,8 +1,8 @@
 services:
   app:
-    build:
-      context: .
-      dockerfile: Dockerfile.deploy
+    # EC2에서 직접 빌드하지 않고 GitHub Actions가 GHCR에 올린 이미지를 pull 한다.
+    # APP_IMAGE 는 배포 시 .env 로 주입 (미지정 시 latest).
+    image: ${APP_IMAGE:-ghcr.io/its-time-ondo/ondo-be:latest}
     env_file:
       - .env
     # volumes:
@@ -23,7 +23,7 @@ services:
       POSTGRES_USER: deoham
       POSTGRES_PASSWORD: deoham
     ports:
-      - "5300:5432"
+      - "5432:5432"
     volumes:
       - deoham_pg_data:/var/lib/postgresql/data
     healthcheck:

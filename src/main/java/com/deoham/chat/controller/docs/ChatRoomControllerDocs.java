@@ -47,7 +47,12 @@ public interface ChatRoomControllerDocs {
 
     @Operation(
             summary = "내 채팅방 목록 조회",
-            description = "현재 사용자가 참여 중인 채팅방 목록을 최신순으로 반환합니다."
+            description = """
+                    현재 사용자가 참여 중인 채팅방 목록을 최신순으로 반환합니다.
+
+                    각 채팅방의 `unreadCount`는 상대방이 보낸 메시지 중 아직 읽지 않은 개수입니다.
+                    채팅방 목록 화면의 안읽음 배지 표시에 사용하세요.
+                    """
     )
     @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "채팅방 목록 조회 성공")
     ApiResponse<Page<ChatRoomResponse>> getMyRooms(Pageable pageable);

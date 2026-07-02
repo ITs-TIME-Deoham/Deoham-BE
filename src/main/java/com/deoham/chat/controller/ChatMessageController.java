@@ -5,13 +5,17 @@ import com.deoham.chat.dto.ChatMessagePageResponse;
 import com.deoham.chat.dto.ChatMessageResponse;
 import com.deoham.chat.dto.ChatMessageSendRequest;
 import com.deoham.chat.service.ChatMessageService;
+import com.deoham.global.exception.BusinessException;
+import com.deoham.global.exception.ErrorCode;
 import com.deoham.global.response.ApiResponse;
-import com.deoham.global.security.AuthenticationUtils;
+import com.deoham.global.security.SupabaseAuthenticationUtils;
+import com.deoham.global.security.SupabasePrincipal;
 import jakarta.validation.Valid;
 import java.time.Instant;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -43,7 +47,16 @@ public class ChatMessageController implements ChatMessageControllerDocs {
         return ApiResponse.ok(chatMessageService.getMessages(roomId, currentUserId(), before, size));
     }
 
+    @Override
+    @PatchMapping("/read")
+    public ApiResponse<Void> markMessagesAsRead(@PathVariable UUID roomId) {
+        chatMessageService.markMessagesAsRead(roomId, currentUserId());
+        return ApiResponse.ok();
+    }
+
     private UUID currentUserId() {
-        return AuthenticationUtils.requireCurrentUserId();
+        SupabasePrincipal principal = SupabaseAuthenticationUtils.currentPrincipal()
+                .orElseThrow(() -> new BusinessException(ErrorCode.UNAUTHORIZED));
+        return principal.userId();
     }
 }
