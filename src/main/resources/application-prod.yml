@@ -20,7 +20,7 @@ spring:
     show-sql: false
   docker:
     compose:
-      enabled: false
+      file: compose-local.yaml
 server:
   tomcat:
     accesslog:
