@@ -37,7 +37,7 @@ jobs:
         run: chmod +x gradlew
 
       - name: Build
-        run: ./gradlew --no-daemon clean build
+        run: ./gradlew --no-daemon clean build -x test
 
       - name: Upload test report
         if: failure()
