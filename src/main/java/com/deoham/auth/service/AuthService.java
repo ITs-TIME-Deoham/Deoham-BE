@@ -62,7 +62,7 @@ public class AuthService {
 				.queryParam("client_id", kakaoOAuthProperties.restApiKey())
 				.queryParam("redirect_uri", kakaoOAuthProperties.redirectUri())
 				.queryParam("response_type", "code")
-				.queryParam("scope", "account_email,profile")
+				.queryParam("scope", "account_email,gender,birthyear")
 				.queryParam("state", state)
 				.build()
 				.toUri();
