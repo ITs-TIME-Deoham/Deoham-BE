@@ -19,4 +19,8 @@ public interface CardApplyRepository extends JpaRepository<CardApply, UUID> {
     Optional<CardApply> findByCardAndApplicant(Card card, User applicant);
 
     Optional<CardApply> findByCardAndStatus(Card card, CardApplyStatus status);
+
+    long countByApplicantId(UUID applicantId);
+
+    long countByApplicantIdAndStatus(UUID applicantId, CardApplyStatus status);
 }

@@ -97,6 +97,7 @@ public class AuthService {
 					.build());
 		} else {
 			user = socialAccount.getUser();
+			user.updateAge(calculateAge(userInfo.birthyear()));
 			socialAccount.updateTokens(null, null, null);
 		}
 
