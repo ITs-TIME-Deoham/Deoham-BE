@@ -113,7 +113,7 @@ jobs:
 
           # Kakao OAuth
           KAKAO_REST_API_KEY=${{ secrets.KAKAO_REST_API_KEY }}
-          KAKAO_REDIRECT_URI=${{ secrets.KAKAO_REDIRECT_URI }}
+          KAKAO_REDIRECT_URI=${{ vars.KAKAO_REDIRECT_URI }}
           KAKAO_CLIENT_SECRET=${{ secrets.KAKAO_CLIENT_SECRET }}
 
           # FCM — Java 바인딩 없음, 구현 완료 후 활성화
