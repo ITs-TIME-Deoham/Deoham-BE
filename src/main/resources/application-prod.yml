@@ -37,6 +37,17 @@ management:
       probes:
         enabled: true
 
+deoham:
+  cors:
+    allowed-origins: ${CORS_ALLOWED_ORIGINS}
+  kakao:
+    rest-api-key: ${KAKAO_REST_API_KEY}
+    redirect-uri: ${KAKAO_REDIRECT_URI}
+  s3:
+    region: ${AWS_S3_REGION:ap-northeast-2}
+    bucket: ${AWS_S3_BUCKET}
+    presigned-url-ttl-seconds: ${AWS_S3_PRESIGNED_TTL:600}
+
 fcm:
   service-account-key-path: ${FCM_KEY_PATH}
 

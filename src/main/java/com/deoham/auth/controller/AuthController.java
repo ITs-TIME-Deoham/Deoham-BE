@@ -6,6 +6,7 @@ import com.deoham.auth.dto.RefreshTokenRequest;
 import com.deoham.auth.dto.TokenResponse;
 import com.deoham.auth.service.AuthService;
 import com.deoham.global.response.ApiResponse;
+import com.deoham.global.security.AuthenticationUtils;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.headers.Header;
 import io.swagger.v3.oas.annotations.media.Content;
@@ -16,6 +17,7 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -110,7 +112,7 @@ public class AuthController {
 
 	@PostMapping("/logout")
 	@Operation(summary = "로그아웃", description = "현재 사용자에게 저장된 리프레시 토큰을 폐기합니다.")
-	public ResponseEntity<ApiResponse<Void>> logout(org.springframework.security.core.Authentication authentication) {
+	public ResponseEntity<ApiResponse<Void>> logout(Authentication authentication) {
 		authService.logout(authentication);
 		return ResponseEntity.ok(ApiResponse.ok(null));
 	}

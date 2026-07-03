@@ -56,6 +56,9 @@ public class User extends BaseEntity {
     @Column(name = "help_count", nullable = false)
     private int helpCount = 0;
 
+    @Column(name = "help_request_count", nullable = false)
+    private int helpRequestCount = 0;
+
     @JdbcTypeCode(SqlTypes.NAMED_ENUM)
     @Column(name = "role", nullable = false, columnDefinition = "user_role")
     private UserRole role = UserRole.USER;
@@ -84,8 +87,24 @@ public class User extends BaseEntity {
         this.helpCount++;
     }
 
+    public void incrementHelpRequestCount() {
+        this.helpRequestCount++;
+    }
+
+    public void setHelpCount(int helpCount) {
+        this.helpCount = helpCount;
+    }
+
+    public void setHelpRequestCount(int helpRequestCount) {
+        this.helpRequestCount = helpRequestCount;
+    }
+
     public void updateLanguage(String language) {
         this.language = language;
+    }
+
+    public void updateAge(Integer age) {
+        this.age = age;
     }
 
     public void verify() {
