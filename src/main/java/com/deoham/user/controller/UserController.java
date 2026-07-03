@@ -16,6 +16,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -101,6 +102,35 @@ public class UserController {
 				request.nickname(),
 				request.profileImageUrl()
 		);
+		return ResponseEntity.noContent().build();
+	}
+
+	@DeleteMapping
+	@Operation(
+			summary = "회원 탈퇴",
+			description = "현재 로그인한 사용자의 계정을 탈퇴합니다. (soft delete)"
+	)
+	@ApiResponses({
+			@io.swagger.v3.oas.annotations.responses.ApiResponse(
+					responseCode = "204",
+					description = "회원 탈퇴 성공",
+					content = @Content
+			),
+			@io.swagger.v3.oas.annotations.responses.ApiResponse(
+					responseCode = "401",
+					description = "인증 필요",
+					content = @Content
+			),
+			@io.swagger.v3.oas.annotations.responses.ApiResponse(
+					responseCode = "404",
+					description = "사용자 정보를 찾을 수 없음",
+					content = @Content
+			)
+	})
+	public ResponseEntity<Void> deleteUser(Authentication authentication) {
+		var principal = AuthenticationUtils.fromAuthentication(authentication)
+				.orElseThrow(() -> new IllegalStateException("Authentication required."));
+		userWriteService.deleteUser(principal.userId());
 		return ResponseEntity.noContent().build();
 	}
 }

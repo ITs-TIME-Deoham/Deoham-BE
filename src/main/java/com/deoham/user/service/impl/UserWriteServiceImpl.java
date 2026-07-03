@@ -54,6 +54,13 @@ public class UserWriteServiceImpl implements UserWriteService {
 		userRepository.saveAll(java.util.List.of(requester, applicant));
 	}
 
+	@Override
+	public void deleteUser(UUID userId) {
+		User user = getUser(userId, "User not found.");
+		user.delete();
+		userRepository.save(user);
+	}
+
 	private int safeCastToInt(long value) {
 		if (value > Integer.MAX_VALUE) {
 			throw new BusinessException(ErrorCode.INVALID_REQUEST, "Help count exceeds maximum limit");
