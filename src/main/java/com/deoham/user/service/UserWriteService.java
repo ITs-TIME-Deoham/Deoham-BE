@@ -7,4 +7,6 @@ public interface UserWriteService {
 	User updateProfile(UUID userId, String nickname, String profileImageUrl);
 
 	void updateHelpCounts(UUID requesterId, UUID applicantId);
+
+	void deleteUser(UUID userId);
 }

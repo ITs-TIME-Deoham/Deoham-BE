@@ -5,6 +5,7 @@ import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
+import java.time.Instant;
 import java.util.UUID;
 import lombok.AccessLevel;
 import lombok.Builder;
@@ -12,11 +13,13 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.annotations.UuidGenerator;
+import org.hibernate.annotations.Where;
 import org.hibernate.type.SqlTypes;
 
 @Getter
 @Entity
 @Table(name = "users")
+@Where(clause = "deleted_at IS NULL")
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class User extends BaseEntity {
 
@@ -66,6 +69,9 @@ public class User extends BaseEntity {
     @JdbcTypeCode(SqlTypes.NAMED_ENUM)
     @Column(name = "status", nullable = false, columnDefinition = "user_status")
     private UserStatus status = UserStatus.ACTIVE;
+
+    @Column(name = "deleted_at")
+    private Instant deletedAt;
 
     @Builder
     private User(String firebaseUid, String nickname, String profileImageUrl, GenderType gender, Integer age) {
@@ -117,5 +123,6 @@ public class User extends BaseEntity {
 
     public void delete() {
         this.status = UserStatus.DELETED;
+        this.deletedAt = Instant.now();
     }
 }
