@@ -108,8 +108,8 @@ jobs:
           AWS_S3_BUCKET=${{ secrets.AWS_S3_BUCKET }}
           AWS_S3_PRESIGNED_TTL=${{ secrets.AWS_S3_PRESIGNED_TTL }}
 
-          # CORS — 앱 프로젝트라 불필요, 필요 시 활성화
-          # CORS_ALLOWED_ORIGINS=${{ secrets.CORS_ALLOWED_ORIGINS }}
+          # CORS
+          CORS_ALLOWED_ORIGINS=${{ vars.CORS_ALLOWED_ORIGINS }}
 
           # Kakao OAuth
           KAKAO_REST_API_KEY=${{ secrets.KAKAO_REST_API_KEY }}
