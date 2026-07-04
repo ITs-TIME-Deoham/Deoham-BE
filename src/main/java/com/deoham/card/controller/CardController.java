@@ -3,6 +3,7 @@ package com.deoham.card.controller;
 import com.deoham.card.dto.request.CreateCardRequest;
 import com.deoham.card.dto.response.CardApplySummaryResponse;
 import com.deoham.card.dto.response.CardDetailResponse;
+import com.deoham.card.dto.response.MyActiveCardResponse;
 import com.deoham.card.dto.response.PaginatedCardListResponse;
 import com.deoham.card.service.CardReadService;
 import com.deoham.card.service.CardWriteService;
@@ -147,21 +148,22 @@ public class CardController {
                     로그인 직후 가장 먼저 호출해 현재 사용자가 생성한 진행 중 카드가 있는지 확인합니다.
                     현재 로그인한 사용자의 OPEN 또는 MATCHED 상태 카드를 반환합니다.
                     OPEN 카드는 아직 매칭되지 않은 도움 요청이고, MATCHED 카드는 신청 접수 후 진행 중인 카드입니다.
-                    활성 카드가 없으면 data가 null이며, 이 경우 사용자는 새 카드를 생성할 수 있습니다.
+                    활성 카드가 없으면 card가 null이며, 이 경우 사용자는 새 카드를 생성할 수 있습니다.
+                    hasCreatedCard 값으로 사용자가 이전에 카드를 생성했던 이력을 확인할 수 있습니다 (온보딩 용).
                     """
     )
     @ApiResponses({
             @io.swagger.v3.oas.annotations.responses.ApiResponse(
-                    responseCode = "200", description = "조회 성공 (활성 카드 없으면 data: null)",
+                    responseCode = "200", description = "조회 성공",
                     content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE,
-                            schema = @Schema(implementation = CardDetailResponse.class))),
+                            schema = @Schema(implementation = MyActiveCardResponse.class))),
             @io.swagger.v3.oas.annotations.responses.ApiResponse(
                     responseCode = "401", description = "인증 필요")
     })
     @GetMapping("/cards/my/active")
-    public ResponseEntity<ApiResponse<CardDetailResponse>> getMyActiveCard() {
+    public ResponseEntity<ApiResponse<MyActiveCardResponse>> getMyActiveCard() {
         UUID userId = AuthenticationUtils.currentPrincipal().orElseThrow().userId();
-        return ResponseEntity.ok(ApiResponse.ok(cardReadService.getMyActiveCard(userId).orElse(null)));
+        return ResponseEntity.ok(ApiResponse.ok(cardReadService.getMyActiveCard(userId)));
     }
 
     @Tag(name = "Card")

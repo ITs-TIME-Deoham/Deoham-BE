@@ -57,6 +57,7 @@ public class DefaultCardWriteService implements CardWriteService {
 
         cardRepository.save(card);
         requester.incrementHelpRequestCount();
+        requester.markCardCreated();
 
         return new CardDetailResponse(
                 card.getId(),

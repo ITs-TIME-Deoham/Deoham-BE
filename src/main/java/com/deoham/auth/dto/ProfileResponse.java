@@ -17,7 +17,10 @@ public record ProfileResponse(
 		int helpRequestCount,
 
 		@Schema(description = "도움을 준 횟수", example = "3")
-		int helpCount
+		int helpCount,
+
+		@Schema(description = "첫 카드 생성 여부 (온보딩 튜토리얼용)", example = "false")
+		boolean hasCreatedCard
 ) {
 	public static ProfileResponse from(User user) {
 		return ProfileResponse.builder()
@@ -25,6 +28,7 @@ public record ProfileResponse(
 				.profileImageUrl(user.getProfileImageUrl())
 				.helpRequestCount(user.getHelpRequestCount())
 				.helpCount(user.getHelpCount())
+				.hasCreatedCard(user.isHasCreatedCard())
 				.build();
 	}
 }

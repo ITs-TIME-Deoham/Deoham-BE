@@ -73,6 +73,9 @@ public class User extends BaseEntity {
     @Column(name = "deleted_at")
     private Instant deletedAt;
 
+    @Column(name = "has_created_card", nullable = false)
+    private boolean hasCreatedCard = false;
+
     @Builder
     private User(String firebaseUid, String nickname, String profileImageUrl, GenderType gender, Integer age) {
         this.firebaseUid = firebaseUid != null ? firebaseUid : UUID.randomUUID().toString();
@@ -124,5 +127,9 @@ public class User extends BaseEntity {
     public void delete() {
         this.status = UserStatus.DELETED;
         this.deletedAt = Instant.now();
+    }
+
+    public void markCardCreated() {
+        this.hasCreatedCard = true;
     }
 }
