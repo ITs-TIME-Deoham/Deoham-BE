@@ -6,12 +6,10 @@ import io.swagger.v3.oas.models.info.Contact;
 import io.swagger.v3.oas.models.info.Info;
 import io.swagger.v3.oas.models.security.SecurityRequirement;
 import io.swagger.v3.oas.models.security.SecurityScheme;
-import io.swagger.v3.oas.models.servers.Server;
 import io.swagger.v3.oas.models.tags.Tag;
+import java.util.List;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-
-import java.util.List;
 
 @Configuration
 public class OpenApiConfig {
@@ -30,10 +28,6 @@ public class OpenApiConfig {
 						.contact(new Contact()
 								.name("Deoham Team")
 								.email("npmtart1224@naver.com")))
-				.servers(List.of(
-						new Server().url("http://localhost:8080").description("Local"),
-						new Server().url("https://api.deoham.com").description("Production")
-				))
 				.tags(List.of(
 						new Tag().name("Card").description("도움 요청 카드 생성·조회·상태 변경"),
 						new Tag().name("CardApply").description("매칭 신청·수락·거절")
