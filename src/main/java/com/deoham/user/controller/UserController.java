@@ -17,6 +17,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -59,6 +60,47 @@ public class UserController {
 				.orElseThrow(() -> new IllegalStateException("Authentication required."));
 		var profile = userReadService.getProfile(principal.userId());
 		return ResponseEntity.ok(profile);
+	}
+
+	@PostMapping("/profile")
+	@Operation(
+			summary = "프로필 생성",
+			description = "회원가입 직후 현재 로그인한 사용자의 프로필을 생성합니다. 닉네임은 필수이며 프로필 이미지 URL은 선택입니다."
+	)
+	@ApiResponses({
+			@io.swagger.v3.oas.annotations.responses.ApiResponse(
+					responseCode = "201",
+					description = "프로필 생성 성공",
+					content = @Content(schema = @Schema(implementation = ProfileResponse.class))
+			),
+			@io.swagger.v3.oas.annotations.responses.ApiResponse(
+					responseCode = "400",
+					description = "입력값 검증 실패",
+					content = @Content
+			),
+			@io.swagger.v3.oas.annotations.responses.ApiResponse(
+					responseCode = "401",
+					description = "인증 필요",
+					content = @Content
+			),
+			@io.swagger.v3.oas.annotations.responses.ApiResponse(
+					responseCode = "409",
+					description = "닉네임 중복",
+					content = @Content
+			)
+	})
+	public ResponseEntity<ProfileResponse> createProfile(
+			Authentication authentication,
+			@RequestBody @Valid ProfileUpdateRequest request
+	) {
+		var principal = AuthenticationUtils.fromAuthentication(authentication)
+				.orElseThrow(() -> new IllegalStateException("Authentication required."));
+		var updatedUser = userWriteService.updateProfile(
+				principal.userId(),
+				request.nickname(),
+				request.profileImageUrl()
+		);
+		return ResponseEntity.status(HttpStatus.CREATED).body(ProfileResponse.from(updatedUser));
 	}
 
 	@PutMapping("/profile")
