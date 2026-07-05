@@ -65,11 +65,10 @@ class UserControllerTest {
 						.claim("email", "test@example.com")
 						.claim("role", "USER"))))
 				.andExpect(status().isOk())
-				.andExpect(jsonPath("$.success").value(true))
-				.andExpect(jsonPath("$.data.nickname").value("testNickname"))
-				.andExpect(jsonPath("$.data.profileImageUrl").value("https://example.com/profile.png"))
-				.andExpect(jsonPath("$.data.helpRequestCount").value(5))
-				.andExpect(jsonPath("$.data.helpCount").value(3));
+				.andExpect(jsonPath("$.nickname").value("testNickname"))
+				.andExpect(jsonPath("$.profileImageUrl").value("https://example.com/profile.png"))
+				.andExpect(jsonPath("$.helpRequestCount").value(5))
+				.andExpect(jsonPath("$.helpCount").value(3));
 	}
 
 	@Test
@@ -96,10 +95,7 @@ class UserControllerTest {
 						.claim("role", "USER")))
 				.contentType(MediaType.APPLICATION_JSON)
 				.content(objectMapper.writeValueAsString(request)))
-				.andExpect(status().isOk())
-				.andExpect(jsonPath("$.success").value(true))
-				.andExpect(jsonPath("$.data.nickname").value(nickname))
-				.andExpect(jsonPath("$.data.profileImageUrl").value(profileImageUrl));
+				.andExpect(status().isNoContent());
 	}
 
 	@Test

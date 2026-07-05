@@ -40,7 +40,7 @@ public interface CardRepository extends JpaRepository<Card, UUID> {
             JOIN users u ON c.requester_id = u.id
             WHERE c.status = 'OPEN'
               AND c.expires_at > now()
-              AND ST_DWithin(c.location, ST_SetSRID(ST_MakePoint(:lng, :lat), 4326)::geography, 100)
+              AND ST_DWithin(c.location, ST_SetSRID(ST_MakePoint(:lng, :lat), 4326)::geography, COALESCE(c.radius_m, 50000))
               AND ((:cursorDistance IS NULL)
                    OR (ST_Distance(c.location, ST_SetSRID(ST_MakePoint(:lng, :lat), 4326)::geography) > :cursorDistance)
                    OR (ST_Distance(c.location, ST_SetSRID(ST_MakePoint(:lng, :lat), 4326)::geography) = :cursorDistance AND c.id::text > :cursorCardId))

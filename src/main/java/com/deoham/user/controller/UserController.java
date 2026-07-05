@@ -2,7 +2,6 @@ package com.deoham.user.controller;
 
 import com.deoham.auth.dto.ProfileResponse;
 import com.deoham.auth.dto.ProfileUpdateRequest;
-import com.deoham.global.response.ApiResponse;
 import com.deoham.global.security.AuthenticationUtils;
 import com.deoham.user.service.UserReadService;
 import com.deoham.user.service.UserWriteService;
@@ -55,11 +54,11 @@ public class UserController {
 					content = @Content
 			)
 	})
-	public ResponseEntity<ApiResponse<ProfileResponse>> getProfile(Authentication authentication) {
+	public ResponseEntity<ProfileResponse> getProfile(Authentication authentication) {
 		var principal = AuthenticationUtils.fromAuthentication(authentication)
 				.orElseThrow(() -> new IllegalStateException("Authentication required."));
 		var profile = userReadService.getProfile(principal.userId());
-		return ResponseEntity.ok(ApiResponse.ok(profile));
+		return ResponseEntity.ok(profile);
 	}
 
 	@PutMapping("/profile")
