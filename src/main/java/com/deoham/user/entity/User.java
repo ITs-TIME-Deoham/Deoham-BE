@@ -5,6 +5,7 @@ import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
+import java.time.Instant;
 import java.util.UUID;
 import lombok.AccessLevel;
 import lombok.Builder;
@@ -12,11 +13,13 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.annotations.UuidGenerator;
+import org.hibernate.annotations.Where;
 import org.hibernate.type.SqlTypes;
 
 @Getter
 @Entity
 @Table(name = "users")
+@Where(clause = "deleted_at IS NULL")
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class User extends BaseEntity {
 
@@ -56,6 +59,9 @@ public class User extends BaseEntity {
     @Column(name = "help_count", nullable = false)
     private int helpCount = 0;
 
+    @Column(name = "help_request_count", nullable = false)
+    private int helpRequestCount = 0;
+
     @JdbcTypeCode(SqlTypes.NAMED_ENUM)
     @Column(name = "role", nullable = false, columnDefinition = "user_role")
     private UserRole role = UserRole.USER;
@@ -64,9 +70,15 @@ public class User extends BaseEntity {
     @Column(name = "status", nullable = false, columnDefinition = "user_status")
     private UserStatus status = UserStatus.ACTIVE;
 
+    @Column(name = "deleted_at")
+    private Instant deletedAt;
+
+    @Column(name = "has_created_card", nullable = false)
+    private boolean hasCreatedCard = false;
+
     @Builder
     private User(String firebaseUid, String nickname, String profileImageUrl, GenderType gender, Integer age) {
-        this.firebaseUid = firebaseUid;
+        this.firebaseUid = firebaseUid != null ? firebaseUid : UUID.randomUUID().toString();
         this.nickname = nickname;
         this.profileImageUrl = profileImageUrl;
         this.gender = gender;
@@ -84,8 +96,24 @@ public class User extends BaseEntity {
         this.helpCount++;
     }
 
+    public void incrementHelpRequestCount() {
+        this.helpRequestCount++;
+    }
+
+    public void setHelpCount(int helpCount) {
+        this.helpCount = helpCount;
+    }
+
+    public void setHelpRequestCount(int helpRequestCount) {
+        this.helpRequestCount = helpRequestCount;
+    }
+
     public void updateLanguage(String language) {
         this.language = language;
+    }
+
+    public void updateAge(Integer age) {
+        this.age = age;
     }
 
     public void verify() {
@@ -98,5 +126,10 @@ public class User extends BaseEntity {
 
     public void delete() {
         this.status = UserStatus.DELETED;
+        this.deletedAt = Instant.now();
+    }
+
+    public void markCardCreated() {
+        this.hasCreatedCard = true;
     }
 }

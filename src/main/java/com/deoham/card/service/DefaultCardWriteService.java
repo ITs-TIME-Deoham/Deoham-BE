@@ -13,6 +13,7 @@ import com.deoham.global.exception.BusinessException;
 import com.deoham.global.exception.ErrorCode;
 import com.deoham.user.entity.User;
 import com.deoham.user.repository.UserRepository;
+import com.deoham.user.service.UserWriteService;
 import lombok.RequiredArgsConstructor;
 import org.locationtech.jts.geom.Coordinate;
 import org.locationtech.jts.geom.GeometryFactory;
@@ -33,6 +34,7 @@ public class DefaultCardWriteService implements CardWriteService {
     private final CardRepository cardRepository;
     private final CardApplyRepository cardApplyRepository;
     private final UserRepository userRepository;
+    private final UserWriteService userWriteService;
 
     @Override
     @Transactional
@@ -54,6 +56,8 @@ public class DefaultCardWriteService implements CardWriteService {
                 .build();
 
         cardRepository.save(card);
+        requester.incrementHelpRequestCount();
+        requester.markCardCreated();
 
         return new CardDetailResponse(
                 card.getId(),
@@ -90,9 +94,12 @@ public class DefaultCardWriteService implements CardWriteService {
         if (card.getStatus() != CardStatus.MATCHED) {
             throw new BusinessException(ErrorCode.CONFLICT, "MATCHED 상태의 카드만 완료할 수 있습니다.");
         }
-        cardApplyRepository.findByCardAndStatus(card, CardApplyStatus.ACCEPTED)
-                .ifPresent(apply -> apply.getApplicant().incrementHelpCount());
+        CardApply acceptedApply = cardApplyRepository.findByCardAndStatus(card, CardApplyStatus.ACCEPTED)
+                .orElseThrow(() -> new BusinessException(ErrorCode.NOT_FOUND, "승인된 신청을 찾을 수 없습니다."));
+
         card.updateStatus(CardStatus.COMPLETED);
+
+        userWriteService.updateHelpCounts(card.getRequester().getId(), acceptedApply.getApplicant().getId());
     }
 
     @Override
@@ -137,6 +144,9 @@ public class DefaultCardWriteService implements CardWriteService {
                 .build();
 
         cardApplyRepository.save(apply);
+
+        apply.accept();
+        card.updateStatus(CardStatus.MATCHED);
 
         return new CardApplySummaryResponse(
                 apply.getId(),

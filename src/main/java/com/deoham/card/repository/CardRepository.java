@@ -17,6 +17,10 @@ public interface CardRepository extends JpaRepository<Card, UUID> {
 
     Optional<Card> findFirstByRequesterIdAndStatusIn(UUID requesterId, List<CardStatus> statuses);
 
+    long countByRequesterId(UUID requesterId);
+
+    long countByRequesterIdAndStatus(UUID requesterId, CardStatus status);
+
     @Query(value = """
             SELECT c.id,
                    c.requester_id,

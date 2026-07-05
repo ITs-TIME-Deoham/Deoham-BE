@@ -2,6 +2,7 @@ package com.deoham.card.service;
 
 import com.deoham.card.dto.response.CardApplySummaryResponse;
 import com.deoham.card.dto.response.CardDetailResponse;
+import com.deoham.card.dto.response.MyActiveCardResponse;
 import com.deoham.card.dto.response.PaginatedCardListResponse;
 import com.deoham.card.entity.Card;
 import com.deoham.card.entity.CardCategory;
@@ -11,6 +12,7 @@ import com.deoham.card.repository.CardApplyRepository;
 import com.deoham.card.repository.CardRepository;
 import com.deoham.global.exception.BusinessException;
 import com.deoham.global.exception.ErrorCode;
+import com.deoham.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -19,7 +21,6 @@ import java.nio.charset.StandardCharsets;
 import java.time.Instant;
 import java.util.Base64;
 import java.util.List;
-import java.util.Optional;
 import java.util.UUID;
 
 @Service
@@ -29,12 +30,19 @@ public class DefaultCardReadService implements CardReadService {
     private static final int PAGE_SIZE = 20;
     private final CardRepository cardRepository;
     private final CardApplyRepository cardApplyRepository;
+    private final UserRepository userRepository;
 
     @Override
     @Transactional(readOnly = true)
-    public Optional<CardDetailResponse> getMyActiveCard(UUID userId) {
-        return cardRepository.findFirstByRequesterIdAndStatusIn(userId, List.of(CardStatus.OPEN, CardStatus.MATCHED))
-                .map(this::toDetailResponse);
+    public MyActiveCardResponse getMyActiveCard(UUID userId) {
+        var activeCard = cardRepository.findFirstByRequesterIdAndStatusIn(userId, List.of(CardStatus.OPEN, CardStatus.MATCHED))
+                .map(this::toDetailResponse)
+                .orElse(null);
+
+        var user = userRepository.findById(userId)
+                .orElseThrow(() -> new BusinessException(ErrorCode.NOT_FOUND, "사용자를 찾을 수 없습니다."));
+
+        return MyActiveCardResponse.of(activeCard, user.isHasCreatedCard());
     }
 
     @Override

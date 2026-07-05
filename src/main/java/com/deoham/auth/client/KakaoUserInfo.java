@@ -9,11 +9,21 @@ public record KakaoUserInfo(
 
 	public record KakaoAccount(
 			String email,
-			@JsonProperty("email_verified") Boolean emailVerified
+			@JsonProperty("email_verified") Boolean emailVerified,
+			String gender,
+			@JsonProperty("birthyear") String birthyear
 	) {
 	}
 
 	public String email() {
 		return kakaoAccount != null ? kakaoAccount.email() : null;
+	}
+
+	public String gender() {
+		return kakaoAccount != null ? kakaoAccount.gender() : null;
+	}
+
+	public String birthyear() {
+		return kakaoAccount != null ? kakaoAccount.birthyear() : null;
 	}
 }
