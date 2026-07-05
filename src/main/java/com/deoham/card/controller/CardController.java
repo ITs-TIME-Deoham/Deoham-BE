@@ -121,9 +121,9 @@ public class CardController {
                             schema = @Schema(implementation = ApiResponse.class)))
     })
     @GetMapping("/cards/my/active")
-    public ResponseEntity<CardDetailResponse> getMyActiveCard() {
+    public ResponseEntity<MyActiveCardResponse> getMyActiveCard() {
         UUID userId = AuthenticationUtils.currentPrincipal().orElseThrow().userId();
-        return ResponseEntity.ok(cardReadService.getMyActiveCard(userId).orElse(null));
+        return ResponseEntity.ok(cardReadService.getMyActiveCard(userId));
     }
 
     @Tag(name = "Card")
