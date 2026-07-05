@@ -105,8 +105,9 @@ public class DefaultCardWriteService implements CardWriteService {
         if (card.getRetryCount() >= Card.MAX_RETRY_COUNT) {
             throw new BusinessException(ErrorCode.CONFLICT, "재요청 횟수를 초과했습니다. (최대 " + Card.MAX_RETRY_COUNT + "회)");
         }
+        Instant retriedAt = Instant.now();
         card.incrementRetryCount();
-        card.updateExpiresAt(Instant.now().plus(Card.EXPIRY_DURATION));
+        card.updateExpiresAt(retriedAt.plus(Card.EXPIRY_DURATION));
     }
 
     @Override
