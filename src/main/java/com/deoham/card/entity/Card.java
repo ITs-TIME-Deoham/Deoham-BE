@@ -28,7 +28,7 @@ import org.locationtech.jts.geom.Point;
 public class Card extends BaseEntity {
 
     public static final int MAX_RETRY_COUNT = 3;
-    public static final Duration EXPIRY_DURATION = Duration.ofHours(2);
+    public static final Duration EXPIRY_DURATION = Duration.ofMinutes(30);
 
     @Id
     @UuidGenerator
