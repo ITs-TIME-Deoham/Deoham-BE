@@ -24,8 +24,8 @@ deoham:
   cors:
     allowed-origins: http://localhost:3000,http://localhost:5173,http://localhost:8080,http://127.0.0.1:3000,http://127.0.0.1:5173,http://127.0.0.1:8080
   kakao:
-    rest-api-key: ${KAKAO_REST_API_KEY:683885f3d0ae05d5d74cb2298f6a2976}
-    client-secret: ${KAKAO_CLIENT_SECRET:}
+    rest-api-key: ${KAKAO_REST_API_KEY}
+    client-secret: ${KAKAO_CLIENT_SECRET}
     redirect-uri: ${KAKAO_REDIRECT_URI:http://localhost:3000/api/auth/kakao/callback}
   s3:
     region: ${AWS_S3_REGION:ap-northeast-2}
