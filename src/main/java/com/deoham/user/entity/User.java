@@ -76,6 +76,9 @@ public class User extends BaseEntity {
     @Column(name = "has_created_card", nullable = false)
     private boolean hasCreatedCard = false;
 
+    @Column(name = "has_seen_card_view_onboarding", nullable = false)
+    private boolean hasSeenCardViewOnboarding = false;
+
     @Builder
     private User(String firebaseUid, String nickname, String profileImageUrl, GenderType gender, Integer age) {
         this.firebaseUid = firebaseUid != null ? firebaseUid : UUID.randomUUID().toString();
@@ -129,7 +132,22 @@ public class User extends BaseEntity {
         this.deletedAt = Instant.now();
     }
 
+    public void restore() {
+        this.status = UserStatus.ACTIVE;
+        this.deletedAt = null;
+    }
+
+    public boolean isWithinRecoveryPeriod(long recoveryDays) {
+        if (deletedAt == null) return false;
+        Instant recoveryDeadline = deletedAt.plusSeconds(recoveryDays * 86400L);
+        return Instant.now().isBefore(recoveryDeadline);
+    }
+
     public void markCardCreated() {
         this.hasCreatedCard = true;
+    }
+
+    public void setHasSeenCardViewOnboarding(boolean hasSeenCardViewOnboarding) {
+        this.hasSeenCardViewOnboarding = hasSeenCardViewOnboarding;
     }
 }

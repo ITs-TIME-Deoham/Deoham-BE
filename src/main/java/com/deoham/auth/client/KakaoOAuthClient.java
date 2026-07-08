@@ -37,6 +37,14 @@ public class KakaoOAuthClient {
 		body.add("redirect_uri", props.redirectUri());
 		body.add("code", code);
 
+		log.info(
+				"Kakao token request clientId={}, redirectUri={}, clientSecretPresent={}, clientSecretLength={}",
+				mask(props.restApiKey()),
+				props.redirectUri(),
+				hasText(props.clientSecret()),
+				props.clientSecret() == null ? 0 : props.clientSecret().length()
+		);
+
 		try {
 			return tokenClient.post()
 					.uri("/oauth/token")
@@ -61,5 +69,19 @@ public class KakaoOAuthClient {
 			log.warn("Kakao user info failed. Status: {}, Response: {}", e.getStatusCode(), e.getResponseBodyAsString());
 			throw new BusinessException(ErrorCode.UNAUTHORIZED, "카카오 사용자 정보 조회에 실패했습니다.");
 		}
+	}
+
+	private static boolean hasText(String value) {
+		return value != null && !value.isBlank();
+	}
+
+	private static String mask(String value) {
+		if (!hasText(value)) {
+			return "<empty>";
+		}
+		if (value.length() <= 8) {
+			return "****";
+		}
+		return value.substring(0, 4) + "****" + value.substring(value.length() - 4);
 	}
 }
