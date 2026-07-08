@@ -17,6 +17,7 @@ import com.deoham.user.entity.GenderType;
 import com.deoham.user.entity.OauthProvider;
 import com.deoham.user.entity.User;
 import com.deoham.user.entity.UserSocialAccount;
+import com.deoham.user.entity.UserStatus;
 import com.deoham.user.repository.UserRepository;
 import com.deoham.user.repository.UserSocialAccountRepository;
 import java.net.URI;
@@ -96,9 +97,7 @@ public class AuthService {
 					.providerEmail(userInfo.email())
 					.build());
 		} else {
-			user = socialAccount.getUser();
-			user.updateAge(calculateAge(userInfo.birthyear()));
-			socialAccount.updateTokens(null, null, null);
+			user = handleExistingSocialAccount(socialAccount, userInfo);
 		}
 
 		String accessToken = jwtTokenProvider.generateAccessToken(
@@ -115,6 +114,23 @@ public class AuthService {
 				"Bearer",
 				jwtProperties.accessTokenExpirySeconds(),
 				isNewUser);
+	}
+
+	private User handleExistingSocialAccount(UserSocialAccount socialAccount, KakaoUserInfo userInfo) {
+		User user = userRepository.findByIdIncludingDeleted(socialAccount.getUser().getId())
+				.orElseThrow(() -> new BusinessException(ErrorCode.NOT_FOUND, "Associated user not found."));
+
+		if (user.getStatus() == UserStatus.DELETED) {
+			if (user.isWithinRecoveryPeriod(30)) {
+				user.restore();
+			} else {
+				throw new BusinessException(ErrorCode.NOT_FOUND, "Account has been permanently deleted.");
+			}
+		}
+
+		user.updateAge(calculateAge(userInfo.birthyear()));
+		socialAccount.updateTokens(null, null, null);
+		return user;
 	}
 
 	@Transactional
@@ -219,4 +235,5 @@ public class AuthService {
 			return null;
 		}
 	}
+
 }
