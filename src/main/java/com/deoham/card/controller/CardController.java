@@ -96,7 +96,8 @@ public class CardController {
             @Parameter(description = "Optional pagination cursor", example = "NTAuNXxhMWIyYzNkNGU1ZjY=")
             @RequestParam(required = false) String cursor
     ) {
-        return ResponseEntity.ok(cardReadService.getNearbyCards(latitude, longitude, cursor));
+        UUID userId = AuthenticationUtils.currentPrincipal().orElseThrow().userId();
+        return ResponseEntity.ok(cardReadService.getNearbyCards(latitude, longitude, cursor, userId));
     }
 
     @Tag(name = "Card")
