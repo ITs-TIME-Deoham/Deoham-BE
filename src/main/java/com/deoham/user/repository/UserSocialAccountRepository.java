@@ -14,4 +14,6 @@ public interface UserSocialAccountRepository extends JpaRepository<UserSocialAcc
 	Optional<UserSocialAccount> findByRefreshToken(String refreshToken);
 
 	List<UserSocialAccount> findAllByUser_Id(UUID userId);
+
+	void deleteAllByUser_Id(UUID userId);
 }

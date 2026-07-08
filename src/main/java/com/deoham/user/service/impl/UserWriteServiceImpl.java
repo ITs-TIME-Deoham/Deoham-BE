@@ -8,6 +8,7 @@ import com.deoham.global.exception.BusinessException;
 import com.deoham.global.exception.ErrorCode;
 import com.deoham.user.entity.User;
 import com.deoham.user.repository.UserRepository;
+import com.deoham.user.repository.UserSocialAccountRepository;
 import com.deoham.user.service.UserWriteService;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
@@ -22,6 +23,7 @@ public class UserWriteServiceImpl implements UserWriteService {
     private final UserRepository userRepository;
 	private final CardRepository cardRepository;
 	private final CardApplyRepository cardApplyRepository;
+	private final UserSocialAccountRepository userSocialAccountRepository;
 
     @Override
     public User updateProfile(UUID userId, String nickname, String profileImageUrl) {
@@ -59,6 +61,7 @@ public class UserWriteServiceImpl implements UserWriteService {
 		User user = getUser(userId, "User not found.");
 		user.delete();
 		userRepository.save(user);
+		userSocialAccountRepository.deleteAllByUser_Id(userId);
 	}
 
 	private int safeCastToInt(long value) {
