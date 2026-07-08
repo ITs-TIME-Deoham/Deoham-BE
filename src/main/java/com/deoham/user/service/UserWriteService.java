@@ -9,6 +9,4 @@ public interface UserWriteService {
 	void updateHelpCounts(UUID requesterId, UUID applicantId);
 
 	void deleteUser(UUID userId);
-
-	void deletePermanentlyExpiredAccounts();
 }

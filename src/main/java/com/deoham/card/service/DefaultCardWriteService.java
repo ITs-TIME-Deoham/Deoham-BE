@@ -64,7 +64,6 @@ public class DefaultCardWriteService implements CardWriteService {
         return new CardDetailResponse(
                 card.getId(),
                 card.getRequester().getId(),
-                card.getRequester().getNickname(),
                 card.getRequester().getProfileImageUrl(),
                 card.getCategory(),
                 card.getDescription(),

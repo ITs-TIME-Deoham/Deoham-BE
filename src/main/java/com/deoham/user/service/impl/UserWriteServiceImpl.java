@@ -6,22 +6,14 @@ import com.deoham.card.repository.CardApplyRepository;
 import com.deoham.card.repository.CardRepository;
 import com.deoham.global.exception.BusinessException;
 import com.deoham.global.exception.ErrorCode;
-import com.deoham.notification.repository.FcmTokenRepository;
-import com.deoham.notification.repository.NotificationRepository;
 import com.deoham.user.entity.User;
 import com.deoham.user.repository.UserRepository;
-import com.deoham.user.repository.UserSocialAccountRepository;
 import com.deoham.user.service.UserWriteService;
-import java.time.Instant;
-import java.util.List;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
-import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-@Slf4j
 @Service
 @RequiredArgsConstructor
 @Transactional
@@ -30,9 +22,6 @@ public class UserWriteServiceImpl implements UserWriteService {
     private final UserRepository userRepository;
 	private final CardRepository cardRepository;
 	private final CardApplyRepository cardApplyRepository;
-	private final NotificationRepository notificationRepository;
-	private final FcmTokenRepository fcmTokenRepository;
-	private final UserSocialAccountRepository userSocialAccountRepository;
 
     @Override
     public User updateProfile(UUID userId, String nickname, String profileImageUrl) {
@@ -70,31 +59,6 @@ public class UserWriteServiceImpl implements UserWriteService {
 		User user = getUser(userId, "User not found.");
 		user.delete();
 		userRepository.save(user);
-	}
-
-	@Override
-	@Scheduled(cron = "0 0 0 * * ?")
-	public void deletePermanentlyExpiredAccounts() {
-		Instant thirtyDaysAgo = Instant.now().minusSeconds(30L * 24 * 60 * 60);
-		List<User> expiredUsers = userRepository.findDeletedUsersBefore(thirtyDaysAgo);
-
-		log.info("Found {} expired deleted accounts to permanently delete", expiredUsers.size());
-
-		for (User user : expiredUsers) {
-			permanentlyDeleteUser(user.getId());
-		}
-	}
-
-	private void permanentlyDeleteUser(UUID userId) {
-		cardApplyRepository.deleteByApplicantId(userId);
-		cardApplyRepository.deleteByCardRequesterId(userId);
-		cardRepository.deleteByRequesterId(userId);
-		notificationRepository.deleteByUserId(userId);
-		fcmTokenRepository.deleteByUserId(userId);
-		userSocialAccountRepository.deleteByUserId(userId);
-		userRepository.deleteById(userId);
-
-		log.info("Permanently deleted user: {}", userId);
 	}
 
 	private int safeCastToInt(long value) {

@@ -149,7 +149,7 @@ public class UserController {
 	@DeleteMapping
 	@Operation(
 			summary = "회원 탈퇴",
-			description = "현재 로그인한 사용자의 계정을 탈퇴합니다. (soft delete), 한 달 내로 재가입 시 기존 계정 사용"
+			description = "현재 로그인한 사용자의 계정을 탈퇴합니다. (soft delete)"
 	)
 	@ApiResponses({
 			@io.swagger.v3.oas.annotations.responses.ApiResponse(
