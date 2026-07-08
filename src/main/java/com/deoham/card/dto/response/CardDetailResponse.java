@@ -16,9 +16,6 @@ public record CardDetailResponse(
         @Schema(description = "Requester ID")
         UUID requesterId,
 
-        @Schema(description = "Requester nickname")
-        String requesterNickname,
-
         @Schema(description = "Requester profile image URL")
         String requesterProfileImageUrl,
 

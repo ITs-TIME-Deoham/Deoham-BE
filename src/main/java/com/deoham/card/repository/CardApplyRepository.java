@@ -23,8 +23,4 @@ public interface CardApplyRepository extends JpaRepository<CardApply, UUID> {
     long countByApplicantId(UUID applicantId);
 
     long countByApplicantIdAndStatus(UUID applicantId, CardApplyStatus status);
-
-    void deleteByApplicantId(UUID applicantId);
-
-    void deleteByCardRequesterId(UUID requesterId);
 }

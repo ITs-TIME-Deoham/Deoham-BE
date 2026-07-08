@@ -10,9 +10,6 @@ public record PaginatedCardListResponse(
         List<CardDetailResponse> cards,
 
         @Schema(description = "Cursor for the next page. Pass this value as the cursor query parameter in the next GET /api/cards/nearby request. It is Base64 encoded from the last card's distance and card ID. Null means there are no more cards.")
-        String nextCursor,
-
-        @Schema(description = "Whether the user has seen the card view onboarding. True if this is the first time viewing nearby cards.")
-        Boolean hasSeenCardViewOnboarding
+        String nextCursor
 ) {
 }

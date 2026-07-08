@@ -24,7 +24,6 @@ public interface CardRepository extends JpaRepository<Card, UUID> {
     @Query(value = """
             SELECT c.id,
                    c.requester_id,
-                   u.nickname,
                    u.profile_image_url,
                    c.category::text,
                    c.description,
@@ -54,6 +53,4 @@ public interface CardRepository extends JpaRepository<Card, UUID> {
             @Param("cursorDistance") Double cursorDistance,
             @Param("cursorCardId") String cursorCardId
     );
-
-    void deleteByRequesterId(UUID requesterId);
 }
