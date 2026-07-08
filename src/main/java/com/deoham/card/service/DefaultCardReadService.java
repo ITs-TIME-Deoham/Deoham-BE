@@ -33,7 +33,7 @@ public class DefaultCardReadService implements CardReadService {
     private final UserRepository userRepository;
 
     @Override
-    @Transactional(readOnly = true)
+    @Transactional
     public MyActiveCardResponse getMyActiveCard(UUID userId) {
         var activeCard = cardRepository.findFirstByRequesterIdAndStatusIn(userId, List.of(CardStatus.OPEN, CardStatus.MATCHED))
                 .map(this::toDetailResponse)
@@ -42,12 +42,14 @@ public class DefaultCardReadService implements CardReadService {
         var user = userRepository.findById(userId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.NOT_FOUND, "사용자를 찾을 수 없습니다."));
 
+        user.markCardViewOnboardingSeen();
+
         return MyActiveCardResponse.of(activeCard, user.isHasCreatedCard());
     }
 
     @Override
     @Transactional(readOnly = true)
-    public PaginatedCardListResponse getNearbyCards(double lat, double lng, String cursor) {
+    public PaginatedCardListResponse getNearbyCards(double lat, double lng, String cursor, UUID userId) {
         CursorData cursorData = parseCursor(cursor);
         List<Object[]> rows = cardRepository.findNearbyCards(lat, lng, cursorData.distance(), cursorData.cardId());
 
@@ -73,7 +75,8 @@ public class DefaultCardReadService implements CardReadService {
                 .toList();
 
         String nextCursor = hasMore ? encodeCursor(((Number) rows.get(PAGE_SIZE - 1)[13]).doubleValue(), rows.get(PAGE_SIZE - 1)[0].toString()) : null;
-        return new PaginatedCardListResponse(cards, nextCursor);
+        Boolean has_seen_card_view_onboarding = userRepository.hasSeenCardViewOnboarding(userId);
+        return new PaginatedCardListResponse(cards, nextCursor, has_seen_card_view_onboarding);
     }
 
     @Override

@@ -76,6 +76,9 @@ public class User extends BaseEntity {
     @Column(name = "has_created_card", nullable = false)
     private boolean hasCreatedCard = false;
 
+    @Column(name = "has_seen_card_view_onboarding", nullable = false)
+    private boolean hasSeenCardViewOnboarding = false;
+
     @Builder
     private User(String firebaseUid, String nickname, String profileImageUrl, GenderType gender, Integer age) {
         this.firebaseUid = firebaseUid != null ? firebaseUid : UUID.randomUUID().toString();
@@ -131,5 +134,9 @@ public class User extends BaseEntity {
 
     public void markCardCreated() {
         this.hasCreatedCard = true;
+    }
+
+    public void markCardViewOnboardingSeen() {
+        this.hasSeenCardViewOnboarding = true;
     }
 }
