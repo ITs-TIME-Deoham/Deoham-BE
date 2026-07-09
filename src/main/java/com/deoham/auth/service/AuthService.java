@@ -96,6 +96,7 @@ public class AuthService {
 					.providerEmail(userInfo.email())
 					.build());
 		} else {
+			userRepository.reactivateIfDeleted(socialAccount.getUserId());
 			user = socialAccount.getUser();
 			user.updateAge(calculateAge(userInfo.birthyear()));
 			socialAccount.updateTokens(null, null, null);

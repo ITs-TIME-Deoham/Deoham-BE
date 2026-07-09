@@ -28,10 +28,10 @@ public class User extends BaseEntity {
     @Column(name = "id", nullable = false, updatable = false)
     private UUID id;
 
-    @Column(name = "firebase_uid", nullable = false, unique = true, updatable = false, length = 128)
+    @Column(name = "firebase_uid", nullable = false, updatable = false, length = 128)
     private String firebaseUid;
 
-    @Column(name = "nickname", nullable = false, unique = true, length = 50)
+    @Column(name = "nickname", nullable = false, length = 50)
     private String nickname;
 
     @Column(name = "profile_image_url")

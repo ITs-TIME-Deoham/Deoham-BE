@@ -36,6 +36,11 @@ public class UserSocialAccount {
     @JoinColumn(name = "user_id", nullable = false, updatable = false)
     private User user;
 
+    // Raw FK, read without triggering the lazy `user` proxy (which applies User's
+    // @Where deleted_at filter and throws if the linked user is soft-deleted).
+    @Column(name = "user_id", insertable = false, updatable = false)
+    private UUID userId;
+
     @JdbcTypeCode(SqlTypes.NAMED_ENUM)
     @Column(name = "provider", nullable = false, updatable = false, columnDefinition = "oauth_provider")
     private OauthProvider provider;

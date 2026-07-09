@@ -3,6 +3,7 @@ package com.deoham.global.exception;
 import com.deoham.global.response.ApiResponse;
 import jakarta.validation.ConstraintViolationException;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.core.AuthenticationException;
@@ -48,6 +49,13 @@ public class GlobalExceptionHandler {
 	public ResponseEntity<ApiResponse<Void>> handleAccessDenied(AccessDeniedException ex) {
 		return ResponseEntity.status(ErrorCode.FORBIDDEN.getStatus())
 				.body(ApiResponse.fail(ErrorCode.FORBIDDEN, ex.getMessage()));
+	}
+
+	@ExceptionHandler(DataIntegrityViolationException.class)
+	public ResponseEntity<ApiResponse<Void>> handleDataIntegrityViolation(DataIntegrityViolationException ex) {
+		log.warn("DataIntegrityViolationException: {}", ex.getMessage());
+		return ResponseEntity.status(ErrorCode.CONFLICT.getStatus())
+				.body(ApiResponse.fail(ErrorCode.CONFLICT, ErrorCode.CONFLICT.getDefaultMessage()));
 	}
 
 	@ExceptionHandler(Exception.class)
