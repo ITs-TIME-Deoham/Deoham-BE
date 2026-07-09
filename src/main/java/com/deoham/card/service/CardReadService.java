@@ -12,7 +12,7 @@ public interface CardReadService {
 
     MyActiveCardResponse getMyActiveCard(UUID userId);
 
-    PaginatedCardListResponse getNearbyCards(double lat, double lng, String cursor);
+    PaginatedCardListResponse getNearbyCards(double lat, double lng, String cursor, UUID userId);
 
     CardDetailResponse getCard(UUID cardId);
 

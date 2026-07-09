@@ -33,7 +33,7 @@ public class DefaultCardReadService implements CardReadService {
     private final UserRepository userRepository;
 
     @Override
-    @Transactional(readOnly = true)
+    @Transactional
     public MyActiveCardResponse getMyActiveCard(UUID userId) {
         var activeCard = cardRepository.findFirstByRequesterIdAndStatusIn(userId, List.of(CardStatus.OPEN, CardStatus.MATCHED))
                 .map(this::toDetailResponse)
@@ -42,12 +42,14 @@ public class DefaultCardReadService implements CardReadService {
         var user = userRepository.findById(userId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.NOT_FOUND, "사용자를 찾을 수 없습니다."));
 
+        user.markCardViewOnboardingSeen();
+
         return MyActiveCardResponse.of(activeCard, user.isHasCreatedCard());
     }
 
     @Override
     @Transactional(readOnly = true)
-    public PaginatedCardListResponse getNearbyCards(double lat, double lng, String cursor) {
+    public PaginatedCardListResponse getNearbyCards(double lat, double lng, String cursor, UUID userId) {
         CursorData cursorData = parseCursor(cursor);
         List<Object[]> rows = cardRepository.findNearbyCards(lat, lng, cursorData.distance(), cursorData.cardId());
 
@@ -58,22 +60,24 @@ public class DefaultCardReadService implements CardReadService {
                         (UUID) row[0],
                         (UUID) row[1],
                         (String) row[2],
-                        CardCategory.valueOf((String) row[3]),
-                        (String) row[4],
-                        toInstant(row[5]),
-                        CardStatus.valueOf((String) row[6]),
-                        row[7] != null ? PreferredGender.valueOf((String) row[7]) : null,
-                        (Integer) row[8],
+                        (String) row[3],
+                        CardCategory.valueOf((String) row[4]),
+                        (String) row[5],
+                        toInstant(row[6]),
+                        CardStatus.valueOf((String) row[7]),
+                        row[8] != null ? PreferredGender.valueOf((String) row[8]) : null,
                         (Integer) row[9],
                         (Integer) row[10],
-                        toInstant(row[11]),
+                        (Integer) row[11],
                         toInstant(row[12]),
-                        ((Number) row[13]).doubleValue()
+                        toInstant(row[13]),
+                        ((Number) row[14]).doubleValue()
                 ))
                 .toList();
 
-        String nextCursor = hasMore ? encodeCursor(((Number) rows.get(PAGE_SIZE - 1)[13]).doubleValue(), rows.get(PAGE_SIZE - 1)[0].toString()) : null;
-        return new PaginatedCardListResponse(cards, nextCursor);
+        String nextCursor = hasMore ? encodeCursor(((Number) rows.get(PAGE_SIZE - 1)[14]).doubleValue(), rows.get(PAGE_SIZE - 1)[0].toString()) : null;
+        Boolean has_seen_card_view_onboarding = userRepository.hasSeenCardViewOnboarding(userId);
+        return new PaginatedCardListResponse(cards, nextCursor, has_seen_card_view_onboarding);
     }
 
     @Override
@@ -110,6 +114,7 @@ public class DefaultCardReadService implements CardReadService {
         return new CardDetailResponse(
                 card.getId(),
                 card.getRequester().getId(),
+                card.getRequester().getNickname(),
                 card.getRequester().getProfileImageUrl(),
                 card.getCategory(),
                 card.getDescription(),

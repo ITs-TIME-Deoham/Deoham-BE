@@ -18,4 +18,11 @@ public interface UserRepository extends JpaRepository<User, UUID> {
     @Query(value = "UPDATE users SET deleted_at = NULL, status = 'ACTIVE' WHERE id = :id AND deleted_at IS NOT NULL",
             nativeQuery = true)
     int reactivateIfDeleted(@Param("id") UUID id);
+
+    @Query("SELECT u.hasSeenCardViewOnboarding FROM User u WHERE u.id = :userId")
+    boolean hasSeenCardViewOnboarding(@Param("userId") UUID userId);
+
+    @Modifying
+    @Query("UPDATE User u SET u.hasSeenCardViewOnboarding = true WHERE u.id = :userId")
+    void markCardViewOnboardingSeen(@Param("userId") UUID userId);
 }
