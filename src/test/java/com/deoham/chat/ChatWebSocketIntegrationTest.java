@@ -20,6 +20,8 @@ import java.lang.reflect.Type;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
 
@@ -36,6 +38,7 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.web.server.LocalServerPort;
 import org.springframework.context.annotation.Import;
 import org.springframework.messaging.converter.MappingJackson2MessageConverter;
+import org.springframework.messaging.simp.stomp.StompCommand;
 import org.springframework.messaging.simp.stomp.StompFrameHandler;
 import org.springframework.messaging.simp.stomp.StompHeaders;
 import org.springframework.messaging.simp.stomp.StompSession;
@@ -47,6 +50,7 @@ import org.springframework.web.socket.client.standard.StandardWebSocketClient;
 import org.springframework.web.socket.messaging.WebSocketStompClient;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 @Import(TestcontainersConfiguration.class)
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
@@ -139,14 +143,68 @@ class ChatWebSocketIntegrationTest {
         senderSession.disconnect();
     }
 
+    @Test
+    @DisplayName("Authorization 헤더 없이 CONNECT하면 서버가 연결을 거부한다")
+    void connectWithoutAuthorizationHeader_isRejected() {
+        StompHeaders connectHeaders = new StompHeaders();
+
+        assertThatThrownBy(() -> connectRaw(connectHeaders, new StompSessionHandlerAdapter() {}))
+                .isInstanceOf(ExecutionException.class);
+    }
+
+    @Test
+    @DisplayName("서명이 잘못된 JWT로 CONNECT하면 서버가 연결을 거부한다")
+    void connectWithInvalidJwt_isRejected() {
+        StompHeaders connectHeaders = new StompHeaders();
+        connectHeaders.add("Authorization", "Bearer invalid.jwt.token");
+
+        assertThatThrownBy(() -> connectRaw(connectHeaders, new StompSessionHandlerAdapter() {}))
+                .isInstanceOf(ExecutionException.class);
+    }
+
+    @Test
+    @DisplayName("채팅방 참여자가 아닌 사용자가 SUBSCRIBE하면 서버가 구독을 거부하고 연결을 종료한다")
+    void subscribeAsNonParticipant_isRejected() throws Exception {
+        User stranger = userRepository.save(User.builder()
+                .firebaseUid("ws-stranger-uid")
+                .nickname("웹소켓제3자")
+                .build());
+
+        CompletableFuture<Throwable> errorFuture = new CompletableFuture<>();
+        StompSession session = connect(stranger, new StompSessionHandlerAdapter() {
+            @Override
+            public void handleException(StompSession session, StompCommand command, StompHeaders headers,
+                    byte[] payload, Throwable exception) {
+                errorFuture.complete(exception);
+            }
+
+            @Override
+            public void handleTransportError(StompSession session, Throwable exception) {
+                errorFuture.complete(exception);
+            }
+        });
+
+        session.subscribe("/sub/chat/rooms/" + room.getId(),
+                new ChatMessageFrameHandler(new LinkedBlockingQueue<>()));
+
+        Throwable error = errorFuture.get(5, TimeUnit.SECONDS);
+        assertThat(error).isNotNull();
+    }
+
     private StompSession connect(User user) throws Exception {
+        return connect(user, new StompSessionHandlerAdapter() {});
+    }
+
+    private StompSession connect(User user, StompSessionHandlerAdapter handler) throws Exception {
         String token = jwtTokenProvider.generateAccessToken(user.getId(), user.getId() + "@test.com", "USER");
         StompHeaders connectHeaders = new StompHeaders();
         connectHeaders.add("Authorization", "Bearer " + token);
+        return connectRaw(connectHeaders, handler);
+    }
 
+    private StompSession connectRaw(StompHeaders connectHeaders, StompSessionHandlerAdapter handler) throws Exception {
         return stompClient
-                .connectAsync("ws://localhost:" + port + "/ws", (WebSocketHttpHeaders) null, connectHeaders,
-                        new StompSessionHandlerAdapter() {})
+                .connectAsync("ws://localhost:" + port + "/ws", (WebSocketHttpHeaders) null, connectHeaders, handler)
                 .get(5, TimeUnit.SECONDS);
     }
 
