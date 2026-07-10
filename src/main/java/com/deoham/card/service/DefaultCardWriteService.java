@@ -50,7 +50,7 @@ public class DefaultCardWriteService implements CardWriteService {
                 .description(request.description())
                 .location(location)
                 .expiresAt(Instant.now().plus(Card.EXPIRY_DURATION))
-                .radiusM(50000)
+                .radiusM(11100000)
                 .city("korea")
                 .preferredGender(request.preferredGender())
                 .preferredAgeMin(request.preferredAgeMin())
