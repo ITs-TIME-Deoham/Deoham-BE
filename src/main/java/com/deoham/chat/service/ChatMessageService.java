@@ -14,11 +14,13 @@ import com.deoham.chat.repository.ChatMessageRepository;
 import com.deoham.chat.repository.ChatRoomRepository;
 import com.deoham.global.exception.BusinessException;
 import com.deoham.global.exception.ErrorCode;
+import com.deoham.global.metrics.MetricsRegistry;
 import com.deoham.notification.service.NotificationService;
 import com.deoham.user.entity.User;
 import com.deoham.user.repository.UserRepository;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import io.micrometer.core.instrument.Timer;
 import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
@@ -40,23 +42,32 @@ public class ChatMessageService {
     private final NotificationService notificationService;
     private final SimpMessagingTemplate messagingTemplate;
     private final ObjectMapper objectMapper;
+    private final MetricsRegistry metricsRegistry;
 
     @Transactional
     public ChatMessageResponse sendMessage(UUID roomId, UUID senderId, ChatMessageSendRequest request) {
-        ChatRoom room = findActiveRoomOrThrow(roomId);
-        User sender = userRepository.findById(senderId)
-                .orElseThrow(() -> new BusinessException(ErrorCode.NOT_FOUND, "사용자를 찾을 수 없습니다"));
-        requireParticipant(room.getCard(), senderId);
+        Timer.Sample sample = metricsRegistry.startChatMessageSendTimer();
+        try {
+            ChatRoom room = findActiveRoomOrThrow(roomId);
+            User sender = userRepository.findById(senderId)
+                    .orElseThrow(() -> new BusinessException(ErrorCode.NOT_FOUND, "사용자를 찾을 수 없습니다"));
+            requireParticipant(room.getCard(), senderId);
 
-        ChatMessage saved = chatMessageRepository.save(ChatMessage.builder()
-                .chatRoom(room)
-                .sender(sender)
-                .content(resolveContent(request))
-                .messageType(request.messageType())
-                .build());
+            ChatMessage saved = chatMessageRepository.save(ChatMessage.builder()
+                    .chatRoom(room)
+                    .sender(sender)
+                    .content(resolveContent(request))
+                    .messageType(request.messageType())
+                    .build());
 
-        notifyOtherParticipant(room, senderId, saved);
-        return toResponse(saved);
+            notifyOtherParticipant(room, senderId, saved);
+            ChatMessageResponse response = toResponse(saved);
+            metricsRegistry.recordChatMessageSendSuccess(sample);
+            return response;
+        } catch (Exception exception) {
+            metricsRegistry.recordChatMessageSendFailure(sample, exception);
+            throw exception;
+        }
     }
 
     @Transactional
@@ -79,19 +90,27 @@ public class ChatMessageService {
     }
 
     public ChatMessagePageResponse getMessages(UUID roomId, UUID userId, Instant before, int size) {
-        ChatRoom room = findActiveRoomOrThrow(roomId);
-        requireParticipant(room.getCard(), userId);
+        Timer.Sample sample = metricsRegistry.startChatMessageGetTimer();
+        try {
+            ChatRoom room = findActiveRoomOrThrow(roomId);
+            requireParticipant(room.getCard(), userId);
 
-        PageRequest pageRequest = PageRequest.of(0, size + 1);
-        List<ChatMessage> messages = before != null
-                ? chatMessageRepository.findByChatRoomIdAndSentAtBeforeOrderBySentAtDesc(roomId, before, pageRequest)
-                : chatMessageRepository.findByChatRoomIdOrderBySentAtDesc(roomId, pageRequest);
+            PageRequest pageRequest = PageRequest.of(0, size + 1);
+            List<ChatMessage> messages = before != null
+                    ? chatMessageRepository.findByChatRoomIdAndSentAtBeforeOrderBySentAtDesc(roomId, before, pageRequest)
+                    : chatMessageRepository.findByChatRoomIdOrderBySentAtDesc(roomId, pageRequest);
 
-        boolean hasNext = messages.size() > size;
-        List<ChatMessage> page = hasNext ? messages.subList(0, size) : messages;
-        Instant nextCursor = hasNext ? page.get(page.size() - 1).getSentAt() : null;
+            boolean hasNext = messages.size() > size;
+            List<ChatMessage> page = hasNext ? messages.subList(0, size) : messages;
+            Instant nextCursor = hasNext ? page.get(page.size() - 1).getSentAt() : null;
 
-        return new ChatMessagePageResponse(page.stream().map(this::toResponse).toList(), hasNext, nextCursor);
+            ChatMessagePageResponse response = new ChatMessagePageResponse(page.stream().map(this::toResponse).toList(), hasNext, nextCursor);
+            metricsRegistry.recordChatMessageGetSuccess(sample);
+            return response;
+        } catch (Exception exception) {
+            metricsRegistry.recordChatMessageGetFailure(sample, exception);
+            throw exception;
+        }
     }
 
     private void notifyOtherParticipant(ChatRoom room, UUID senderId, ChatMessage message) {
