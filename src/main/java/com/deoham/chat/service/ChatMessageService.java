@@ -43,6 +43,9 @@ public class ChatMessageService {
 
     @Transactional
     public ChatMessageResponse sendMessage(UUID roomId, UUID senderId, ChatMessageSendRequest request) {
+        if (request.messageType() == ChatMessageType.SYSTEM) {
+            throw new BusinessException(ErrorCode.INVALID_REQUEST, "SYSTEM 타입은 클라이언트가 전송할 수 없습니다");
+        }
         ChatRoom room = findActiveRoomOrThrow(roomId);
         User sender = userRepository.findById(senderId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.NOT_FOUND, "사용자를 찾을 수 없습니다"));
@@ -57,6 +60,21 @@ public class ChatMessageService {
 
         notifyOtherParticipant(room, senderId, saved);
         return toResponse(saved);
+    }
+
+    @Transactional
+    public void sendRoomClosedMessage(ChatRoom room, UUID actorId) {
+        User actor = userRepository.findById(actorId)
+                .orElseThrow(() -> new BusinessException(ErrorCode.NOT_FOUND, "사용자를 찾을 수 없습니다"));
+
+        ChatMessage saved = chatMessageRepository.save(ChatMessage.builder()
+                .chatRoom(room)
+                .sender(actor)
+                .content(actor.getNickname() + "님이 채팅을 종료했습니다")
+                .messageType(ChatMessageType.SYSTEM)
+                .build());
+
+        messagingTemplate.convertAndSend("/sub/chat/rooms/" + room.getId(), toResponse(saved));
     }
 
     @Transactional

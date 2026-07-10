@@ -33,6 +33,7 @@ public class ChatRoomService {
 
     private final ChatRoomRepository chatRoomRepository;
     private final ChatMessageRepository chatMessageRepository;
+    private final ChatMessageService chatMessageService;
     private final CardRepository cardRepository;
     private final CardApplyRepository cardApplyRepository;
 
@@ -119,6 +120,7 @@ public class ChatRoomService {
     public void closeRoom(UUID roomId, UUID userId) {
         ChatRoom room = findRoomOrThrow(roomId);
         requireParticipant(room.getCard(), userId);
+        chatMessageService.sendRoomClosedMessage(room, userId);
         room.close();
     }
 

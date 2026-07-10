@@ -22,11 +22,11 @@ public record ChatMessageResponse(
         @Schema(
                 description = "메시지 타입",
                 example = "TEXT",
-                allowableValues = {"TEXT", "IMAGE", "LOCATION"}
+                allowableValues = {"TEXT", "IMAGE", "LOCATION", "SYSTEM"}
         )
         String messageType,
 
-        @Schema(description = "메시지 내용. TEXT면 본문, IMAGE면 이미지 URL, LOCATION이면 위치 데이터.", example = "안녕하세요!")
+        @Schema(description = "메시지 내용. TEXT면 본문, IMAGE면 이미지 URL, LOCATION이면 위치 데이터, SYSTEM이면 안내 문구.", example = "안녕하세요!")
         String content,
 
         @Schema(description = "메시지 전송 시각 (ISO-8601 UTC)", example = "2024-01-15T10:30:00Z")
