@@ -115,6 +115,9 @@ class ChatWebSocketIntegrationTest {
 
     @AfterEach
     void tearDown() {
+        if (stompClient != null) {
+            stompClient.stop();
+        }
         chatRoomRepository.deleteAll();
         cardApplyRepository.deleteAll();
         cardRepository.deleteAll();
