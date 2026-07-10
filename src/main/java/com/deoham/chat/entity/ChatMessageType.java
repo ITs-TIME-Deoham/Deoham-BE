@@ -4,5 +4,5 @@ public enum ChatMessageType {
     TEXT,
     IMAGE,
     LOCATION,
-    SYSTEM
+    ROOM_CLOSED
 }

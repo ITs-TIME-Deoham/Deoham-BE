@@ -43,8 +43,8 @@ public class ChatMessageService {
 
     @Transactional
     public ChatMessageResponse sendMessage(UUID roomId, UUID senderId, ChatMessageSendRequest request) {
-        if (request.messageType() == ChatMessageType.SYSTEM) {
-            throw new BusinessException(ErrorCode.INVALID_REQUEST, "SYSTEM 타입은 클라이언트가 전송할 수 없습니다");
+        if (request.messageType() == ChatMessageType.ROOM_CLOSED) {
+            throw new BusinessException(ErrorCode.INVALID_REQUEST, "ROOM_CLOSED 타입은 클라이언트가 전송할 수 없습니다");
         }
         ChatRoom room = findActiveRoomOrThrow(roomId);
         User sender = userRepository.findById(senderId)
@@ -71,7 +71,7 @@ public class ChatMessageService {
                 .chatRoom(room)
                 .sender(actor)
                 .content(actor.getNickname() + "님이 채팅을 종료했습니다")
-                .messageType(ChatMessageType.SYSTEM)
+                .messageType(ChatMessageType.ROOM_CLOSED)
                 .build());
 
         messagingTemplate.convertAndSend("/sub/chat/rooms/" + room.getId(), toResponse(saved));
