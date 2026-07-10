@@ -23,6 +23,15 @@ public record ChatRoomResponse(
         Instant closedAt,
 
         @Schema(description = "내가 아직 읽지 않은, 상대방이 보낸 메시지 수", example = "3")
-        long unreadCount
+        long unreadCount,
+
+        @Schema(description = "상대방 닉네임. 아직 상대방이 정해지지 않았으면 null.", example = "홍길동", nullable = true)
+        String opponentNickname,
+
+        @Schema(description = "상대방 프로필 이미지 URL. 아직 상대방이 정해지지 않았거나 이미지가 없으면 null.", nullable = true)
+        String opponentProfileImageUrl,
+
+        @Schema(description = "가장 최근 메시지 내용. 메시지가 없으면 null.", nullable = true)
+        String lastMessage
 ) {
 }

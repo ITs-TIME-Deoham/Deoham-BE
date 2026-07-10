@@ -16,7 +16,9 @@ public interface ChatRoomRepository extends JpaRepository<ChatRoom, UUID> {
 
     @Query("""
             SELECT r FROM ChatRoom r
-            WHERE r.card.requester.id = :userId
+            JOIN FETCH r.card c
+            JOIN FETCH c.requester
+            WHERE c.requester.id = :userId
                OR EXISTS (
                    SELECT a FROM CardApply a
                    WHERE a.card = r.card
