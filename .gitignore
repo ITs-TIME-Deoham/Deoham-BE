@@ -43,3 +43,14 @@ out/
 
 ### Logs ###
 *.log
+
+### Monitoring (local runtime only) ###
+monitoring/loki/
+monitoring/prometheus-data/
+monitoring/grafana-data/
+loki-windows-amd64.exe
+logs/
+
+### Misc ###
+QualityGate.md
+phase-3-4-validation.md

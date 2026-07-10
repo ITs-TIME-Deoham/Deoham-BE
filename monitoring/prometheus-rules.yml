@@ -1,0 +1,186 @@
+groups:
+  # 인프라 경고 (Infrastructure Alerts)
+  - name: infrastructure
+    interval: 30s
+    rules:
+      # CPU 사용률 경고
+      - alert: CPUUsageHigh
+        expr: process_cpu_usage * 100 > 80
+        for: 1m
+        labels:
+          severity: warning
+          service: deoham-app
+          component: infrastructure
+        annotations:
+          summary: "CPU 사용률이 높습니다"
+          description: "CPU 사용률이 80%를 초과했습니다. 현재값: {{ $value | humanize }}%"
+          runbook_url: "https://wiki.example.com/runbooks/cpu-usage-high"
+
+      # 메모리 사용률 경고
+      - alert: MemoryUsageHigh
+        expr: (jvm_memory_used_bytes{area="heap"} / jvm_memory_max_bytes{area="heap"}) * 100 > 85
+        for: 2m
+        labels:
+          severity: warning
+          service: deoham-app
+          component: infrastructure
+        annotations:
+          summary: "JVM 메모리 사용률이 높습니다"
+          description: "JVM 힙 메모리 사용률이 85%를 초과했습니다. 현재값: {{ $value | humanizePercentage }}"
+          runbook_url: "https://wiki.example.com/runbooks/memory-usage-high"
+
+      # 디스크 사용률 경고 (Linux 환경)
+      - alert: DiskUsageHigh
+        expr: (node_filesystem_avail_bytes / node_filesystem_size_bytes) * 100 < 10
+        for: 2m
+        labels:
+          severity: warning
+          service: infrastructure
+          component: storage
+        annotations:
+          summary: "디스크 사용 가능 공간이 부족합니다"
+          description: "디스크 여유 공간이 10% 이하입니다. 현재값: {{ $value | humanizePercentage }}"
+          runbook_url: "https://wiki.example.com/runbooks/disk-usage-high"
+
+      # JVM GC 시간 경고
+      - alert: JVMGCTimeHigh
+        expr: increase(jvm_gc_pause_seconds_sum[5m]) > 1
+        for: 2m
+        labels:
+          severity: warning
+          service: deoham-app
+          component: jvm
+        annotations:
+          summary: "JVM GC 시간이 높습니다"
+          description: "지난 5분간 GC에 소요된 총 시간이 1초를 초과했습니다. 현재값: {{ $value }}초"
+          runbook_url: "https://wiki.example.com/runbooks/jvm-gc-time-high"
+
+  # 애플리케이션 경고 (Application Alerts)
+  - name: application
+    interval: 30s
+    rules:
+      # HTTP 5xx 에러율 경고
+      - alert: HTTPErrorRateHigh
+        expr: |
+          (
+            sum(rate(http_server_requests_seconds_count{status=~"5.."}[5m]))
+            /
+            sum(rate(http_server_requests_seconds_count[5m]))
+          ) * 100 > 5
+        for: 5m
+        labels:
+          severity: critical
+          service: deoham-app
+          component: http-api
+        annotations:
+          summary: "HTTP 5xx 에러율이 높습니다"
+          description: "5xx 에러율이 5%를 초과했습니다. 현재값: {{ $value | humanizePercentage }}"
+          runbook_url: "https://wiki.example.com/runbooks/http-error-rate-high"
+
+      # API 응답 시간 경고 (p95)
+      - alert: APILatencyHigh
+        expr: |
+          histogram_quantile(0.95, sum(rate(http_server_requests_seconds_bucket[5m])) by (le))
+          > 1
+        for: 5m
+        labels:
+          severity: warning
+          service: deoham-app
+          component: http-api
+        annotations:
+          summary: "API 응답 시간이 높습니다 (p95)"
+          description: "p95 응답 시간이 1초를 초과했습니다. 현재값: {{ $value | humanizeDuration }}"
+          runbook_url: "https://wiki.example.com/runbooks/api-latency-high"
+
+      # DB 커넥션 풀 사용률 경고
+      - alert: DBConnectionPoolHigh
+        expr: |
+          (
+            tomcat_jdbc_pool_active
+            /
+            tomcat_jdbc_pool_max
+          ) * 100 > 80
+        for: 3m
+        labels:
+          severity: warning
+          service: deoham-app
+          component: database
+        annotations:
+          summary: "데이터베이스 커넥션 풀 사용률이 높습니다"
+          description: "DB 커넥션 풀 사용률이 80%를 초과했습니다. 활성: {{ with query \"tomcat_jdbc_pool_active\" }}{{ . | first | value }}{{ end }} / {{ with query \"tomcat_jdbc_pool_max\" }}{{ . | first | value }}{{ end }}"
+          runbook_url: "https://wiki.example.com/runbooks/db-connection-pool-high"
+
+      # 요청 큐 대기시간 경고
+      - alert: RequestQueueWaitHigh
+        expr: |
+          rate(http_server_requests_seconds_sum[5m])
+          /
+          rate(http_server_requests_seconds_count[5m])
+          > 0.5
+        for: 3m
+        labels:
+          severity: warning
+          service: deoham-app
+          component: http-api
+        annotations:
+          summary: "요청 처리 시간이 높습니다"
+          description: "평균 요청 처리 시간이 500ms를 초과했습니다. 현재값: {{ $value | humanizeDuration }}"
+          runbook_url: "https://wiki.example.com/runbooks/request-queue-wait-high"
+
+  # 비즈니스 경고 (Business Alerts)
+  - name: business
+    interval: 30s
+    rules:
+      # 카드 API 성공률 경고
+      - alert: CardAPISuccessRateLow
+        expr: |
+          (
+            sum(increase(http_server_requests_seconds_count{uri="/api/cards/search", status=~"2.."}[10m]))
+            /
+            sum(increase(http_server_requests_seconds_count{uri="/api/cards/search"}[10m]))
+          ) * 100 < 95
+        for: 10m
+        labels:
+          severity: critical
+          service: deoham-app
+          component: card-api
+        annotations:
+          summary: "카드 검색 API 성공률이 낮습니다"
+          description: "카드 검색 API의 성공률이 95% 미만입니다. 현재값: {{ $value | humanizePercentage }}"
+          runbook_url: "https://wiki.example.com/runbooks/card-api-success-rate-low"
+
+      # 채팅 메시지 실패율 경고
+      - alert: ChatMessageFailureRateHigh
+        expr: |
+          (
+            sum(increase(http_server_requests_seconds_count{uri="/api/chat/messages", status=~"[45].."}[5m]))
+            /
+            sum(increase(http_server_requests_seconds_count{uri="/api/chat/messages"}[5m]))
+          ) * 100 > 2
+        for: 5m
+        labels:
+          severity: warning
+          service: deoham-app
+          component: chat-api
+        annotations:
+          summary: "채팅 메시지 전송 실패율이 높습니다"
+          description: "메시지 전송 실패율이 2%를 초과했습니다. 현재값: {{ $value | humanizePercentage }}"
+          runbook_url: "https://wiki.example.com/runbooks/chat-message-failure-rate-high"
+
+      # 위치 검색 성공률 경고
+      - alert: LocationSearchSuccessRateLow
+        expr: |
+          (
+            sum(increase(http_server_requests_seconds_count{uri=~"/api/.*location.*", status=~"2.."}[10m]))
+            /
+            sum(increase(http_server_requests_seconds_count{uri=~"/api/.*location.*"}[10m]))
+          ) * 100 < 90
+        for: 10m
+        labels:
+          severity: warning
+          service: deoham-app
+          component: location-api
+        annotations:
+          summary: "위치 검색 API 성공률이 낮습니다"
+          description: "위치 검색 API의 성공률이 90% 미만입니다. 현재값: {{ $value | humanizePercentage }}"
+          runbook_url: "https://wiki.example.com/runbooks/location-search-success-rate-low"

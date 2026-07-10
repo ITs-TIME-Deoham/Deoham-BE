@@ -126,6 +126,12 @@ jobs:
           PROMETHEUS_VERSION=v2.47.0
           LOKI_VERSION=3.0.0
           GRAFANA_VERSION=10.2.0
+
+          # Grafana Admin & GitHub OAuth
+          GRAFANA_ADMIN_USER=${{ secrets.GRAFANA_ADMIN_USER }}
+          GRAFANA_ADMIN_PASSWORD=${{ secrets.GRAFANA_ADMIN_PASSWORD }}
+          GRAFANA_OAUTH_CLIENT_ID=${{ secrets.GRAFANA_OAUTH_CLIENT_ID }}
+          GRAFANA_OAUTH_CLIENT_SECRET=${{ secrets.GRAFANA_OAUTH_CLIENT_SECRET }}
           ENVEOF
           # compose 가 pull 할 이미지 태그 (커밋 SHA 로 핀 고정) — compose 의 ${APP_IMAGE} 로 치환됨
           echo "APP_IMAGE=$IMAGE_NAME:${{ github.sha }}" >> .env

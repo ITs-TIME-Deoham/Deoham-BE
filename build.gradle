@@ -70,6 +70,7 @@ tasks.named('test') {
 	useJUnitPlatform()
 	exclude '**/ChatRoomLocationTest.class'
 	exclude '**/ChatWebSocketIntegrationTest.class'
+	systemProperty 'spring.profiles.active', 'test'
 }
 
 // 실행 가능한 부팅 JAR 만 남기고 -plain.jar 는 만들지 않는다

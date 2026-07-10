@@ -12,7 +12,9 @@ import com.deoham.card.repository.CardApplyRepository;
 import com.deoham.card.repository.CardRepository;
 import com.deoham.global.exception.BusinessException;
 import com.deoham.global.exception.ErrorCode;
+import com.deoham.global.metrics.MetricsRegistry;
 import com.deoham.user.repository.UserRepository;
+import io.micrometer.core.instrument.Timer;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -31,6 +33,7 @@ public class DefaultCardReadService implements CardReadService {
     private final CardRepository cardRepository;
     private final CardApplyRepository cardApplyRepository;
     private final UserRepository userRepository;
+    private final MetricsRegistry metricsRegistry;
 
     @Override
     @Transactional
@@ -50,42 +53,58 @@ public class DefaultCardReadService implements CardReadService {
     @Override
     @Transactional(readOnly = true)
     public PaginatedCardListResponse getNearbyCards(double lat, double lng, String cursor, UUID userId) {
-        CursorData cursorData = parseCursor(cursor);
-        List<Object[]> rows = cardRepository.findNearbyCards(lat, lng, cursorData.distance(), cursorData.cardId());
+        Timer.Sample sample = metricsRegistry.startCardSearchTimer();
+        try {
+            CursorData cursorData = parseCursor(cursor);
+            List<Object[]> rows = cardRepository.findNearbyCards(lat, lng, cursorData.distance(), cursorData.cardId());
 
-        boolean hasMore = rows.size() > PAGE_SIZE;
-        List<CardDetailResponse> cards = rows.stream()
-                .limit(PAGE_SIZE)
-                .map(row -> new CardDetailResponse(
-                        (UUID) row[0],
-                        (UUID) row[1],
-                        (String) row[2],
-                        (String) row[3],
-                        CardCategory.valueOf((String) row[4]),
-                        (String) row[5],
-                        toInstant(row[6]),
-                        CardStatus.valueOf((String) row[7]),
-                        row[8] != null ? PreferredGender.valueOf((String) row[8]) : null,
-                        (Integer) row[9],
-                        (Integer) row[10],
-                        (Integer) row[11],
-                        toInstant(row[12]),
-                        toInstant(row[13]),
-                        ((Number) row[14]).doubleValue()
-                ))
-                .toList();
+            boolean hasMore = rows.size() > PAGE_SIZE;
+            List<CardDetailResponse> cards = rows.stream()
+                    .limit(PAGE_SIZE)
+                    .map(row -> new CardDetailResponse(
+                            (UUID) row[0],
+                            (UUID) row[1],
+                            (String) row[2],
+                            (String) row[3],
+                            CardCategory.valueOf((String) row[4]),
+                            (String) row[5],
+                            toInstant(row[6]),
+                            CardStatus.valueOf((String) row[7]),
+                            row[8] != null ? PreferredGender.valueOf((String) row[8]) : null,
+                            (Integer) row[9],
+                            (Integer) row[10],
+                            (Integer) row[11],
+                            toInstant(row[12]),
+                            toInstant(row[13]),
+                            ((Number) row[14]).doubleValue()
+                    ))
+                    .toList();
 
-        String nextCursor = hasMore ? encodeCursor(((Number) rows.get(PAGE_SIZE - 1)[14]).doubleValue(), rows.get(PAGE_SIZE - 1)[0].toString()) : null;
-        Boolean has_seen_card_view_onboarding = userRepository.hasSeenCardViewOnboarding(userId);
-        return new PaginatedCardListResponse(cards, nextCursor, has_seen_card_view_onboarding);
+            String nextCursor = hasMore ? encodeCursor(((Number) rows.get(PAGE_SIZE - 1)[14]).doubleValue(), rows.get(PAGE_SIZE - 1)[0].toString()) : null;
+            Boolean has_seen_card_view_onboarding = userRepository.hasSeenCardViewOnboarding(userId);
+            PaginatedCardListResponse response = new PaginatedCardListResponse(cards, nextCursor, has_seen_card_view_onboarding);
+            metricsRegistry.recordCardSearchSuccess(sample);
+            return response;
+        } catch (Exception exception) {
+            metricsRegistry.recordCardSearchFailure(sample, exception);
+            throw exception;
+        }
     }
 
     @Override
     @Transactional(readOnly = true)
     public CardDetailResponse getCard(UUID cardId) {
-        Card card = cardRepository.findById(cardId)
-                .orElseThrow(() -> new BusinessException(ErrorCode.NOT_FOUND, "카드를 찾을 수 없습니다."));
-        return toDetailResponse(card);
+        Timer.Sample sample = metricsRegistry.startCardDetailTimer();
+        try {
+            Card card = cardRepository.findById(cardId)
+                    .orElseThrow(() -> new BusinessException(ErrorCode.NOT_FOUND, "카드를 찾을 수 없습니다."));
+            CardDetailResponse response = toDetailResponse(card);
+            metricsRegistry.recordCardDetailSuccess(sample);
+            return response;
+        } catch (Exception exception) {
+            metricsRegistry.recordCardDetailFailure(sample, exception);
+            throw exception;
+        }
     }
 
     @Override

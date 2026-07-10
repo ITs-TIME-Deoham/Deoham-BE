@@ -1,20 +1,20 @@
 services:
-  app:
-    # EC2에서 직접 빌드하지 않고 GitHub Actions가 GHCR에 올린 이미지를 pull 한다.
-    # APP_IMAGE 는 배포 시 .env 로 주입 (미지정 시 latest).
-    image: ${APP_IMAGE:-ghcr.io/its-time-ondo/ondo-be:latest}
-    env_file:
-      - .env
-    # volumes:
-    #   - ./secrets/fcm-service-account.json:/app/secrets/fcm-service-account.json:ro
-    ports:
-      - "80:8080"
-    depends_on:
-      postgres:
-        condition: service_healthy
-      redis:
-        condition: service_healthy
-    restart: unless-stopped
+  # app:
+  #   # EC2에서 직접 빌드하지 않고 GitHub Actions가 GHCR에 올린 이미지를 pull 한다.
+  #   # APP_IMAGE 는 배포 시 .env 로 주입 (미지정 시 latest).
+  #   image: ${APP_IMAGE:-ghcr.io/its-time-ondo/ondo-be:latest}
+  #   env_file:
+  #     - .env
+  #   # volumes:
+  #   #   - ./secrets/fcm-service-account.json:/app/secrets/fcm-service-account.json:ro
+  #   ports:
+  #     - "80:8080"
+  #   depends_on:
+  #     postgres:
+  #       condition: service_healthy
+  #     redis:
+  #       condition: service_healthy
+  #   restart: unless-stopped
 
   postgres:
     image: postgis/postgis:16-3.4
@@ -49,15 +49,32 @@ services:
     ports:
       - "19090:9090"
     volumes:
-      - ./prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml:ro
       - deoham_prometheus_data:/prometheus
     command:
       - '--config.file=/etc/prometheus/prometheus.yml'
       - '--storage.tsdb.path=/prometheus'
-      - '--storage.tsdb.retention.time=${PROMETHEUS_RETENTION:-30d}'
-      - '--storage.tsdb.retention.size=${PROMETHEUS_RETENTION_SIZE:-50GB}'
+      - '--storage.tsdb.retention.time=${PROMETHEUS_RETENTION:-3d}'
+      - '--storage.tsdb.retention.size=${PROMETHEUS_RETENTION_SIZE:-10GB}'
+      - '--storage.tsdb.max-block-duration=2h'
+      - '--query.timeout=2m'
+      - '--query.max-concurrent=20'
       - '--web.console.libraries=/usr/share/prometheus/console_libraries'
       - '--web.console.templates=/usr/share/prometheus/consoles'
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:9090/-/healthy"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    deploy:
+      resources:
+        limits:
+          cpus: '1'
+          memory: 1024M
+        reservations:
+          cpus: '0.5'
+          memory: 512M
+    restart: unless-stopped
 
   loki:
     image: grafana/loki:${LOKI_VERSION:-3.0.0}
@@ -65,22 +82,76 @@ services:
     ports:
       - "3100:3100"
     volumes:
-      - ./loki-config.yml:/etc/loki/local-config.yaml:ro
+      - ./monitoring/loki-config.yml:/etc/loki/local-config.yaml:ro
       - deoham_loki_data:/loki
     command: -config.file=/etc/loki/local-config.yaml
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:3100/ready"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    deploy:
+      resources:
+        limits:
+          cpus: '1'
+          memory: 1024M
+        reservations:
+          cpus: '0.5'
+          memory: 512M
+    restart: unless-stopped
+
+  promtail:
+    image: grafana/promtail:${PROMTAIL_VERSION:-2.9.0}
+    volumes:
+      - ./monitoring/promtail-config.yml:/etc/promtail/config.yml:ro
+      - ./logs:/app/logs:ro
+    environment:
+      PROMTAIL_ENV: ${SPRING_PROFILES_ACTIVE:-local}
+    command: -config.file=/etc/promtail/config.yml
+    depends_on:
+      - loki
+    restart: unless-stopped
 
   grafana:
     image: grafana/grafana:${GRAFANA_VERSION:-10.2.0}
     ports:
-      - "3000:3000"
+      - "3001:3000"
     environment:
-      GF_SECURITY_ADMIN_PASSWORD: admin
-      GF_SECURITY_ADMIN_USER: admin
+      # 기본 관리자 계정
+      GF_SECURITY_ADMIN_USER: ${GRAFANA_ADMIN_USER:-admin}
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD:-admin}
+      # 프록시 최적화
+      GF_DATAPROXY_TIMEOUT: 10s
+      GF_DATAPROXY_DIALTIEMOUT: 10s
+      # GitHub OAuth
+      GF_AUTH_GITHUB_ENABLED: "true"
+      GF_AUTH_GITHUB_ALLOW_SIGN_UP: "false"
+      GF_AUTH_GITHUB_CLIENT_ID: ${GRAFANA_OAUTH_CLIENT_ID}
+      GF_AUTH_GITHUB_CLIENT_SECRET: ${GRAFANA_OAUTH_CLIENT_SECRET}
+      GF_AUTH_GITHUB_AUTH_URL: "https://github.com/login/oauth/authorize"
+      GF_AUTH_GITHUB_TOKEN_URL: "https://github.com/login/oauth/access_token"
+      GF_AUTH_GITHUB_API_URL: "https://api.github.com/user"
+      GF_USERS_ALLOW_SIGN_UP: "false"
     volumes:
       - deoham_grafana_data:/var/lib/grafana
     depends_on:
       - prometheus
       - loki
+      - promtail
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:3000/api/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 512M
+        reservations:
+          cpus: '0.25'
+          memory: 256M
 
 volumes:
   deoham_pg_data:
