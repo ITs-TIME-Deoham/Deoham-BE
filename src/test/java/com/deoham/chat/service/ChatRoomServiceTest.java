@@ -32,6 +32,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
+import java.util.List;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -206,6 +207,25 @@ class ChatRoomServiceTest {
         assertThat(page.hasNext()).isTrue();
     }
 
+    @Test
+    void getMyRooms_includesOpponentAndLastMessage() {
+        ChatRoom room = chatRoomRepository.save(ChatRoom.builder().card(card).build());
+        saveMessage(room, applicant, "최근 메시지");
+
+        ChatRoomResponse requesterView = chatRoomService
+                .getMyRooms(requester.getId(), PageRequest.of(0, 10))
+                .getContent().get(0);
+        assertThat(requesterView.opponentNickname()).isEqualTo(applicant.getNickname());
+        assertThat(requesterView.opponentProfileImageUrl()).isEqualTo(applicant.getProfileImageUrl());
+        assertThat(requesterView.lastMessage()).isEqualTo("최근 메시지");
+
+        ChatRoomResponse applicantView = chatRoomService
+                .getMyRooms(applicant.getId(), PageRequest.of(0, 10))
+                .getContent().get(0);
+        assertThat(applicantView.opponentNickname()).isEqualTo(requester.getNickname());
+        assertThat(applicantView.lastMessage()).isEqualTo("최근 메시지");
+    }
+
     // ───────────────────────────────────────────────────────────────────────────
     // closeRoom
     // ───────────────────────────────────────────────────────────────────────────
@@ -219,6 +239,33 @@ class ChatRoomServiceTest {
         ChatRoom reloaded = chatRoomRepository.findById(room.getId()).orElseThrow();
         assertThat(reloaded.getStatus().name()).isEqualTo("CLOSED");
         assertThat(reloaded.getClosedAt()).isNotNull();
+    }
+
+    @Test
+    void closeRoom_savesRoomClosedSystemMessage() {
+        ChatRoom room = chatRoomRepository.save(ChatRoom.builder().card(card).build());
+
+        chatRoomService.closeRoom(room.getId(), requester.getId());
+
+        List<ChatMessage> messages = chatMessageRepository.findByChatRoomIdOrderBySentAtDesc(
+                room.getId(), org.springframework.data.domain.PageRequest.of(0, 10));
+        assertThat(messages).hasSize(1);
+        ChatMessage closedMessage = messages.get(0);
+        assertThat(closedMessage.getMessageType()).isEqualTo(ChatMessageType.ROOM_CLOSED);
+        assertThat(closedMessage.getSender().getId()).isEqualTo(requester.getId());
+        assertThat(closedMessage.getContent()).contains(requester.getNickname());
+    }
+
+    @Test
+    void closeRoom_doesNotDuplicateSystemMessage_whenAlreadyClosed() {
+        ChatRoom room = chatRoomRepository.save(ChatRoom.builder().card(card).build());
+        chatRoomService.closeRoom(room.getId(), requester.getId());
+
+        chatRoomService.closeRoom(room.getId(), requester.getId());
+
+        List<ChatMessage> messages = chatMessageRepository.findByChatRoomIdOrderBySentAtDesc(
+                room.getId(), org.springframework.data.domain.PageRequest.of(0, 10));
+        assertThat(messages).hasSize(1);
     }
 
     @Test
