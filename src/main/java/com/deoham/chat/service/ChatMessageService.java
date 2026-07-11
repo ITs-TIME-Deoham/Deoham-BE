@@ -97,7 +97,7 @@ public class ChatMessageService {
     }
 
     public ChatMessagePageResponse getMessages(UUID roomId, UUID userId, Instant before, int size) {
-        ChatRoom room = findActiveRoomOrThrow(roomId);
+        ChatRoom room = findRoomOrThrow(roomId);
         requireParticipant(room.getCard(), userId);
 
         PageRequest pageRequest = PageRequest.of(0, size + 1);
@@ -157,12 +157,16 @@ public class ChatMessageService {
     }
 
     private ChatRoom findActiveRoomOrThrow(UUID roomId) {
-        ChatRoom room = chatRoomRepository.findById(roomId)
-                .orElseThrow(() -> new BusinessException(ErrorCode.NOT_FOUND, "채팅방을 찾을 수 없습니다"));
+        ChatRoom room = findRoomOrThrow(roomId);
         if (room.getStatus().name().equals("CLOSED")) {
             throw new BusinessException(ErrorCode.INVALID_REQUEST, "종료된 채팅방입니다");
         }
         return room;
+    }
+
+    private ChatRoom findRoomOrThrow(UUID roomId) {
+        return chatRoomRepository.findById(roomId)
+                .orElseThrow(() -> new BusinessException(ErrorCode.NOT_FOUND, "채팅방을 찾을 수 없습니다"));
     }
 
     private ChatMessageResponse toResponse(ChatMessage message) {
