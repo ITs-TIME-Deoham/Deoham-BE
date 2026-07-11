@@ -75,8 +75,7 @@ public class ChatRoomService {
 
         Map<UUID, User> acceptedApplicants = cardIds.isEmpty()
                 ? Map.of()
-                : cardApplyRepository.findByCardIdInAndStatus(cardIds, CardApplyStatus.ACCEPTED).stream()
-                        .collect(Collectors.toMap(a -> a.getCard().getId(), CardApply::getApplicant));
+                        .collect(Collectors.toMap(a -> a.getCard().getId(), CardApply::getApplicant, (left, right) -> left));
 
         return rooms.map(room -> toResponse(
                 room,
