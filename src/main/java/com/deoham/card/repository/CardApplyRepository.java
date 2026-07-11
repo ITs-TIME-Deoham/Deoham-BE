@@ -5,6 +5,8 @@ import com.deoham.card.entity.CardApply;
 import com.deoham.card.entity.CardApplyStatus;
 import com.deoham.user.entity.User;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 
 import java.util.List;
 import java.util.Optional;
@@ -23,4 +25,12 @@ public interface CardApplyRepository extends JpaRepository<CardApply, UUID> {
     long countByApplicantId(UUID applicantId);
 
     long countByApplicantIdAndStatus(UUID applicantId, CardApplyStatus status);
+
+    @Query("""
+            SELECT a FROM CardApply a
+            JOIN FETCH a.applicant
+            WHERE a.card.id IN :cardIds AND a.status = :status
+            """)
+    List<CardApply> findByCardIdInAndStatus(
+            @Param("cardIds") List<UUID> cardIds, @Param("status") CardApplyStatus status);
 }

@@ -10,6 +10,7 @@ import com.deoham.chat.dto.ChatReadEvent;
 import com.deoham.chat.entity.ChatMessage;
 import com.deoham.chat.entity.ChatMessageType;
 import com.deoham.chat.entity.ChatRoom;
+import com.deoham.chat.entity.ChatRoomStatus;
 import com.deoham.chat.repository.ChatMessageRepository;
 import com.deoham.chat.repository.ChatRoomRepository;
 import com.deoham.global.exception.BusinessException;
@@ -47,6 +48,9 @@ public class ChatMessageService {
     @Transactional
     public ChatMessageResponse sendMessage(UUID roomId, UUID senderId, ChatMessageSendRequest request) {
         Timer.Sample sample = metricsRegistry.startChatMessageSendTimer();
+        if (request.messageType() == ChatMessageType.ROOM_CLOSED) {
+            throw new BusinessException(ErrorCode.INVALID_REQUEST, "ROOM_CLOSED 타입은 클라이언트가 전송할 수 없습니다");
+        }
         try {
             ChatRoom room = findActiveRoomOrThrow(roomId);
             User sender = userRepository.findById(senderId)
@@ -71,8 +75,23 @@ public class ChatMessageService {
     }
 
     @Transactional
+    public void sendRoomClosedMessage(ChatRoom room, UUID actorId) {
+        User actor = userRepository.findById(actorId)
+                .orElseThrow(() -> new BusinessException(ErrorCode.NOT_FOUND, "사용자를 찾을 수 없습니다"));
+
+        ChatMessage saved = chatMessageRepository.save(ChatMessage.builder()
+                .chatRoom(room)
+                .sender(actor)
+                .content(actor.getNickname() + "님이 채팅을 종료했습니다")
+                .messageType(ChatMessageType.ROOM_CLOSED)
+                .build());
+
+        messagingTemplate.convertAndSend("/sub/chat/rooms/" + room.getId(), toResponse(saved));
+    }
+
+    @Transactional
     public void markMessagesAsRead(UUID roomId, UUID userId) {
-        ChatRoom room = findActiveRoomOrThrow(roomId);
+        ChatRoom room = findRoomOrThrow(roomId);
         requireParticipant(room.getCard(), userId);
 
         List<ChatMessage> unread =
@@ -92,7 +111,7 @@ public class ChatMessageService {
     public ChatMessagePageResponse getMessages(UUID roomId, UUID userId, Instant before, int size) {
         Timer.Sample sample = metricsRegistry.startChatMessageGetTimer();
         try {
-            ChatRoom room = findActiveRoomOrThrow(roomId);
+            ChatRoom room = findRoomOrThrow(roomId);
             requireParticipant(room.getCard(), userId);
 
             PageRequest pageRequest = PageRequest.of(0, size + 1);
@@ -158,12 +177,16 @@ public class ChatMessageService {
     }
 
     private ChatRoom findActiveRoomOrThrow(UUID roomId) {
-        ChatRoom room = chatRoomRepository.findById(roomId)
-                .orElseThrow(() -> new BusinessException(ErrorCode.NOT_FOUND, "채팅방을 찾을 수 없습니다"));
-        if (room.getStatus().name().equals("CLOSED")) {
+        ChatRoom room = findRoomOrThrow(roomId);
+        if (room.getStatus() == ChatRoomStatus.CLOSED) {
             throw new BusinessException(ErrorCode.INVALID_REQUEST, "종료된 채팅방입니다");
         }
         return room;
+    }
+
+    private ChatRoom findRoomOrThrow(UUID roomId) {
+        return chatRoomRepository.findById(roomId)
+                .orElseThrow(() -> new BusinessException(ErrorCode.NOT_FOUND, "채팅방을 찾을 수 없습니다"));
     }
 
     private ChatMessageResponse toResponse(ChatMessage message) {
