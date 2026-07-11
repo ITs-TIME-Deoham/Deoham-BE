@@ -110,7 +110,7 @@ public class ChatMessageService {
     public ChatMessagePageResponse getMessages(UUID roomId, UUID userId, Instant before, int size) {
         Timer.Sample sample = metricsRegistry.startChatMessageGetTimer();
         try {
-            ChatRoom room = findActiveRoomOrThrow(roomId);
+            ChatRoom room = findRoomOrThrow(roomId);
             requireParticipant(room.getCard(), userId);
 
             PageRequest pageRequest = PageRequest.of(0, size + 1);
