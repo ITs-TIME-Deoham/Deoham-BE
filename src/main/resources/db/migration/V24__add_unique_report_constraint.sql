@@ -1,0 +1,1 @@
+-- This migration has been merged into V23__add_report_description.sql
