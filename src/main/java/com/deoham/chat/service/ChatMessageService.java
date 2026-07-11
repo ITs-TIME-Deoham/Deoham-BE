@@ -51,7 +51,7 @@ public class ChatMessageService {
             throw new BusinessException(ErrorCode.INVALID_REQUEST, "ROOM_CLOSED 타입은 클라이언트가 전송할 수 없습니다");
         }
         try {
-            ChatRoom room = findActiveRoomOrThrow(roomId);
+            ChatRoom room = findRoomOrThrow(roomId);
             User sender = userRepository.findById(senderId)
                     .orElseThrow(() -> new BusinessException(ErrorCode.NOT_FOUND, "사용자를 찾을 수 없습니다"));
             requireParticipant(room.getCard(), senderId);
