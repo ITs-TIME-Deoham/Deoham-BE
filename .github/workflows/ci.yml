@@ -163,10 +163,10 @@ jobs:
             ${{ secrets.EC2_USERNAME }}@${{ secrets.EC2_HOST }} \
             "mkdir -p ~/deoham"
 
-      - name: Transfer compose & env
+      - name: Transfer compose, monitoring & env
         run: |
           scp -i private_key.pem -o StrictHostKeyChecking=no \
-            compose.yaml .env \
+            -r compose.yaml monitoring .env \
             ${{ secrets.EC2_USERNAME }}@${{ secrets.EC2_HOST }}:~/deoham/
 
       # B. EC2 는 빌드 없이 GHCR 에서 pull 만 한다
