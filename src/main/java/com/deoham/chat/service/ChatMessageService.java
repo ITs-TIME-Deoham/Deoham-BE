@@ -12,7 +12,6 @@ import com.deoham.chat.entity.ChatMessageType;
 import com.deoham.chat.entity.ChatRoom;
 import com.deoham.chat.entity.ChatRoomStatus;
 import com.deoham.chat.repository.ChatMessageRepository;
-import com.deoham.chat.repository.ChatRoomRepository;
 import com.deoham.global.exception.BusinessException;
 import com.deoham.global.exception.ErrorCode;
 import com.deoham.global.metrics.MetricsRegistry;
@@ -37,7 +36,7 @@ import org.springframework.transaction.annotation.Transactional;
 public class ChatMessageService {
 
     private final ChatMessageRepository chatMessageRepository;
-    private final ChatRoomRepository chatRoomRepository;
+    private final ChatAccessGuard chatAccessGuard;
     private final CardApplyRepository cardApplyRepository;
     private final UserRepository userRepository;
     private final NotificationService notificationService;
@@ -55,7 +54,7 @@ public class ChatMessageService {
             ChatRoom room = findActiveRoomOrThrow(roomId);
             User sender = userRepository.findById(senderId)
                     .orElseThrow(() -> new BusinessException(ErrorCode.NOT_FOUND, "사용자를 찾을 수 없습니다"));
-            requireParticipant(room.getCard(), senderId);
+            chatAccessGuard.requireParticipant(room.getCard(), senderId);
 
             ChatMessage saved = chatMessageRepository.save(ChatMessage.builder()
                     .chatRoom(room)
@@ -91,8 +90,8 @@ public class ChatMessageService {
 
     @Transactional
     public void markMessagesAsRead(UUID roomId, UUID userId) {
-        ChatRoom room = findRoomOrThrow(roomId);
-        requireParticipant(room.getCard(), userId);
+        ChatRoom room = chatAccessGuard.findRoomOrThrow(roomId);
+        chatAccessGuard.requireParticipant(room.getCard(), userId);
 
         List<ChatMessage> unread =
                 chatMessageRepository.findByChatRoomIdAndSenderIdNotAndReadAtIsNull(roomId, userId);
@@ -111,8 +110,8 @@ public class ChatMessageService {
     public ChatMessagePageResponse getMessages(UUID roomId, UUID userId, Instant before, int size) {
         Timer.Sample sample = metricsRegistry.startChatMessageGetTimer();
         try {
-            ChatRoom room = findRoomOrThrow(roomId);
-            requireParticipant(room.getCard(), userId);
+            ChatRoom room = chatAccessGuard.findRoomOrThrow(roomId);
+            chatAccessGuard.requireParticipant(room.getCard(), userId);
 
             PageRequest pageRequest = PageRequest.of(0, size + 1);
             List<ChatMessage> messages = before != null
@@ -149,16 +148,6 @@ public class ChatMessageService {
         }
     }
 
-    private void requireParticipant(Card card, UUID userId) {
-        if (card.getRequester().getId().equals(userId)) return;
-        boolean isAcceptedApplicant = cardApplyRepository.findByCard(card).stream()
-                .anyMatch(a -> a.getStatus() == CardApplyStatus.ACCEPTED
-                            && a.getApplicant().getId().equals(userId));
-        if (!isAcceptedApplicant) {
-            throw new BusinessException(ErrorCode.FORBIDDEN, "채팅방 참여자가 아닙니다");
-        }
-    }
-
     private String resolveContent(ChatMessageSendRequest request) {
         if (request.messageType() == ChatMessageType.LOCATION) {
             if (request.location() == null) {
@@ -177,16 +166,11 @@ public class ChatMessageService {
     }
 
     private ChatRoom findActiveRoomOrThrow(UUID roomId) {
-        ChatRoom room = findRoomOrThrow(roomId);
+        ChatRoom room = chatAccessGuard.findRoomOrThrow(roomId);
         if (room.getStatus() == ChatRoomStatus.CLOSED) {
             throw new BusinessException(ErrorCode.INVALID_REQUEST, "종료된 채팅방입니다");
         }
         return room;
-    }
-
-    private ChatRoom findRoomOrThrow(UUID roomId) {
-        return chatRoomRepository.findById(roomId)
-                .orElseThrow(() -> new BusinessException(ErrorCode.NOT_FOUND, "채팅방을 찾을 수 없습니다"));
     }
 
     private ChatMessageResponse toResponse(ChatMessage message) {
