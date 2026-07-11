@@ -31,10 +31,14 @@ management:
     web:
       base-path: /actuator
       exposure:
-        include: health, info
+        include: health, info, prometheus
   endpoint:
     health:
       show-details: never
+  metrics:
+    export:
+      prometheus:
+        enabled: true
 
 springdoc:
   swagger-ui:
@@ -79,3 +83,8 @@ logging:
   level:
     root: INFO
     com.deoham: INFO
+  file:
+    name: ${LOG_FILE_PATH:logs/application.log}
+    max-size: ${LOG_FILE_MAX_SIZE:10MB}
+    max-history: ${LOG_FILE_MAX_HISTORY:10}
+    total-size-cap: ${LOG_FILE_TOTAL_SIZE_CAP:1GB}

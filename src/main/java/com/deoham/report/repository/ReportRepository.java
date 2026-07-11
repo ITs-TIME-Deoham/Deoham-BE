@@ -19,4 +19,8 @@ public interface ReportRepository extends JpaRepository<Report, UUID> {
             @Param("reporter") User reporter,
             @Param("targetType") ReportTarget targetType,
             @Param("targetId") UUID targetId);
+
+    boolean existsByReporterAndReportedUser(User reporter, User reportedUser);
+
+    long countByReportedUser(User reportedUser);
 }
