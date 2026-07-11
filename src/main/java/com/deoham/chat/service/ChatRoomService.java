@@ -99,7 +99,7 @@ public class ChatRoomService {
         return new ChatRoomResponse(
                 room.getId(),
                 room.getCard().getId(),
-                room.getStatus().name(),
+                room.getStatus(),
                 room.getCreatedAt(),
                 room.getClosedAt(),
                 unreadCount);

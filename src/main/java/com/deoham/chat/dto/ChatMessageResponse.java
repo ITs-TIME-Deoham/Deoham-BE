@@ -1,5 +1,6 @@
 package com.deoham.chat.dto;
 
+import com.deoham.chat.entity.ChatMessageType;
 import io.swagger.v3.oas.annotations.media.Schema;
 import java.time.Instant;
 import java.util.UUID;
@@ -19,12 +20,8 @@ public record ChatMessageResponse(
         @Schema(description = "발신자 닉네임", example = "홍길동")
         String senderNickname,
 
-        @Schema(
-                description = "메시지 타입",
-                example = "TEXT",
-                allowableValues = {"TEXT", "IMAGE", "LOCATION"}
-        )
-        String messageType,
+        @Schema(description = "메시지 타입", example = "TEXT")
+        ChatMessageType messageType,
 
         @Schema(description = "메시지 내용. TEXT면 본문, IMAGE면 이미지 URL, LOCATION이면 위치 데이터.", example = "안녕하세요!")
         String content,

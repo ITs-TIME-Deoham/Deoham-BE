@@ -10,6 +10,7 @@ import com.deoham.chat.dto.ChatReadEvent;
 import com.deoham.chat.entity.ChatMessage;
 import com.deoham.chat.entity.ChatMessageType;
 import com.deoham.chat.entity.ChatRoom;
+import com.deoham.chat.entity.ChatRoomStatus;
 import com.deoham.chat.repository.ChatMessageRepository;
 import com.deoham.chat.repository.ChatRoomRepository;
 import com.deoham.global.exception.BusinessException;
@@ -160,7 +161,7 @@ public class ChatMessageService {
     private ChatRoom findActiveRoomOrThrow(UUID roomId) {
         ChatRoom room = chatRoomRepository.findById(roomId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.NOT_FOUND, "채팅방을 찾을 수 없습니다"));
-        if (room.getStatus().name().equals("CLOSED")) {
+        if (room.getStatus() == ChatRoomStatus.CLOSED) {
             throw new BusinessException(ErrorCode.INVALID_REQUEST, "종료된 채팅방입니다");
         }
         return room;
@@ -172,7 +173,7 @@ public class ChatMessageService {
                 message.getChatRoom().getId(),
                 message.getSender().getId(),
                 message.getSender().getNickname(),
-                message.getMessageType().name(),
+                message.getMessageType(),
                 message.getContent(),
                 message.getSentAt(),
                 message.getReadAt());

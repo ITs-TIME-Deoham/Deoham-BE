@@ -101,7 +101,7 @@ class ChatMessageServiceTest {
 
         assertThat(response.chatRoomId()).isEqualTo(room.getId());
         assertThat(response.senderId()).isEqualTo(requester.getId());
-        assertThat(response.messageType()).isEqualTo("TEXT");
+        assertThat(response.messageType()).isEqualTo(ChatMessageType.TEXT);
         assertThat(response.content()).isEqualTo("안녕하세요");
         assertThat(response.sentAt()).isNotNull();
         assertThat(response.readAt()).isNull();
@@ -116,7 +116,7 @@ class ChatMessageServiceTest {
                 room.getId(), applicant.getId(),
                 new ChatMessageSendRequest(ChatMessageType.LOCATION, null, location));
 
-        assertThat(response.messageType()).isEqualTo("LOCATION");
+        assertThat(response.messageType()).isEqualTo(ChatMessageType.LOCATION);
         LocationPayload roundTripped = objectMapper.readValue(response.content(), LocationPayload.class);
         assertThat(roundTripped).isEqualTo(location);
     }

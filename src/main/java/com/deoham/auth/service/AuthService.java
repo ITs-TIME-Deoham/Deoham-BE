@@ -13,6 +13,7 @@ import com.deoham.global.exception.ErrorCode;
 import com.deoham.global.security.AuthenticationUtils;
 import com.deoham.global.security.JwtProperties;
 import com.deoham.global.security.JwtTokenProvider;
+import com.deoham.global.security.TokenType;
 import com.deoham.user.entity.GenderType;
 import com.deoham.user.entity.OauthProvider;
 import com.deoham.user.entity.User;
@@ -129,7 +130,7 @@ public class AuthService {
 		if (jwt.getExpiresAt() != null && jwt.getExpiresAt().isBefore(Instant.now())) {
 			throw new BusinessException(ErrorCode.UNAUTHORIZED, "Refresh token has expired.");
 		}
-		if (!"refresh".equals(jwt.getClaimAsString("type"))) {
+		if (!TokenType.REFRESH.claimValue().equals(jwt.getClaimAsString("type"))) {
 			throw new BusinessException(ErrorCode.UNAUTHORIZED, "Token is not a refresh token.");
 		}
 

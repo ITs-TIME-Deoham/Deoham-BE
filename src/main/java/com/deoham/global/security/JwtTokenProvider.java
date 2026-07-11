@@ -28,11 +28,11 @@ public class JwtTokenProvider {
 	}
 
 	public String generateAccessToken(UUID userId, String email, String role) {
-		return generateToken(userId, email, role, "access", jwtProperties.accessTokenExpirySeconds());
+		return generateToken(userId, email, role, TokenType.ACCESS, jwtProperties.accessTokenExpirySeconds());
 	}
 
 	public String generateRefreshToken(UUID userId) {
-		return generateToken(userId, null, null, "refresh", jwtProperties.refreshTokenExpirySeconds());
+		return generateToken(userId, null, null, TokenType.REFRESH, jwtProperties.refreshTokenExpirySeconds());
 	}
 
 	public org.springframework.security.oauth2.jwt.Jwt parseToken(String token) {
@@ -58,7 +58,7 @@ public class JwtTokenProvider {
 		}
 	}
 
-	private String generateToken(UUID userId, String email, String role, String type, long expirySeconds) {
+	private String generateToken(UUID userId, String email, String role, TokenType type, long expirySeconds) {
 		try {
 			Instant now = Instant.now();
 			Instant expiresAt = now.plusSeconds(expirySeconds);
@@ -67,7 +67,7 @@ public class JwtTokenProvider {
 					.subject(userId.toString())
 					.issueTime(java.util.Date.from(now))
 					.expirationTime(java.util.Date.from(expiresAt))
-					.claim("type", type)
+					.claim("type", type.claimValue())
 					.claim("email", email)
 					.claim("role", role)
 					.build();

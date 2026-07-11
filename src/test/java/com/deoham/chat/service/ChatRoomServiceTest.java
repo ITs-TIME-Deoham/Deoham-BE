@@ -11,6 +11,7 @@ import com.deoham.chat.dto.ChatRoomResponse;
 import com.deoham.chat.entity.ChatMessage;
 import com.deoham.chat.entity.ChatMessageType;
 import com.deoham.chat.entity.ChatRoom;
+import com.deoham.chat.entity.ChatRoomStatus;
 import com.deoham.chat.repository.ChatMessageRepository;
 import com.deoham.chat.repository.ChatRoomRepository;
 import com.deoham.global.exception.BusinessException;
@@ -80,7 +81,7 @@ class ChatRoomServiceTest {
         ChatRoomResponse response = chatRoomService.getOrCreateRoom(card.getId(), requester.getId());
 
         assertThat(response.cardId()).isEqualTo(card.getId());
-        assertThat(response.status()).isEqualTo("ACTIVE");
+        assertThat(response.status()).isEqualTo(ChatRoomStatus.ACTIVE);
         assertThat(response.unreadCount()).isZero();
         assertThat(chatRoomRepository.findAll()).hasSize(1);
     }

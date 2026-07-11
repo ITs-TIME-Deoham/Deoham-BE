@@ -1,5 +1,6 @@
 package com.deoham.global.security;
 
+import com.deoham.user.entity.UserRole;
 import java.util.Optional;
 import java.util.UUID;
 import org.springframework.security.core.Authentication;
@@ -31,10 +32,12 @@ public final class AuthenticationUtils {
 		} catch (IllegalArgumentException ex) {
 			return Optional.empty();
 		}
+		String roleClaim = jwt.getClaimAsString("role");
+		UserRole role = roleClaim != null ? UserRole.valueOf(roleClaim) : null;
 		return Optional.of(new AuthPrincipal(
 				userId,
 				jwt.getClaimAsString("email"),
-				jwt.getClaimAsString("role")
+				role
 		));
 	}
 }

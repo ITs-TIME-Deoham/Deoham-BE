@@ -1,5 +1,6 @@
 package com.deoham.chat.dto;
 
+import com.deoham.chat.entity.ChatRoomStatus;
 import io.swagger.v3.oas.annotations.media.Schema;
 import java.time.Instant;
 import java.util.UUID;
@@ -13,8 +14,8 @@ public record ChatRoomResponse(
         @Schema(description = "연결된 카드 UUID", example = "f47ac10b-58cc-4372-a567-0e02b2c3d479")
         UUID cardId,
 
-        @Schema(description = "채팅방 상태", example = "ACTIVE", allowableValues = {"ACTIVE", "CLOSED"})
-        String status,
+        @Schema(description = "채팅방 상태", example = "ACTIVE")
+        ChatRoomStatus status,
 
         @Schema(description = "채팅방 생성 시각 (ISO-8601 UTC)", example = "2024-01-01T00:00:00Z")
         Instant createdAt,
