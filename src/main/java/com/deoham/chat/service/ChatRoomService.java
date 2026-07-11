@@ -9,6 +9,7 @@ import com.deoham.chat.dto.ChatRoomLocationResponse;
 import com.deoham.chat.dto.ChatRoomResponse;
 import com.deoham.chat.entity.ChatMessage;
 import com.deoham.chat.entity.ChatRoom;
+import com.deoham.chat.entity.ChatRoomStatus;
 import com.deoham.chat.repository.ChatMessageRepository;
 import com.deoham.chat.repository.ChatRoomRepository;
 import com.deoham.chat.repository.LastMessageProjection;
@@ -120,6 +121,9 @@ public class ChatRoomService {
     public void closeRoom(UUID roomId, UUID userId) {
         ChatRoom room = findRoomOrThrow(roomId);
         requireParticipant(room.getCard(), userId);
+        if (room.getStatus() == ChatRoomStatus.CLOSED) {
+            return;
+        }
         chatMessageService.sendRoomClosedMessage(room, userId);
         room.close();
     }
