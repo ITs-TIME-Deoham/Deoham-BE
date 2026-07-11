@@ -6,10 +6,12 @@ import com.deoham.card.repository.CardApplyRepository;
 import com.deoham.card.repository.CardRepository;
 import com.deoham.global.exception.BusinessException;
 import com.deoham.global.exception.ErrorCode;
+import com.deoham.global.metrics.MetricsRegistry;
 import com.deoham.user.entity.User;
 import com.deoham.user.repository.UserRepository;
 import com.deoham.user.repository.UserSocialAccountRepository;
 import com.deoham.user.service.UserWriteService;
+import io.micrometer.core.instrument.Timer;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -24,6 +26,7 @@ public class UserWriteServiceImpl implements UserWriteService {
 	private final CardRepository cardRepository;
 	private final CardApplyRepository cardApplyRepository;
 	private final UserSocialAccountRepository userSocialAccountRepository;
+	private final MetricsRegistry metricsRegistry;
 
     @Override
     public User updateProfile(UUID userId, String nickname, String profileImageUrl) {
@@ -58,10 +61,17 @@ public class UserWriteServiceImpl implements UserWriteService {
 
 	@Override
 	public void deleteUser(UUID userId) {
-		User user = getUser(userId, "User not found.");
-		user.delete();
-		userRepository.save(user);
-		userSocialAccountRepository.deleteAllByUser_Id(userId);
+		Timer.Sample sample = metricsRegistry.startUserDeleteTimer();
+		try {
+			User user = getUser(userId, "User not found.");
+			user.delete();
+			userRepository.save(user);
+			userSocialAccountRepository.deleteAllByUser_Id(userId);
+			metricsRegistry.recordUserDeleteSuccess(sample);
+		} catch (Exception exception) {
+			metricsRegistry.recordUserDeleteFailure(sample, exception);
+			throw exception;
+		}
 	}
 
 	private int safeCastToInt(long value) {

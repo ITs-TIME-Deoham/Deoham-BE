@@ -11,9 +11,11 @@ import com.deoham.card.repository.CardApplyRepository;
 import com.deoham.card.repository.CardRepository;
 import com.deoham.global.exception.BusinessException;
 import com.deoham.global.exception.ErrorCode;
+import com.deoham.global.metrics.MetricsRegistry;
 import com.deoham.user.entity.User;
 import com.deoham.user.repository.UserRepository;
 import com.deoham.user.service.UserWriteService;
+import io.micrometer.core.instrument.Timer;
 import lombok.RequiredArgsConstructor;
 import org.locationtech.jts.geom.Coordinate;
 import org.locationtech.jts.geom.GeometryFactory;
@@ -35,49 +37,58 @@ public class DefaultCardWriteService implements CardWriteService {
     private final CardApplyRepository cardApplyRepository;
     private final UserRepository userRepository;
     private final UserWriteService userWriteService;
+    private final MetricsRegistry metricsRegistry;
 
     @Override
     @Transactional
     public CardDetailResponse createCard(CreateCardRequest request, UUID userId) {
-        User requester = userRepository.findById(userId)
-                .orElseThrow(() -> new BusinessException(ErrorCode.NOT_FOUND, "사용자를 찾을 수 없습니다."));
+        Timer.Sample sample = metricsRegistry.startCardCreateTimer();
+        try {
+            User requester = userRepository.findById(userId)
+                    .orElseThrow(() -> new BusinessException(ErrorCode.NOT_FOUND, "사용자를 찾을 수 없습니다."));
 
-        Point location = GEOMETRY_FACTORY.createPoint(new Coordinate(request.longitude(), request.latitude()));
+            Point location = GEOMETRY_FACTORY.createPoint(new Coordinate(request.longitude(), request.latitude()));
 
-        Card card = Card.builder()
-                .requester(requester)
-                .category(request.category())
-                .description(request.description())
-                .location(location)
-                .expiresAt(Instant.now().plus(Card.EXPIRY_DURATION))
-                .radiusM(50000)
-                .city("korea")
-                .preferredGender(request.preferredGender())
-                .preferredAgeMin(request.preferredAgeMin())
-                .preferredAgeMax(request.preferredAgeMax())
-                .build();
+            Card card = Card.builder()
+                    .requester(requester)
+                    .category(request.category())
+                    .description(request.description())
+                    .location(location)
+                    .expiresAt(Instant.now().plus(Card.EXPIRY_DURATION))
+                    .radiusM(11100000)
+                    .city("korea")
+                    .preferredGender(request.preferredGender())
+                    .preferredAgeMin(request.preferredAgeMin())
+                    .preferredAgeMax(request.preferredAgeMax())
+                    .build();
 
-        cardRepository.save(card);
-        requester.incrementHelpRequestCount();
-        requester.markCardCreated();
+            cardRepository.save(card);
+            requester.incrementHelpRequestCount();
+            requester.markCardCreated();
 
-        return new CardDetailResponse(
-                card.getId(),
-                card.getRequester().getId(),
-                card.getRequester().getNickname(),
-                card.getRequester().getProfileImageUrl(),
-                card.getCategory(),
-                card.getDescription(),
-                card.getExpiresAt(),
-                card.getStatus(),
-                card.getPreferredGender(),
-                card.getPreferredAgeMin(),
-                card.getPreferredAgeMax(),
-                card.getRetryCount(),
-                card.getCreatedAt(),
-                card.getUpdatedAt(),
-                null  // distanceMeters: not applicable for created cards
-        );
+            CardDetailResponse response = new CardDetailResponse(
+                    card.getId(),
+                    card.getRequester().getId(),
+                    card.getRequester().getNickname(),
+                    card.getRequester().getProfileImageUrl(),
+                    card.getCategory(),
+                    card.getDescription(),
+                    card.getExpiresAt(),
+                    card.getStatus(),
+                    card.getPreferredGender(),
+                    card.getPreferredAgeMin(),
+                    card.getPreferredAgeMax(),
+                    card.getRetryCount(),
+                    card.getCreatedAt(),
+                    card.getUpdatedAt(),
+                    null  // distanceMeters: not applicable for created cards
+            );
+            metricsRegistry.recordCardCreateSuccess(sample);
+            return response;
+        } catch (Exception exception) {
+            metricsRegistry.recordCardCreateFailure(sample, exception);
+            throw exception;
+        }
     }
 
     @Override

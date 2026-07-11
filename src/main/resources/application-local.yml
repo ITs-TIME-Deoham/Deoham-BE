@@ -37,6 +37,9 @@ fcm:
 kakao-map:
   rest-api-key: ${KAKAO_MAP_REST_API_KEY:}
 
+loki:
+  url: http://localhost:3100
+
 logging:
   level:
     com.deoham: DEBUG

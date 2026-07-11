@@ -9,6 +9,7 @@ import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
+import jakarta.persistence.UniqueConstraint;
 import java.time.Instant;
 import java.util.UUID;
 import lombok.AccessLevel;
@@ -21,7 +22,9 @@ import org.hibernate.type.SqlTypes;
 
 @Getter
 @Entity
-@Table(name = "reports")
+@Table(name = "reports", uniqueConstraints = {
+    @UniqueConstraint(columnNames = {"reporter_id", "reported_user_id"}, name = "uk_reporter_reported_user")
+})
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class Report {
 
@@ -50,17 +53,21 @@ public class Report {
     @Column(name = "reason", nullable = false, columnDefinition = "report_reason")
     private ReportReason reason;
 
+    @Column(name = "description", nullable = false, length = 500)
+    private String description;
+
     @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt;
 
     @Builder
     private Report(User reporter, User reportedUser, Card reportedCard,
-                   ReportTarget targetType, ReportReason reason) {
+                   ReportTarget targetType, ReportReason reason, String description) {
         this.reporter = reporter;
         this.reportedUser = reportedUser;
         this.reportedCard = reportedCard;
         this.targetType = targetType;
         this.reason = reason;
+        this.description = description;
         this.createdAt = Instant.now();
     }
 }

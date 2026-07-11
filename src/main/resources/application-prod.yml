@@ -31,10 +31,15 @@ management:
   endpoints:
     web:
       exposure:
-        include: health
+        include: health, info, prometheus
   endpoint:
     health:
       probes:
+        enabled: true
+      show-details: when-authorized
+  metrics:
+    export:
+      prometheus:
         enabled: true
 
 deoham:
@@ -55,8 +60,18 @@ fcm:
 kakao-map:
   rest-api-key: ${KAKAO_MAP_REST_API_KEY}
 
+loki:
+  url: ${LOKI_URL:http://localhost:3100}
+
 logging:
   level:
     root: INFO
     com.deoham: INFO
     org.hibernate.SQL: WARN
+    org.springframework.security: WARN
+    org.springframework.web: WARN
+  file:
+    name: ${LOG_FILE_PATH:/var/log/deoham/application.log}
+    max-size: 50MB
+    max-history: 30
+    total-size-cap: 10GB
