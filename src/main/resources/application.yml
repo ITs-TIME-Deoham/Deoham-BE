@@ -72,6 +72,8 @@ deoham:
     region: ${AWS_S3_REGION:ap-northeast-2}
     bucket: ${AWS_S3_BUCKET}
     presigned-url-ttl-seconds: ${AWS_S3_PRESIGNED_TTL:600}
+  gemini:
+    api-key: ${GEMINI_API_KEY}
 
 fcm:
   service-account-key-path: ${FCM_KEY_PATH}
