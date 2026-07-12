@@ -5,8 +5,9 @@ services:
     image: ${APP_IMAGE:-ghcr.io/its-time-ondo/ondo-be:latest}
     env_file:
       - .env
-    # volumes:
-    #   - ./secrets/fcm-service-account.json:/app/secrets/fcm-service-account.json:ro
+    volumes:
+      - ./logs:/app/logs
+      # - ./secrets/fcm-service-account.json:/app/secrets/fcm-service-account.json:ro
     ports:
       - "80:8080"
     depends_on:

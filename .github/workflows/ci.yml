@@ -161,7 +161,7 @@ jobs:
         run: |
           ssh -i private_key.pem -o StrictHostKeyChecking=no \
             ${{ secrets.EC2_USERNAME }}@${{ secrets.EC2_HOST }} \
-            "mkdir -p ~/deoham"
+            "mkdir -p ~/deoham/logs"
 
       - name: Transfer compose, monitoring & env
         run: |
