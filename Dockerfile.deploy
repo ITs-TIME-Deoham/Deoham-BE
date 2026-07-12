@@ -1,11 +1,14 @@
 FROM eclipse-temurin:17-jre-jammy
 WORKDIR /app
 RUN groupadd --system app && useradd --system --gid app --home /app --shell /bin/false app
+RUN apt-get update && apt-get install -y su-exec && rm -rf /var/lib/apt/lists/*
+RUN mkdir -p /app/logs && chown -R app:app /app/logs
 # CI 에서 build/libs 의 부팅 JAR 을 컨텍스트 루트로 복사해 둔다 (.dockerignore 가 build/ 를 제외하므로)
 COPY app.jar app.jar
-USER app
+COPY docker-entrypoint.sh /app/docker-entrypoint.sh
+RUN chown app:app /app/app.jar && chmod +x /app/docker-entrypoint.sh
 EXPOSE 8080
 # t3.micro(1GB) + 2G swap 기준으로 힙을 명시적으로 캡한다.
 # (MaxRAMPercentage=75 는 컨테이너 메모리 제한이 없으면 호스트 전체의 75%를 노려 OOM 유발)
 ENV JAVA_OPTS="-Xms128m -Xmx448m -XX:MaxMetaspaceSize=128m -XX:+UseG1GC -XX:+ExitOnOutOfMemoryError"
-ENTRYPOINT ["sh", "-c", "exec java $JAVA_OPTS -jar /app/app.jar"]
+ENTRYPOINT ["/app/docker-entrypoint.sh"]

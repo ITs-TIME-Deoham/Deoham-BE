@@ -1,21 +1,21 @@
 services:
-  # app:
-  #   # EC2에서 직접 빌드하지 않고 GitHub Actions가 GHCR에 올린 이미지를 pull 한다.
-  #   # APP_IMAGE 는 배포 시 .env 로 주입 (미지정 시 latest).
-  #   image: ${APP_IMAGE:-ghcr.io/its-time-ondo/ondo-be:latest}
-  #   env_file:
-  #     - .env
-  #   volumes:
-  #     - ./logs:/app/logs
-  #     # - ./secrets/fcm-service-account.json:/app/secrets/fcm-service-account.json:ro
-  #   ports:
-  #     - "80:8080"
-  #   depends_on:
-  #     postgres:
-  #       condition: service_healthy
-  #     redis:
-  #       condition: service_healthy
-  #   restart: unless-stopped
+  app:
+    # EC2에서 직접 빌드하지 않고 GitHub Actions가 GHCR에 올린 이미지를 pull 한다.
+    # APP_IMAGE 는 배포 시 .env 로 주입 (미지정 시 latest).
+    image: ${APP_IMAGE:-ghcr.io/its-time-ondo/ondo-be:latest}
+    env_file:
+      - .env
+    volumes:
+      - app_logs:/app/logs
+      # - ./secrets/fcm-service-account.json:/app/secrets/fcm-service-account.json:ro
+    ports:
+      - "80:8080"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
 
   postgres:
     image: postgis/postgis:16-3.4
@@ -31,7 +31,7 @@ services:
       test: ["CMD-SHELL", "pg_isready -U deoham -d deoham"]
       interval: 5s
       timeout: 5s
-      retries: 10
+      retries: 20
 
   redis:
     image: redis:7-alpine
@@ -141,6 +141,7 @@ services:
           memory: 256M
 
 volumes:
+  app_logs:
   deoham_pg_data:
   deoham_redis_data:
   deoham_prometheus_data:

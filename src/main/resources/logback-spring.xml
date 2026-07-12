@@ -3,7 +3,7 @@
   <include resource="org/springframework/boot/logging/logback/defaults.xml"/>
 
   <property name="APP_NAME" value="deoham"/>
-  <property name="LOG_DIR" value="./logs"/>
+  <property name="LOG_DIR" value="/app/logs"/>
 
   <!-- Console Appender -->
   <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
