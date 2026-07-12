@@ -319,14 +319,14 @@ jobs:
             echo ""
             echo "❌ Health check failed after $max_attempts attempts"
             echo ""
-            echo "=== Application logs (last 50 lines) ==="
-            docker compose logs --tail=50 app || true
+            echo "=== Application logs (last 100 lines) ==="
+            docker compose logs --tail=100 app || true
             echo ""
             echo "=== Database logs ==="
-            docker compose logs --tail=20 postgres || true
+            docker compose logs --tail=100 postgres || true
             echo ""
             echo "=== Redis logs ==="
-            docker compose logs --tail=20 redis || true
+            docker compose logs --tail=100 redis || true
             exit 1
           fi
 
