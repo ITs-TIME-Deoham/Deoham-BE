@@ -31,11 +31,6 @@
   </appender>
   -->
 
-  <!-- Loki Appender (optional, best-effort) -->
-  <appender name="LOKI" class="ch.qos.logback.core.UnsupportedAppenderBase">
-    <name>LOKI</name>
-  </appender>
-
   <!-- Spring Boot Default Loggers -->
   <logger name="org.springframework" level="INFO"/>
   <logger name="org.springframework.web" level="INFO"/>
