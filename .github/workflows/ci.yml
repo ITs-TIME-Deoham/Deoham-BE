@@ -187,23 +187,14 @@ jobs:
           free -h
           ENDSSH
 
-      - name: Prepare EC2 directory
+      - name: Prepare EC2 directory & transfer files
         run: |
           ssh -i private_key.pem -o StrictHostKeyChecking=no \
             ${{ secrets.EC2_USERNAME }}@${{ secrets.EC2_HOST }} \
-            "mkdir -p ~/deoham/logs ~/deoham/monitoring"
-
-      - name: Transfer compose, monitoring & env
-        run: |
+            "mkdir -p ~/deoham/monitoring"
           scp -i private_key.pem -o StrictHostKeyChecking=no \
             -r compose.yaml monitoring .env \
             ${{ secrets.EC2_USERNAME }}@${{ secrets.EC2_HOST }}:~/deoham/
-
-      - name: Transfer monitoring config
-        run: |
-          scp -i private_key.pem -o StrictHostKeyChecking=no \
-            -r monitoring/* \
-            ${{ secrets.EC2_USERNAME }}@${{ secrets.EC2_HOST }}:~/deoham/monitoring/
 
       # B. EC2 는 빌드 없이 GHCR 에서 pull 만 한다
       - name: Deploy on EC2
@@ -233,7 +224,7 @@ jobs:
           # DB 연결 확인
           echo "Testing database connectivity..."
           for i in {1..10}; do
-            if docker exec deoham-be-postgres-1 psql -U deoham -d deoham -c "SELECT 1" &>/dev/null; then
+            if docker exec deoham-postgres-1 psql -U deoham -d deoham -c "SELECT 1" &>/dev/null; then
               echo "✓ Database is ready"
               break
             fi
@@ -249,7 +240,7 @@ jobs:
           # Redis 연결 확인
           echo "Testing Redis connectivity..."
           for i in {1..10}; do
-            if docker exec deoham-be-redis-1 redis-cli ping &>/dev/null; then
+            if docker exec deoham-redis-1 redis-cli ping &>/dev/null; then
               echo "✓ Redis is ready"
               break
             fi
@@ -274,10 +265,10 @@ jobs:
           echo ""
           echo "=== Health check (with exponential backoff) ==="
           healthy=0
-          max_attempts=15
+          max_attempts=5
 
           for attempt in $(seq 1 $max_attempts); do
-            wait_time=$((attempt * 5))  # 5s, 10s, 15s, 20s...
+            wait_time=$((attempt * 5))  # 5s, 10s, 15s...
 
             # Readiness probe
             if curl -sf http://localhost:8080/actuator/health/readiness &>/dev/null; then
@@ -319,14 +310,14 @@ jobs:
             echo ""
             echo "❌ Health check failed after $max_attempts attempts"
             echo ""
-            echo "=== Application logs (last 50 lines) ==="
-            docker compose logs --tail=50 app || true
+            echo "=== Application logs (last 100 lines) ==="
+            docker compose logs --tail=100 app || true
             echo ""
             echo "=== Database logs ==="
-            docker compose logs --tail=20 postgres || true
+            docker compose logs --tail=100 postgres || true
             echo ""
             echo "=== Redis logs ==="
-            docker compose logs --tail=20 redis || true
+            docker compose logs --tail=100 redis || true
             exit 1
           fi
 
