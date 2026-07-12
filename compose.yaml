@@ -6,7 +6,7 @@ services:
     env_file:
       - .env
     volumes:
-      - ./logs:/app/logs
+      - deoham_app_logs:/app/logs
       # - ./secrets/fcm-service-account.json:/app/secrets/fcm-service-account.json:ro
     ports:
       - "80:8080"
@@ -105,7 +105,7 @@ services:
     image: grafana/promtail:${PROMTAIL_VERSION:-2.9.0}
     volumes:
       - ./monitoring/promtail-config.yml:/etc/promtail/config.yml:ro
-      - ./logs:/app/logs:ro
+      - deoham_app_logs:/app/logs:ro
     environment:
       PROMTAIL_ENV: ${SPRING_PROFILES_ACTIVE:-local}
     command: -config.file=/etc/promtail/config.yml
@@ -157,6 +157,7 @@ services:
 volumes:
   deoham_pg_data:
   deoham_redis_data:
+  deoham_app_logs:
   deoham_prometheus_data:
   deoham_loki_data:
   deoham_grafana_data:
