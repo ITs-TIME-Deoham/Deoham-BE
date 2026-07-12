@@ -6,7 +6,7 @@ services:
     env_file:
       - .env
     volumes:
-      - ./logs:/app/logs
+      - app_logs:/app/logs
       # - ./secrets/fcm-service-account.json:/app/secrets/fcm-service-account.json:ro
     ports:
       - "80:8080"
@@ -141,6 +141,7 @@ services:
           memory: 256M
 
 volumes:
+  app_logs:
   deoham_pg_data:
   deoham_redis_data:
   deoham_prometheus_data:
