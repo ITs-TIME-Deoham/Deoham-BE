@@ -5,9 +5,10 @@ services:
     image: ${APP_IMAGE:-ghcr.io/its-time-ondo/ondo-be:latest}
     env_file:
       - .env
-    volumes:
-      - app_logs:/app/logs
-      # - ./secrets/fcm-service-account.json:/app/secrets/fcm-service-account.json:ro
+    # 파일 로깅 비활성화 - Docker stdout/stderr를 Loki가 수집
+    # volumes:
+    #   - app_logs:/app/logs
+    #   - ./secrets/fcm-service-account.json:/app/secrets/fcm-service-account.json:ro
     ports:
       - "80:8080"
     depends_on:
@@ -141,7 +142,7 @@ services:
           memory: 256M
 
 volumes:
-  app_logs:
+  # app_logs: 파일 로깅 비활성화로 제거
   deoham_pg_data:
   deoham_redis_data:
   deoham_prometheus_data:

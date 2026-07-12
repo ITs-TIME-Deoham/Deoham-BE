@@ -13,7 +13,9 @@
     </encoder>
   </appender>
 
-  <!-- File Appender -->
+  <!-- File Appender (Docker 볼륨 권한 문제로 비활성화) -->
+  <!-- Docker 환경에서는 stdout/stderr를 사용하고, Loki/Promtail이 수집 -->
+  <!--
   <appender name="FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
     <file>${LOG_DIR}/application.log</file>
     <rollingPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedRollingPolicy">
@@ -27,6 +29,7 @@
       <charset>UTF-8</charset>
     </encoder>
   </appender>
+  -->
 
   <!-- Loki Appender (optional, best-effort) -->
   <appender name="LOKI" class="ch.qos.logback.core.UnsupportedAppenderBase">
@@ -38,15 +41,13 @@
   <logger name="org.springframework.web" level="INFO"/>
   <logger name="org.hibernate" level="INFO"/>
 
-  <!-- Application Loggers -->
+  <!-- Application Loggers (Docker: console only) -->
   <logger name="com.deoham" additivity="false" level="DEBUG">
     <appender-ref ref="CONSOLE"/>
-    <appender-ref ref="FILE"/>
   </logger>
 
-  <!-- Default Root Logger -->
+  <!-- Default Root Logger (Docker: console only) -->
   <root level="INFO">
     <appender-ref ref="CONSOLE"/>
-    <appender-ref ref="FILE"/>
   </root>
 </configuration>
