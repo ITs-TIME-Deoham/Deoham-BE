@@ -11,6 +11,7 @@ import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotNull;
 import java.util.UUID;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -51,8 +52,8 @@ public interface CardControllerDocs {
             content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE,
                     schema = @Schema(implementation = ApiResponse.class)))
     ResponseEntity<PaginatedCardListResponse> getNearbyCards(
-            @Parameter(description = "Latitude", required = true, example = "37.5326") Double latitude,
-            @Parameter(description = "Longitude", required = true, example = "126.9903") Double longitude,
+            @Parameter(description = "Latitude", required = true, example = "37.5326") @NotNull Double latitude,
+            @Parameter(description = "Longitude", required = true, example = "126.9903") @NotNull Double longitude,
             @Parameter(description = "Optional pagination cursor", example = "NTAuNXxhMWIyYzNkNGU1ZjY=") String cursor);
 
     @Operation(

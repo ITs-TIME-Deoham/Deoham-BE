@@ -18,7 +18,7 @@ spring:
     type: redis
 
 jwt:
-  secret: "this-is-a-test-secret-key-with-32-characters-minimum-required-for-hs256"
+  secret: "my-test-secret-key-minimum-32-characters-required"
 
 loki:
   url: http://localhost:3100

@@ -96,7 +96,7 @@ public class DefaultCardReadService implements CardReadService {
     public CardDetailResponse getCard(UUID cardId) {
         Timer.Sample sample = metricsRegistry.startCardDetailTimer();
         try {
-            Card card = cardRepository.findById(cardId)
+            Card card = cardRepository.findByIdWithRequester(cardId)
                     .orElseThrow(() -> new BusinessException(ErrorCode.NOT_FOUND, "카드를 찾을 수 없습니다."));
             CardDetailResponse response = toDetailResponse(card);
             metricsRegistry.recordCardDetailSuccess(sample);
@@ -110,7 +110,7 @@ public class DefaultCardReadService implements CardReadService {
     @Override
     @Transactional(readOnly = true)
     public List<CardApplySummaryResponse> getApplies(UUID cardId, UUID userId) {
-        Card card = cardRepository.findById(cardId)
+        Card card = cardRepository.findByIdWithRequester(cardId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.NOT_FOUND, "카드를 찾을 수 없습니다."));
 
         if (!card.getRequester().getId().equals(userId)) {
