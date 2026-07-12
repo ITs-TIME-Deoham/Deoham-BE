@@ -136,6 +136,36 @@ jobs:
           # compose 가 pull 할 이미지 태그 (커밋 SHA 로 핀 고정) — compose 의 ${APP_IMAGE} 로 치환됨
           echo "APP_IMAGE=$IMAGE_NAME:${{ github.sha }}" >> .env
 
+      - name: Validate environment variables
+        run: |
+          echo "=== Checking required environment variables ==="
+          MISSING_VARS=""
+          for var in JWT_SECRET AWS_S3_REGION AWS_S3_BUCKET AWS_S3_PRESIGNED_TTL \
+                      KAKAO_REST_API_KEY KAKAO_CLIENT_SECRET GRAFANA_ADMIN_USER GRAFANA_ADMIN_PASSWORD; do
+            if grep -q "^$var=$" .env; then
+              echo "❌ ERROR: $var is empty"
+              MISSING_VARS="$MISSING_VARS $var"
+            else
+              # 값이 있는지 확인 (^var=.+ 패턴)
+              if grep -q "^$var=..*" .env; then
+                echo "✓ $var is set"
+              else
+                echo "❌ ERROR: $var is missing from .env"
+                MISSING_VARS="$MISSING_VARS $var"
+              fi
+            fi
+          done
+
+          if [ -n "$MISSING_VARS" ]; then
+            echo ""
+            echo "🚨 Deploy aborted: Missing or empty secrets:$MISSING_VARS"
+            echo "Please set the following secrets in GitHub repository settings:"
+            echo "  Settings > Secrets and variables > Actions > New repository secret"
+            exit 1
+          fi
+          echo ""
+          echo "✓ All required environment variables are set"
+
       # A. 스왑 보장 — t3.micro(1GB) OOM 방지. 없을 때만 2G swapfile 생성 (재부팅에도 유지)
       - name: Ensure swap on EC2 (idempotent)
         run: |
@@ -161,13 +191,19 @@ jobs:
         run: |
           ssh -i private_key.pem -o StrictHostKeyChecking=no \
             ${{ secrets.EC2_USERNAME }}@${{ secrets.EC2_HOST }} \
-            "mkdir -p ~/deoham/logs"
+            "mkdir -p ~/deoham/logs ~/deoham/monitoring"
 
       - name: Transfer compose, monitoring & env
         run: |
           scp -i private_key.pem -o StrictHostKeyChecking=no \
             -r compose.yaml monitoring .env \
             ${{ secrets.EC2_USERNAME }}@${{ secrets.EC2_HOST }}:~/deoham/
+
+      - name: Transfer monitoring config
+        run: |
+          scp -i private_key.pem -o StrictHostKeyChecking=no \
+            -r monitoring/* \
+            ${{ secrets.EC2_USERNAME }}@${{ secrets.EC2_HOST }}:~/deoham/monitoring/
 
       # B. EC2 는 빌드 없이 GHCR 에서 pull 만 한다
       - name: Deploy on EC2
@@ -192,30 +228,112 @@ jobs:
           docker image prune -af || true
           docker logout ghcr.io || true
 
-          echo "=== Waiting for startup (30s) ==="
-          sleep 30
+          echo "=== Pre-deployment checks ==="
 
-          echo "=== Health check ==="
+          # DB 연결 확인
+          echo "Testing database connectivity..."
+          for i in {1..10}; do
+            if docker exec deoham-be-postgres-1 psql -U deoham -d deoham -c "SELECT 1" &>/dev/null; then
+              echo "✓ Database is ready"
+              break
+            fi
+            if [ $i -eq 10 ]; then
+              echo "❌ Database failed to start"
+              docker compose logs postgres | tail -20
+              exit 1
+            fi
+            echo "  Attempt $i/10..."
+            sleep 2
+          done
+
+          # Redis 연결 확인
+          echo "Testing Redis connectivity..."
+          for i in {1..10}; do
+            if docker exec deoham-be-redis-1 redis-cli ping &>/dev/null; then
+              echo "✓ Redis is ready"
+              break
+            fi
+            if [ $i -eq 10 ]; then
+              echo "❌ Redis failed to start"
+              docker compose logs redis | tail -20
+              exit 1
+            fi
+            echo "  Attempt $i/10..."
+            sleep 2
+          done
+
+          # 포트 확인
+          if ! netstat -tuln 2>/dev/null | grep -q :8080 && ! ss -tuln 2>/dev/null | grep -q :8080; then
+            echo "⚠ Port 8080 not yet bound (app starting...)"
+          fi
+
+          echo ""
+          echo "=== Waiting for application startup ==="
+          sleep 15
+
+          echo ""
+          echo "=== Health check (with exponential backoff) ==="
           healthy=0
-          for i in $(seq 1 12); do
-            if curl -sf http://localhost/actuator/health > /dev/null; then
-              echo "Application is healthy"
+          max_attempts=15
+
+          for attempt in $(seq 1 $max_attempts); do
+            wait_time=$((attempt * 5))  # 5s, 10s, 15s, 20s...
+
+            # Readiness probe
+            if curl -sf http://localhost:8080/actuator/health/readiness &>/dev/null; then
+              echo "✓ Application readiness check passed"
+
+              # DB probe
+              if curl -sf http://localhost:8080/actuator/health/db &>/dev/null; then
+                echo "✓ Database connectivity verified"
+              else
+                echo "⚠ Database health check warning (will retry)"
+              fi
+
+              # Redis probe
+              if curl -sf http://localhost:8080/actuator/health/redis &>/dev/null; then
+                echo "✓ Redis connectivity verified"
+              else
+                echo "⚠ Redis health check warning (will retry)"
+              fi
+
+              # Overall health
+              HEALTH=$(curl -sf http://localhost:8080/actuator/health 2>/dev/null | grep -o '"status":"[^"]*"')
+              echo "✓ Overall health: $HEALTH"
               healthy=1
               break
             fi
-            echo "Attempt $i/12 failed, retrying in 10s..."
-            sleep 10
+
+            if [ $attempt -lt $max_attempts ]; then
+              echo "Attempt $attempt/$max_attempts failed"
+              echo "  Retrying in ${wait_time}s (exponential backoff)..."
+              sleep $wait_time
+            fi
           done
 
-          docker compose ps || true
+          echo ""
+          echo "=== Container status ==="
+          docker compose ps
 
           if [ "$healthy" -ne 1 ]; then
-            echo "Health check failed — last 100 log lines:"
-            docker compose logs --tail=100 app
+            echo ""
+            echo "❌ Health check failed after $max_attempts attempts"
+            echo ""
+            echo "=== Application logs (last 50 lines) ==="
+            docker compose logs --tail=50 app || true
+            echo ""
+            echo "=== Database logs ==="
+            docker compose logs --tail=20 postgres || true
+            echo ""
+            echo "=== Redis logs ==="
+            docker compose logs --tail=20 redis || true
             exit 1
           fi
 
-          echo "=== Deploy succeeded ==="
+          echo ""
+          echo "✅ ==================================="
+          echo "✅ === Deploy succeeded ==="
+          echo "✅ ==================================="
           ENDSSH
 
       - name: Cleanup sensitive files

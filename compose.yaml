@@ -46,7 +46,7 @@ services:
       retries: 10
 
   prometheus:
-    image: prom/prometheus:${PROMETHEUS_VERSION:-v2.47.0}
+    image: prom/prometheus:latest
     ports:
       - "19090:9090"
     volumes:
@@ -59,7 +59,6 @@ services:
       - '--storage.tsdb.retention.size=${PROMETHEUS_RETENTION_SIZE:-10GB}'
       - '--storage.tsdb.max-block-duration=2h'
       - '--query.timeout=2m'
-      - '--query.max-concurrent=20'
       - '--web.console.libraries=/usr/share/prometheus/console_libraries'
       - '--web.console.templates=/usr/share/prometheus/consoles'
     healthcheck:
@@ -78,7 +77,7 @@ services:
     restart: unless-stopped
 
   loki:
-    image: grafana/loki:${LOKI_VERSION:-3.0.0}
+    image: grafana/loki:latest
     user: "0:0"
     ports:
       - "3100:3100"
@@ -99,18 +98,6 @@ services:
         reservations:
           cpus: '0.5'
           memory: 512M
-    restart: unless-stopped
-
-  promtail:
-    image: grafana/promtail:${PROMTAIL_VERSION:-2.9.0}
-    volumes:
-      - ./monitoring/promtail-config.yml:/etc/promtail/config.yml:ro
-      - ./logs:/app/logs:ro
-    environment:
-      PROMTAIL_ENV: ${SPRING_PROFILES_ACTIVE:-local}
-    command: -config.file=/etc/promtail/config.yml
-    depends_on:
-      - loki
     restart: unless-stopped
 
   grafana:
@@ -138,7 +125,6 @@ services:
     depends_on:
       - prometheus
       - loki
-      - promtail
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:3000/api/health"]

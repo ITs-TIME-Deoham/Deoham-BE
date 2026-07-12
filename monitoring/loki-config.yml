@@ -57,4 +57,3 @@ compactor:
   compaction_interval: 10m
   retention_enabled: false
   working_directory: /loki/compactor
-  shared_store: filesystem
