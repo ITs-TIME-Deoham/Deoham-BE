@@ -233,7 +233,7 @@ jobs:
           # DB 연결 확인
           echo "Testing database connectivity..."
           for i in {1..10}; do
-            if docker exec deoham-be-postgres-1 psql -U deoham -d deoham -c "SELECT 1" &>/dev/null; then
+            if docker exec deoham-postgres-1 psql -U deoham -d deoham -c "SELECT 1" &>/dev/null; then
               echo "✓ Database is ready"
               break
             fi
@@ -249,7 +249,7 @@ jobs:
           # Redis 연결 확인
           echo "Testing Redis connectivity..."
           for i in {1..10}; do
-            if docker exec deoham-be-redis-1 redis-cli ping &>/dev/null; then
+            if docker exec deoham-redis-1 redis-cli ping &>/dev/null; then
               echo "✓ Redis is ready"
               break
             fi
