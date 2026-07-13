@@ -48,6 +48,7 @@ out/
 monitoring/loki/
 monitoring/prometheus-data/
 monitoring/grafana-data/
+monitoring/secrets/
 loki-windows-amd64.exe
 logs/
 
