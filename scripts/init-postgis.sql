@@ -1,0 +1,12 @@
+-- Create PostGIS extension
+CREATE EXTENSION IF NOT EXISTS postgis;
+
+-- Create additional useful extensions for spatial databases
+CREATE EXTENSION IF NOT EXISTS postgis_topology;
+
+-- Create uuid extension for UUID generation
+CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
+
+-- Grant privileges on PostGIS objects to the deoham user
+GRANT ALL PRIVILEGES ON SCHEMA public TO deoham;
+GRANT EXECUTE ON ALL FUNCTIONS IN SCHEMA public TO deoham;

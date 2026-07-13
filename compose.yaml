@@ -1,20 +1,28 @@
 services:
-  # app:
-  #   # EC2에서 직접 빌드하지 않고 GitHub Actions가 GHCR에 올린 이미지를 pull 한다.
-  #   # APP_IMAGE 는 배포 시 .env 로 주입 (미지정 시 latest).
-  #   image: ${APP_IMAGE:-ghcr.io/its-time-ondo/ondo-be:latest}
-  #   env_file:
-  #     - .env
-  #   # volumes:
-  #   #   - ./secrets/fcm-service-account.json:/app/secrets/fcm-service-account.json:ro
-  #   ports:
-  #     - "80:8080"
-  #   depends_on:
-  #     postgres:
-  #       condition: service_healthy
-  #     redis:
-  #       condition: service_healthy
-  #   restart: unless-stopped
+  app:
+    # EC2에서 직접 빌드하지 않고 GitHub Actions가 GHCR에 올린 이미지를 pull 한다.
+    # APP_IMAGE 는 배포 시 .env 로 주입 (미지정 시 latest).
+    image: ${APP_IMAGE:-ghcr.io/its-time-ondo/ondo-be:latest}
+    env_file:
+      - .env
+    # 파일 로깅 비활성화 - Docker stdout/stderr를 Loki가 수집
+    # volumes:
+    #   - app_logs:/app/logs
+    #   - ./secrets/fcm-service-account.json:/app/secrets/fcm-service-account.json:ro
+    ports:
+      - "80:8080"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/actuator/health", "||", "exit", "1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 50s
+    restart: unless-stopped
 
   postgres:
     image: postgis/postgis:16-3.4
@@ -30,7 +38,7 @@ services:
       test: ["CMD-SHELL", "pg_isready -U deoham -d deoham"]
       interval: 5s
       timeout: 5s
-      retries: 10
+      retries: 20
 
   redis:
     image: redis:7-alpine
@@ -45,7 +53,7 @@ services:
       retries: 10
 
   prometheus:
-    image: prom/prometheus:${PROMETHEUS_VERSION:-v2.47.0}
+    image: prom/prometheus:latest
     ports:
       - "19090:9090"
     volumes:
@@ -58,7 +66,6 @@ services:
       - '--storage.tsdb.retention.size=${PROMETHEUS_RETENTION_SIZE:-10GB}'
       - '--storage.tsdb.max-block-duration=2h'
       - '--query.timeout=2m'
-      - '--query.max-concurrent=20'
       - '--web.console.libraries=/usr/share/prometheus/console_libraries'
       - '--web.console.templates=/usr/share/prometheus/consoles'
     healthcheck:
@@ -77,7 +84,7 @@ services:
     restart: unless-stopped
 
   loki:
-    image: grafana/loki:${LOKI_VERSION:-3.0.0}
+    image: grafana/loki:latest
     user: "0:0"
     ports:
       - "3100:3100"
@@ -98,18 +105,6 @@ services:
         reservations:
           cpus: '0.5'
           memory: 512M
-    restart: unless-stopped
-
-  promtail:
-    image: grafana/promtail:${PROMTAIL_VERSION:-2.9.0}
-    volumes:
-      - ./monitoring/promtail-config.yml:/etc/promtail/config.yml:ro
-      - ./logs:/app/logs:ro
-    environment:
-      PROMTAIL_ENV: ${SPRING_PROFILES_ACTIVE:-local}
-    command: -config.file=/etc/promtail/config.yml
-    depends_on:
-      - loki
     restart: unless-stopped
 
   grafana:
@@ -137,7 +132,6 @@ services:
     depends_on:
       - prometheus
       - loki
-      - promtail
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:3000/api/health"]
@@ -154,6 +148,7 @@ services:
           memory: 256M
 
 volumes:
+  # app_logs: 파일 로깅 비활성화로 제거
   deoham_pg_data:
   deoham_redis_data:
   deoham_prometheus_data:

@@ -11,6 +11,7 @@ FROM eclipse-temurin:17-jre-jammy AS runtime
 WORKDIR /app
 RUN groupadd --system app && useradd --system --gid app --home /app --shell /bin/false app
 COPY --from=builder /workspace/build/libs/*.jar app.jar
+RUN chown app:app /app/app.jar
 USER app
 EXPOSE 8080
 ENV JAVA_OPTS="-XX:MaxRAMPercentage=75 -XX:+UseG1GC -XX:+ExitOnOutOfMemoryError"

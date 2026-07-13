@@ -134,7 +134,7 @@ public class DefaultCardWriteService implements CardWriteService {
     @Override
     @Transactional
     public CardApplySummaryResponse submitApply(UUID cardId, UUID applicantId) {
-        Card card = cardRepository.findById(cardId)
+        Card card = cardRepository.findByIdWithRequester(cardId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.NOT_FOUND, "카드를 찾을 수 없습니다."));
 
         if (card.getStatus() != CardStatus.OPEN) {
@@ -192,7 +192,7 @@ public class DefaultCardWriteService implements CardWriteService {
     }
 
     private Card findCardAndValidateOwner(UUID cardId, UUID userId) {
-        Card card = cardRepository.findById(cardId)
+        Card card = cardRepository.findByIdWithRequester(cardId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.NOT_FOUND, "카드를 찾을 수 없습니다."));
         if (!card.getRequester().getId().equals(userId)) {
             throw new BusinessException(ErrorCode.FORBIDDEN, "카드 작성자만 수행할 수 있습니다.");

@@ -16,11 +16,21 @@ public interface CardApplyRepository extends JpaRepository<CardApply, UUID> {
 
     boolean existsByCardAndApplicant(Card card, User applicant);
 
-    List<CardApply> findByCard(Card card);
+    @Query("""
+            SELECT a FROM CardApply a
+            JOIN FETCH a.applicant
+            WHERE a.card = :card
+            """)
+    List<CardApply> findByCard(@Param("card") Card card);
 
     Optional<CardApply> findByCardAndApplicant(Card card, User applicant);
 
-    Optional<CardApply> findByCardAndStatus(Card card, CardApplyStatus status);
+    @Query("""
+            SELECT a FROM CardApply a
+            JOIN FETCH a.applicant
+            WHERE a.card = :card AND a.status = :status
+            """)
+    Optional<CardApply> findByCardAndStatus(@Param("card") Card card, @Param("status") CardApplyStatus status);
 
     long countByApplicantId(UUID applicantId);
 
