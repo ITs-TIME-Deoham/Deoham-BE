@@ -10,7 +10,6 @@ RUN ./gradlew --no-daemon clean bootJar -x test
 FROM eclipse-temurin:17-jre-jammy AS runtime
 WORKDIR /app
 RUN groupadd --system app && useradd --system --gid app --home /app --shell /bin/false app
-RUN mkdir -p /app/logs && chown -R app:app /app/logs
 COPY --from=builder /workspace/build/libs/*.jar app.jar
 RUN chown app:app /app/app.jar
 USER app
