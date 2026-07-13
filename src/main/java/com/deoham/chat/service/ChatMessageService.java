@@ -12,7 +12,6 @@ import com.deoham.chat.entity.ChatMessageType;
 import com.deoham.chat.entity.ChatRoom;
 import com.deoham.chat.entity.ChatRoomStatus;
 import com.deoham.chat.repository.ChatMessageRepository;
-import com.deoham.chat.repository.ChatRoomRepository;
 import com.deoham.global.exception.BusinessException;
 import com.deoham.global.exception.ErrorCode;
 import com.deoham.global.metrics.MetricsRegistry;
@@ -26,18 +25,20 @@ import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
 public class ChatMessageService {
 
     private final ChatMessageRepository chatMessageRepository;
-    private final ChatRoomRepository chatRoomRepository;
+    private final ChatRoomAccessService chatRoomAccessService;
     private final CardApplyRepository cardApplyRepository;
     private final UserRepository userRepository;
     private final NotificationService notificationService;
@@ -49,13 +50,17 @@ public class ChatMessageService {
     public ChatMessageResponse sendMessage(UUID roomId, UUID senderId, ChatMessageSendRequest request) {
         Timer.Sample sample = metricsRegistry.startChatMessageSendTimer();
         if (request.messageType() == ChatMessageType.ROOM_CLOSED) {
+            log.warn("메시지 전송 거부 [roomId={}, senderId={}]: 클라이언트가 ROOM_CLOSED 타입을 전송함", roomId, senderId);
             throw new BusinessException(ErrorCode.INVALID_REQUEST, "ROOM_CLOSED 타입은 클라이언트가 전송할 수 없습니다");
         }
         try {
             ChatRoom room = findActiveRoomOrThrow(roomId);
             User sender = userRepository.findById(senderId)
-                    .orElseThrow(() -> new BusinessException(ErrorCode.NOT_FOUND, "사용자를 찾을 수 없습니다"));
-            requireParticipant(room.getCard(), senderId);
+                    .orElseThrow(() -> {
+                        log.warn("메시지 전송 실패 [roomId={}, senderId={}]: 사용자를 찾을 수 없음", roomId, senderId);
+                        return new BusinessException(ErrorCode.NOT_FOUND, "사용자를 찾을 수 없습니다");
+                    });
+            chatRoomAccessService.requireParticipant(room.getCard(), senderId);
 
             ChatMessage saved = chatMessageRepository.save(ChatMessage.builder()
                     .chatRoom(room)
@@ -67,9 +72,12 @@ public class ChatMessageService {
             notifyOtherParticipant(room, senderId, saved);
             ChatMessageResponse response = toResponse(saved);
             metricsRegistry.recordChatMessageSendSuccess(sample);
+            log.info("메시지 저장 완료 [roomId={}, messageId={}, senderId={}, type={}]",
+                    roomId, saved.getId(), senderId, request.messageType());
             return response;
         } catch (Exception exception) {
             metricsRegistry.recordChatMessageSendFailure(sample, exception);
+            log.warn("메시지 전송 실패 [roomId={}, senderId={}]: {}", roomId, senderId, exception.getMessage());
             throw exception;
         }
     }
@@ -87,16 +95,18 @@ public class ChatMessageService {
                 .build());
 
         messagingTemplate.convertAndSend("/sub/chat/rooms/" + room.getId(), toResponse(saved));
+        log.info("채팅방 종료 안내 메시지 브로드캐스트 완료 [roomId={}, actorId={}]", room.getId(), actorId);
     }
 
     @Transactional
     public void markMessagesAsRead(UUID roomId, UUID userId) {
-        ChatRoom room = findRoomOrThrow(roomId);
-        requireParticipant(room.getCard(), userId);
+        ChatRoom room = chatRoomAccessService.findRoomOrThrow(roomId);
+        chatRoomAccessService.requireParticipant(room.getCard(), userId);
 
         List<ChatMessage> unread =
                 chatMessageRepository.findByChatRoomIdAndSenderIdNotAndReadAtIsNull(roomId, userId);
         if (unread.isEmpty()) {
+            log.debug("읽음 처리 요청 무시 [roomId={}, userId={}]: 읽지 않은 메시지 없음", roomId, userId);
             return;
         }
 
@@ -106,13 +116,14 @@ public class ChatMessageService {
         messagingTemplate.convertAndSend(
                 "/sub/chat/rooms/" + roomId + "/read",
                 new ChatReadEvent(roomId, userId, readMessageIds, Instant.now()));
+        log.info("메시지 읽음 처리 완료 [roomId={}, userId={}, count={}]", roomId, userId, readMessageIds.size());
     }
 
     public ChatMessagePageResponse getMessages(UUID roomId, UUID userId, Instant before, int size) {
         Timer.Sample sample = metricsRegistry.startChatMessageGetTimer();
         try {
-            ChatRoom room = findRoomOrThrow(roomId);
-            requireParticipant(room.getCard(), userId);
+            ChatRoom room = chatRoomAccessService.findRoomOrThrow(roomId);
+            chatRoomAccessService.requireParticipant(room.getCard(), userId);
 
             PageRequest pageRequest = PageRequest.of(0, size + 1);
             List<ChatMessage> messages = before != null
@@ -125,9 +136,11 @@ public class ChatMessageService {
 
             ChatMessagePageResponse response = new ChatMessagePageResponse(page.stream().map(this::toResponse).toList(), hasNext, nextCursor);
             metricsRegistry.recordChatMessageGetSuccess(sample);
+            log.debug("메시지 조회 완료 [roomId={}, userId={}, size={}, returned={}]", roomId, userId, size, page.size());
             return response;
         } catch (Exception exception) {
             metricsRegistry.recordChatMessageGetFailure(sample, exception);
+            log.warn("메시지 조회 실패 [roomId={}, userId={}]: {}", roomId, userId, exception.getMessage());
             throw exception;
         }
     }
@@ -149,16 +162,6 @@ public class ChatMessageService {
         }
     }
 
-    private void requireParticipant(Card card, UUID userId) {
-        if (card.getRequester().getId().equals(userId)) return;
-        boolean isAcceptedApplicant = cardApplyRepository.findByCard(card).stream()
-                .anyMatch(a -> a.getStatus() == CardApplyStatus.ACCEPTED
-                            && a.getApplicant().getId().equals(userId));
-        if (!isAcceptedApplicant) {
-            throw new BusinessException(ErrorCode.FORBIDDEN, "채팅방 참여자가 아닙니다");
-        }
-    }
-
     private String resolveContent(ChatMessageSendRequest request) {
         if (request.messageType() == ChatMessageType.LOCATION) {
             if (request.location() == null) {
@@ -177,16 +180,12 @@ public class ChatMessageService {
     }
 
     private ChatRoom findActiveRoomOrThrow(UUID roomId) {
-        ChatRoom room = findRoomOrThrow(roomId);
+        ChatRoom room = chatRoomAccessService.findRoomOrThrow(roomId);
         if (room.getStatus() == ChatRoomStatus.CLOSED) {
+            log.warn("메시지 전송 거부 [roomId={}]: 종료된 채팅방", roomId);
             throw new BusinessException(ErrorCode.INVALID_REQUEST, "종료된 채팅방입니다");
         }
         return room;
-    }
-
-    private ChatRoom findRoomOrThrow(UUID roomId) {
-        return chatRoomRepository.findById(roomId)
-                .orElseThrow(() -> new BusinessException(ErrorCode.NOT_FOUND, "채팅방을 찾을 수 없습니다"));
     }
 
     private ChatMessageResponse toResponse(ChatMessage message) {

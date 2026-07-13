@@ -1,20 +1,17 @@
 package com.deoham.global.security;
 
-import com.deoham.card.entity.CardApplyStatus;
-import com.deoham.card.repository.CardApplyRepository;
-import com.deoham.chat.entity.ChatRoom;
-import com.deoham.chat.repository.ChatRoomRepository;
+import com.deoham.chat.service.ChatRoomAccessService;
 import java.util.UUID;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.messaging.Message;
 import org.springframework.messaging.MessageChannel;
 import org.springframework.messaging.simp.stomp.StompCommand;
 import org.springframework.messaging.simp.stomp.StompHeaderAccessor;
 import org.springframework.messaging.support.ChannelInterceptor;
 import org.springframework.messaging.support.MessageHeaderAccessor;
-import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.authentication.AuthenticationServiceException;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.core.Authentication;
@@ -22,6 +19,7 @@ import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.security.oauth2.jwt.JwtDecoder;
 import org.springframework.stereotype.Component;
 
+@Slf4j
 @Component
 @RequiredArgsConstructor
 public class StompAuthChannelInterceptor implements ChannelInterceptor {
@@ -30,8 +28,7 @@ public class StompAuthChannelInterceptor implements ChannelInterceptor {
 
     private final JwtDecoder jwtDecoder;
     private final AppJwtAuthenticationConverter authenticationConverter;
-    private final ChatRoomRepository chatRoomRepository;
-    private final CardApplyRepository cardApplyRepository;
+    private final ChatRoomAccessService chatRoomAccessService;
 
     @Override
     public Message<?> preSend(Message<?> message, MessageChannel channel) {
@@ -50,36 +47,44 @@ public class StompAuthChannelInterceptor implements ChannelInterceptor {
     }
 
     private void authenticateConnect(StompHeaderAccessor accessor) {
-        String authHeader = accessor.getFirstNativeHeader("Authorization");
-        String token = extractBearerToken(authHeader);
-        Jwt jwt = jwtDecoder.decode(token);
-        Authentication authentication = authenticationConverter.convert(jwt);
-        accessor.setUser(authentication);
+        String sessionId = accessor.getSessionId();
+        try {
+            String authHeader = accessor.getFirstNativeHeader("Authorization");
+            String token = extractBearerToken(authHeader);
+            Jwt jwt = jwtDecoder.decode(token);
+            Authentication authentication = authenticationConverter.convert(jwt);
+            accessor.setUser(authentication);
+            log.info("STOMP CONNECT 인증 성공 [sessionId={}, principal={}]", sessionId, authentication.getName());
+        } catch (Exception ex) {
+            log.warn("STOMP CONNECT 인증 실패 [sessionId={}]: {}", sessionId, ex.getMessage());
+            throw ex;
+        }
     }
 
     private void authorizeSubscribe(StompHeaderAccessor accessor) {
+        String sessionId = accessor.getSessionId();
+        String destination = accessor.getDestination();
         AuthPrincipal principal = AuthenticationUtils.fromAuthentication(
                 accessor.getUser() instanceof Authentication auth ? auth : null)
-                .orElseThrow(() -> new AuthenticationServiceException("인증되지 않은 구독 요청입니다"));
+                .orElseThrow(() -> {
+                    log.warn("STOMP SUBSCRIBE 거부 [sessionId={}, destination={}]: 인증되지 않은 구독 요청", sessionId, destination);
+                    return new AuthenticationServiceException("인증되지 않은 구독 요청입니다");
+                });
 
-        String destination = accessor.getDestination();
         UUID roomId = extractRoomId(destination);
         if (roomId == null) {
+            log.debug("STOMP SUBSCRIBE 허용 [sessionId={}, userId={}, destination={}]: 채팅방 목적지 아님",
+                    sessionId, principal.userId(), destination);
             return;
         }
 
-        ChatRoom room = chatRoomRepository.findById(roomId)
-                .orElseThrow(() -> new AccessDeniedException("채팅방을 찾을 수 없습니다"));
-
         UUID userId = principal.userId();
-        var card = room.getCard();
-        if (card.getRequester().getId().equals(userId)) return;
-
-        boolean isAccepted = cardApplyRepository.findByCard(card).stream()
-                .anyMatch(a -> a.getStatus() == CardApplyStatus.ACCEPTED
-                            && a.getApplicant().getId().equals(userId));
-        if (!isAccepted) {
-            throw new AccessDeniedException("채팅방 참여자가 아닙니다");
+        try {
+            chatRoomAccessService.verifySubscribeAccess(roomId, userId);
+            log.info("STOMP SUBSCRIBE 허용 [sessionId={}, userId={}, roomId={}]", sessionId, userId, roomId);
+        } catch (RuntimeException ex) {
+            log.warn("STOMP SUBSCRIBE 거부 [sessionId={}, userId={}, roomId={}]: {}", sessionId, userId, roomId, ex.getMessage());
+            throw ex;
         }
     }
 
