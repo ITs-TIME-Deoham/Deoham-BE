@@ -41,7 +41,9 @@ public class SecurityConfig {
 			"/v3/api-docs/**",
 			"/api/auth/kakao",
 			"/api/auth/kakao/callback",
-			"/api/auth/refresh"
+			"/api/auth/refresh",
+			"/ws",
+			"/ws/**"
 	};
 
 	private final JwtProperties jwtProperties;
