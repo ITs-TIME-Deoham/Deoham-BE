@@ -21,7 +21,7 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
-      start_period: 50s
+      start_period: 60s
     restart: unless-stopped
 
   postgres:
@@ -119,6 +119,9 @@ services:
       GF_USERS_ALLOW_SIGN_UP: "false"
     volumes:
       - deoham_grafana_data:/var/lib/grafana
+      - ./monitoring/dashboards:/etc/grafana/dashboards:ro
+      - ./monitoring/grafana-dashboards.yml:/etc/grafana/provisioning/dashboards/dashboards.yml:ro
+      - ./monitoring/grafana-datasources.yml:/etc/grafana/provisioning/datasources/datasources.yml:ro
     depends_on:
       - prometheus
       - loki

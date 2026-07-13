@@ -1,4 +1,5 @@
 {
+  "refresh": "30s",
   "annotations": {
     "list": [
       {
@@ -629,7 +630,7 @@
       "pluginVersion": "10.2.0",
       "targets": [
         {
-          "expr": "up{job=\"app\"}",
+          "expr": "up{job=\"deoham-app\"}",
           "refId": "A"
         }
       ],
