@@ -11,6 +11,7 @@ import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
+import org.springframework.transaction.annotation.Transactional;
 
 /**
  * ChatMessageService(및 그 하위 SimpMessagingTemplate 의존성)를 거치지 않도록 분리한
@@ -44,6 +45,7 @@ public class ChatRoomAccessService {
         }
     }
 
+    @Transactional(readOnly = true)
     public void verifySubscribeAccess(UUID roomId, UUID userId) {
         ChatRoom room = findRoomOrThrow(roomId);
         requireParticipant(room.getCard(), userId);
