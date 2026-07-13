@@ -1,21 +1,28 @@
 services:
-  # app:
-  #   # EC2에서 직접 빌드하지 않고 GitHub Actions가 GHCR에 올린 이미지를 pull 한다.
-  #   # APP_IMAGE 는 배포 시 .env 로 주입 (미지정 시 latest).
-  #   image: ${APP_IMAGE:-ghcr.io/its-time-ondo/ondo-be:latest}
-  #   env_file:
-  #     - .env
-  #   volumes:
-  #     - ./logs:/app/logs
-  #     # - ./secrets/fcm-service-account.json:/app/secrets/fcm-service-account.json:ro
-  #   ports:
-  #     - "80:8080"
-  #   depends_on:
-  #     postgres:
-  #       condition: service_healthy
-  #     redis:
-  #       condition: service_healthy
-  #   restart: unless-stopped
+  app:
+    # EC2에서 직접 빌드하지 않고 GitHub Actions가 GHCR에 올린 이미지를 pull 한다.
+    # APP_IMAGE 는 배포 시 .env 로 주입 (미지정 시 latest).
+    image: ${APP_IMAGE:-ghcr.io/its-time-ondo/ondo-be:latest}
+    env_file:
+      - .env
+    # 파일 로깅 비활성화 - Docker stdout/stderr를 Loki가 수집
+    # volumes:
+    #   - app_logs:/app/logs
+    #   - ./secrets/fcm-service-account.json:/app/secrets/fcm-service-account.json:ro
+    ports:
+      - "80:8080"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "curl -sf http://localhost:8080/actuator/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 50s
+    restart: unless-stopped
 
   postgres:
     image: postgis/postgis:16-3.4
@@ -31,7 +38,7 @@ services:
       test: ["CMD-SHELL", "pg_isready -U deoham -d deoham"]
       interval: 5s
       timeout: 5s
-      retries: 10
+      retries: 20
 
   redis:
     image: redis:7-alpine
@@ -61,11 +68,7 @@ services:
       - '--query.timeout=2m'
       - '--web.console.libraries=/usr/share/prometheus/console_libraries'
       - '--web.console.templates=/usr/share/prometheus/consoles'
-    healthcheck:
-      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:9090/-/healthy"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
+    restart: unless-stopped
     deploy:
       resources:
         limits:
@@ -74,7 +77,6 @@ services:
         reservations:
           cpus: '0.5'
           memory: 512M
-    restart: unless-stopped
 
   loki:
     image: grafana/loki:latest
@@ -85,11 +87,7 @@ services:
       - ./monitoring/loki-config.yml:/etc/loki/local-config.yaml:ro
       - deoham_loki_data:/loki
     command: -config.file=/etc/loki/local-config.yaml
-    healthcheck:
-      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:3100/ready"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
+    restart: unless-stopped
     deploy:
       resources:
         limits:
@@ -98,7 +96,6 @@ services:
         reservations:
           cpus: '0.5'
           memory: 512M
-    restart: unless-stopped
 
   grafana:
     image: grafana/grafana:${GRAFANA_VERSION:-10.2.0}
@@ -141,6 +138,7 @@ services:
           memory: 256M
 
 volumes:
+  # app_logs: 파일 로깅 비활성화로 제거
   deoham_pg_data:
   deoham_redis_data:
   deoham_prometheus_data:

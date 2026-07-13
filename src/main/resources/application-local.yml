@@ -3,18 +3,18 @@ spring:
     compose:
       enabled: false
   flyway:
-    enabled: false
+    enabled: true
   datasource:
-    url: jdbc:postgresql://127.0.0.1:5300/deoham?sslmode=disable
+    url: jdbc:postgresql://postgres:5432/deoham?sslmode=disable
     username: deoham
     password: deoham
     hikari:
       maximum-pool-size: 10
       minimum-idle: 2
-  # data:
-  #   redis:
-  #     host: localhost
-  #     port: 6379
+  data:
+    redis:
+      host: redis
+      port: 6379
   jpa:
     show-sql: true
     properties:
