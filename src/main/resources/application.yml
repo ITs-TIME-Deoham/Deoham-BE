@@ -74,6 +74,7 @@ deoham:
     presigned-url-ttl-seconds: ${AWS_S3_PRESIGNED_TTL:600}
   gemini:
     api-key: ${GEMINI_API_KEY}
+    model: ${GEMINI_MODEL:gemini-2.5-flash}
 
 fcm:
   service-account-key-path: ${FCM_KEY_PATH}

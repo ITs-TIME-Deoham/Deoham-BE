@@ -7,6 +7,7 @@ import org.springframework.validation.annotation.Validated;
 @Validated
 @ConfigurationProperties(prefix = "deoham.gemini")
 public record GeminiProperties(
-		@NotBlank String apiKey
+		@NotBlank String apiKey,
+		@NotBlank String model
 ) {
 }

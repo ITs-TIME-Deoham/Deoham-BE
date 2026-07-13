@@ -1,12 +1,11 @@
 package com.deoham.chat.translation;
 
-import org.springframework.context.annotation.Primary;
 import org.springframework.stereotype.Component;
 
 /**
- * Placeholder until a real provider (AWS Translate / OpenAI / Anthropic) is wired in.
+ * Test-only stand-in for GeminiTranslationProvider (excluded from the "test" profile there),
+ * so tests don't hit the real Gemini API.
  */
-@Primary
 @Component
 public class DummyTranslationProvider implements TranslationProvider {
 
