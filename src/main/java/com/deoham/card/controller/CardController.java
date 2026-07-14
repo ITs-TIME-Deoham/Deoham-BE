@@ -9,8 +9,6 @@ import com.deoham.card.dto.response.MyActiveCardResponse;
 import com.deoham.card.dto.response.PaginatedCardListResponse;
 import com.deoham.card.service.CardReadService;
 import com.deoham.card.service.CardWriteService;
-import com.deoham.global.exception.BusinessException;
-import com.deoham.global.exception.ErrorCode;
 import com.deoham.global.response.ApiResponse;
 import com.deoham.global.security.AuthenticationUtils;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -49,9 +47,7 @@ public class CardController implements CardControllerDocs, CardApplyControllerDo
                     content = @Content(schema = @Schema(implementation = CreateCardRequest.class)))
             @Valid @RequestBody CreateCardRequest request
     ) {
-        UUID userId = AuthenticationUtils.currentPrincipal()
-                .orElseThrow(() -> new BusinessException(ErrorCode.UNAUTHORIZED, "인증 정보를 찾을 수 없습니다."))
-                .userId();
+        UUID userId = AuthenticationUtils.requiredUserId();
         return ResponseEntity.status(HttpStatus.CREATED).body(cardWriteService.createCard(request, userId));
     }
 
@@ -63,18 +59,14 @@ public class CardController implements CardControllerDocs, CardApplyControllerDo
             @Parameter(description = "Optional pagination cursor 선택 항목", example = "NTAuNXxhMWIyYzNkNGU1ZjY=")
             @RequestParam(required = false) String cursor
     ) {
-        UUID userId = AuthenticationUtils.currentPrincipal()
-                .orElseThrow(() -> new BusinessException(ErrorCode.UNAUTHORIZED, "인증 정보를 찾을 수 없습니다."))
-                .userId();
+        UUID userId = AuthenticationUtils.requiredUserId();
         return ResponseEntity.ok(cardReadService.getNearbyCards(latitude, longitude, cursor, userId));
     }
 
     @Override
     @GetMapping("/cards/my/active")
     public ResponseEntity<MyActiveCardResponse> getMyActiveCard() {
-        UUID userId = AuthenticationUtils.currentPrincipal()
-                .orElseThrow(() -> new BusinessException(ErrorCode.UNAUTHORIZED, "인증 정보를 찾을 수 없습니다."))
-                .userId();
+        UUID userId = AuthenticationUtils.requiredUserId();
         return ResponseEntity.ok(cardReadService.getMyActiveCard(userId));
     }
 
@@ -90,9 +82,7 @@ public class CardController implements CardControllerDocs, CardApplyControllerDo
             @Parameter(description = "Card ID", required = true)
             @PathVariable UUID cardId
     ) {
-        UUID userId = AuthenticationUtils.currentPrincipal()
-                .orElseThrow(() -> new BusinessException(ErrorCode.UNAUTHORIZED, "인증 정보를 찾을 수 없습니다."))
-                .userId();
+        UUID userId = AuthenticationUtils.requiredUserId();
         cardWriteService.cancelCard(cardId, userId);
         return ResponseEntity.noContent().build();
     }
@@ -103,9 +93,7 @@ public class CardController implements CardControllerDocs, CardApplyControllerDo
             @Parameter(description = "Card ID", required = true)
             @PathVariable UUID cardId
     ) {
-        UUID userId = AuthenticationUtils.currentPrincipal()
-                .orElseThrow(() -> new BusinessException(ErrorCode.UNAUTHORIZED, "인증 정보를 찾을 수 없습니다."))
-                .userId();
+        UUID userId = AuthenticationUtils.requiredUserId();
         cardWriteService.completeCard(cardId, userId);
         return ResponseEntity.noContent().build();
     }
@@ -116,9 +104,7 @@ public class CardController implements CardControllerDocs, CardApplyControllerDo
             @Parameter(description = "Card ID", required = true)
             @PathVariable UUID cardId
     ) {
-        UUID userId = AuthenticationUtils.currentPrincipal()
-                .orElseThrow(() -> new BusinessException(ErrorCode.UNAUTHORIZED, "인증 정보를 찾을 수 없습니다."))
-                .userId();
+        UUID userId = AuthenticationUtils.requiredUserId();
         cardWriteService.retryCard(cardId, userId);
         return ResponseEntity.noContent().build();
     }
@@ -129,9 +115,7 @@ public class CardController implements CardControllerDocs, CardApplyControllerDo
             @Parameter(description = "Card ID", required = true)
             @PathVariable UUID cardId
     ) {
-        UUID userId = AuthenticationUtils.currentPrincipal()
-                .orElseThrow(() -> new BusinessException(ErrorCode.UNAUTHORIZED, "인증 정보를 찾을 수 없습니다."))
-                .userId();
+        UUID userId = AuthenticationUtils.requiredUserId();
         return ResponseEntity.status(HttpStatus.CREATED).body(cardWriteService.submitApply(cardId, userId));
     }
 
@@ -141,9 +125,7 @@ public class CardController implements CardControllerDocs, CardApplyControllerDo
             @Parameter(description = "Card ID", required = true)
             @PathVariable UUID cardId
     ) {
-        UUID userId = AuthenticationUtils.currentPrincipal()
-                .orElseThrow(() -> new BusinessException(ErrorCode.UNAUTHORIZED, "인증 정보를 찾을 수 없습니다."))
-                .userId();
+        UUID userId = AuthenticationUtils.requiredUserId();
         return ResponseEntity.ok(cardReadService.getApplies(cardId, userId));
     }
 }

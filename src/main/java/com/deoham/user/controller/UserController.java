@@ -56,9 +56,7 @@ public class UserController {
 			)
 	})
 	public ResponseEntity<ProfileResponse> getProfile(Authentication authentication) {
-		var principal = AuthenticationUtils.fromAuthentication(authentication)
-				.orElseThrow(() -> new IllegalStateException("Authentication required."));
-		var profile = userReadService.getProfile(principal.userId());
+		var profile = userReadService.getProfile(AuthenticationUtils.requiredUserId(authentication));
 		return ResponseEntity.ok(profile);
 	}
 
@@ -100,10 +98,8 @@ public class UserController {
 			Authentication authentication,
 			@RequestBody @Valid ProfileUpdateRequest request
 	) {
-		var principal = AuthenticationUtils.fromAuthentication(authentication)
-				.orElseThrow(() -> new IllegalStateException("Authentication required."));
 		var updatedUser = userWriteService.updateProfile(
-				principal.userId(),
+				AuthenticationUtils.requiredUserId(authentication),
 				request.nickname(),
 				request.profileImageUrl()
 		);
@@ -148,10 +144,8 @@ public class UserController {
 			Authentication authentication,
 			@RequestBody @Valid ProfileUpdateRequest request
 	) {
-		var principal = AuthenticationUtils.fromAuthentication(authentication)
-				.orElseThrow(() -> new IllegalStateException("Authentication required."));
 		userWriteService.updateProfile(
-				principal.userId(),
+				AuthenticationUtils.requiredUserId(authentication),
 				request.nickname(),
 				request.profileImageUrl()
 		);
@@ -181,9 +175,7 @@ public class UserController {
 			)
 	})
 	public ResponseEntity<Void> deleteUser(Authentication authentication) {
-		var principal = AuthenticationUtils.fromAuthentication(authentication)
-				.orElseThrow(() -> new IllegalStateException("Authentication required."));
-		userWriteService.deleteUser(principal.userId());
+		userWriteService.deleteUser(AuthenticationUtils.requiredUserId(authentication));
 		return ResponseEntity.noContent().build();
 	}
 }

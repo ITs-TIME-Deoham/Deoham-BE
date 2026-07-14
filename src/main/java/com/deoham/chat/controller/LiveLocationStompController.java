@@ -2,9 +2,6 @@ package com.deoham.chat.controller;
 
 import com.deoham.chat.dto.LiveLocationRequest;
 import com.deoham.chat.service.LiveLocationService;
-import com.deoham.global.exception.BusinessException;
-import com.deoham.global.exception.ErrorCode;
-import com.deoham.global.security.AuthPrincipal;
 import com.deoham.global.security.AuthenticationUtils;
 import jakarta.validation.Valid;
 import java.security.Principal;
@@ -12,10 +9,8 @@ import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.messaging.handler.annotation.DestinationVariable;
-import org.springframework.messaging.handler.annotation.MessageExceptionHandler;
 import org.springframework.messaging.handler.annotation.MessageMapping;
 import org.springframework.messaging.handler.annotation.Payload;
-import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Controller;
 
 /**
@@ -34,30 +29,12 @@ public class LiveLocationStompController {
     public void updateLocation(@DestinationVariable UUID roomId,
                                @Payload @Valid LiveLocationRequest request,
                                Principal principal) {
-        liveLocationService.update(roomId, resolveUserId(principal), request);
+        liveLocationService.update(roomId, AuthenticationUtils.requiredUserId(principal), request);
     }
 
     @MessageMapping("/chat/rooms/{roomId}/live-location/stop")
     public void stopLocation(@DestinationVariable UUID roomId, Principal principal) {
-        liveLocationService.stop(roomId, resolveUserId(principal));
+        liveLocationService.stop(roomId, AuthenticationUtils.requiredUserId(principal));
     }
 
-    @MessageExceptionHandler(BusinessException.class)
-    public void handleBusinessException(BusinessException ex) {
-        log.warn("실시간 위치 STOMP BusinessException [{}]: {}", ex.getErrorCode().name(), ex.getMessage());
-    }
-
-    @MessageExceptionHandler(Exception.class)
-    public void handleUnexpectedException(Exception ex) {
-        log.error("실시간 위치 STOMP 처리 중 예기치 않은 예외 발생", ex);
-    }
-
-    private UUID resolveUserId(Principal principal) {
-        if (!(principal instanceof Authentication authentication)) {
-            throw new BusinessException(ErrorCode.UNAUTHORIZED);
-        }
-        AuthPrincipal authPrincipal = AuthenticationUtils.fromAuthentication(authentication)
-                .orElseThrow(() -> new BusinessException(ErrorCode.UNAUTHORIZED));
-        return authPrincipal.userId();
-    }
 }
