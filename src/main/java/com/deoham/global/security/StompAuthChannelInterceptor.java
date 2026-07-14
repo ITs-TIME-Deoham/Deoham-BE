@@ -1,13 +1,11 @@
 package com.deoham.global.security;
 
-import com.deoham.card.entity.CardApplyStatus;
-import com.deoham.card.repository.CardApplyRepository;
-import com.deoham.chat.entity.ChatRoom;
-import com.deoham.chat.repository.ChatRoomRepository;
+import com.deoham.chat.service.ChatRoomAccessService;
 import java.util.UUID;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.messaging.Message;
 import org.springframework.messaging.MessageChannel;
 import org.springframework.messaging.simp.stomp.StompCommand;
@@ -22,6 +20,7 @@ import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.security.oauth2.jwt.JwtDecoder;
 import org.springframework.stereotype.Component;
 
+@Slf4j
 @Component
 @RequiredArgsConstructor
 public class StompAuthChannelInterceptor implements ChannelInterceptor {
@@ -30,8 +29,7 @@ public class StompAuthChannelInterceptor implements ChannelInterceptor {
 
     private final JwtDecoder jwtDecoder;
     private final AppJwtAuthenticationConverter authenticationConverter;
-    private final ChatRoomRepository chatRoomRepository;
-    private final CardApplyRepository cardApplyRepository;
+    private final ChatRoomAccessService chatRoomAccessService;
 
     @Override
     public Message<?> preSend(Message<?> message, MessageChannel channel) {
@@ -44,42 +42,72 @@ public class StompAuthChannelInterceptor implements ChannelInterceptor {
             authenticateConnect(accessor);
         } else if (StompCommand.SUBSCRIBE.equals(accessor.getCommand())) {
             authorizeSubscribe(accessor);
+        } else if (StompCommand.SEND.equals(accessor.getCommand())) {
+            authorizeSend(accessor);
         }
 
         return message;
     }
 
+    /**
+     * SimpleBroker는 클라이언트가 /sub/** 로 직접 SEND한 프레임을 구독자 전체에 그대로 중계한다.
+     * 컨트롤러(@MessageMapping)와 참여자 검증을 우회한 위조 브로드캐스트를 막기 위해
+     * 애플리케이션 prefix(/pub)로 향하는 인증된 SEND만 허용한다.
+     */
+    private void authorizeSend(StompHeaderAccessor accessor) {
+        String sessionId = accessor.getSessionId();
+        String destination = accessor.getDestination();
+
+        if (!(accessor.getUser() instanceof Authentication auth)
+                || AuthenticationUtils.fromAuthentication(auth).isEmpty()) {
+            log.warn("STOMP SEND 거부 [sessionId={}, destination={}]: 인증되지 않은 전송 요청", sessionId, destination);
+            throw new AuthenticationServiceException("인증되지 않은 전송 요청입니다");
+        }
+        if (destination == null || !destination.startsWith("/pub/")) {
+            log.warn("STOMP SEND 거부 [sessionId={}, destination={}]: 허용되지 않은 목적지", sessionId, destination);
+            throw new AccessDeniedException("허용되지 않은 목적지입니다");
+        }
+    }
+
     private void authenticateConnect(StompHeaderAccessor accessor) {
-        String authHeader = accessor.getFirstNativeHeader("Authorization");
-        String token = extractBearerToken(authHeader);
-        Jwt jwt = jwtDecoder.decode(token);
-        Authentication authentication = authenticationConverter.convert(jwt);
-        accessor.setUser(authentication);
+        String sessionId = accessor.getSessionId();
+        try {
+            String authHeader = accessor.getFirstNativeHeader("Authorization");
+            String token = extractBearerToken(authHeader);
+            Jwt jwt = jwtDecoder.decode(token);
+            Authentication authentication = authenticationConverter.convert(jwt);
+            accessor.setUser(authentication);
+            log.info("STOMP CONNECT 인증 성공 [sessionId={}, principal={}]", sessionId, authentication.getName());
+        } catch (Exception ex) {
+            log.warn("STOMP CONNECT 인증 실패 [sessionId={}]: {}", sessionId, ex.getMessage());
+            throw ex;
+        }
     }
 
     private void authorizeSubscribe(StompHeaderAccessor accessor) {
+        String sessionId = accessor.getSessionId();
+        String destination = accessor.getDestination();
         AuthPrincipal principal = AuthenticationUtils.fromAuthentication(
                 accessor.getUser() instanceof Authentication auth ? auth : null)
-                .orElseThrow(() -> new AuthenticationServiceException("인증되지 않은 구독 요청입니다"));
+                .orElseThrow(() -> {
+                    log.warn("STOMP SUBSCRIBE 거부 [sessionId={}, destination={}]: 인증되지 않은 구독 요청", sessionId, destination);
+                    return new AuthenticationServiceException("인증되지 않은 구독 요청입니다");
+                });
 
-        String destination = accessor.getDestination();
         UUID roomId = extractRoomId(destination);
         if (roomId == null) {
+            log.debug("STOMP SUBSCRIBE 허용 [sessionId={}, userId={}, destination={}]: 채팅방 목적지 아님",
+                    sessionId, principal.userId(), destination);
             return;
         }
 
-        ChatRoom room = chatRoomRepository.findById(roomId)
-                .orElseThrow(() -> new AccessDeniedException("채팅방을 찾을 수 없습니다"));
-
         UUID userId = principal.userId();
-        var card = room.getCard();
-        if (card.getRequester().getId().equals(userId)) return;
-
-        boolean isAccepted = cardApplyRepository.findByCard(card).stream()
-                .anyMatch(a -> a.getStatus() == CardApplyStatus.ACCEPTED
-                            && a.getApplicant().getId().equals(userId));
-        if (!isAccepted) {
-            throw new AccessDeniedException("채팅방 참여자가 아닙니다");
+        try {
+            chatRoomAccessService.verifySubscribeAccess(roomId, userId);
+            log.info("STOMP SUBSCRIBE 허용 [sessionId={}, userId={}, roomId={}]", sessionId, userId, roomId);
+        } catch (RuntimeException ex) {
+            log.warn("STOMP SUBSCRIBE 거부 [sessionId={}, userId={}, roomId={}]: {}", sessionId, userId, roomId, ex.getMessage());
+            throw ex;
         }
     }
 

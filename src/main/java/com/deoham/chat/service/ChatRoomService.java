@@ -22,11 +22,13 @@ import java.util.Map;
 import java.util.UUID;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
@@ -35,25 +37,36 @@ public class ChatRoomService {
     private final ChatRoomRepository chatRoomRepository;
     private final ChatMessageRepository chatMessageRepository;
     private final ChatMessageService chatMessageService;
+    private final ChatRoomAccessService chatRoomAccessService;
     private final CardRepository cardRepository;
     private final CardApplyRepository cardApplyRepository;
 
     @Transactional
     public ChatRoomResponse getOrCreateRoom(UUID cardId, UUID userId) {
         Card card = cardRepository.findById(cardId)
-                .orElseThrow(() -> new BusinessException(ErrorCode.NOT_FOUND, "카드를 찾을 수 없습니다"));
-        requireParticipant(card, userId);
+                .orElseThrow(() -> {
+                    log.warn("채팅방 생성 실패 [cardId={}, userId={}]: 카드를 찾을 수 없음", cardId, userId);
+                    return new BusinessException(ErrorCode.NOT_FOUND, "카드를 찾을 수 없습니다");
+                });
+        chatRoomAccessService.requireParticipant(card, userId);
 
-        ChatRoom room = chatRoomRepository.findByCardId(cardId)
+        var existingRoom = chatRoomRepository.findByCardId(cardId);
+        ChatRoom room = existingRoom
                 .orElseGet(() -> chatRoomRepository.save(ChatRoom.builder().card(card).build()));
+
+        if (existingRoom.isEmpty()) {
+            log.info("채팅방 최초 생성 [roomId={}, cardId={}, userId={}]", room.getId(), cardId, userId);
+        } else {
+            log.debug("기존 채팅방 반환 [roomId={}, cardId={}, userId={}]", room.getId(), cardId, userId);
+        }
 
         return toResponse(room, unreadCountOf(room, userId), resolveOpponent(card, userId), lastMessageOf(room));
     }
 
     public ChatRoomResponse getRoom(UUID roomId, UUID userId) {
-        ChatRoom room = findRoomOrThrow(roomId);
+        ChatRoom room = chatRoomAccessService.findRoomOrThrow(roomId);
         Card card = room.getCard();
-        requireParticipant(card, userId);
+        chatRoomAccessService.requireParticipant(card, userId);
         return toResponse(room, unreadCountOf(room, userId), resolveOpponent(card, userId), lastMessageOf(room));
     }
 
@@ -111,36 +124,23 @@ public class ChatRoomService {
     }
 
     public ChatRoomLocationResponse getCardLocation(UUID roomId, UUID userId) {
-        ChatRoom room = findRoomOrThrow(roomId);
-        requireParticipant(room.getCard(), userId);
+        ChatRoom room = chatRoomAccessService.findRoomOrThrow(roomId);
+        chatRoomAccessService.requireParticipant(room.getCard(), userId);
         var point = room.getCard().getLocation();
         return new ChatRoomLocationResponse(point.getY(), point.getX(), room.getCard().getCity());
     }
 
     @Transactional
     public void closeRoom(UUID roomId, UUID userId) {
-        ChatRoom room = findRoomOrThrow(roomId);
-        requireParticipant(room.getCard(), userId);
+        ChatRoom room = chatRoomAccessService.findRoomOrThrow(roomId);
+        chatRoomAccessService.requireParticipant(room.getCard(), userId);
         if (room.getStatus() == ChatRoomStatus.CLOSED) {
+            log.debug("채팅방 종료 요청 무시 [roomId={}, actorId={}]: 이미 종료된 방", roomId, userId);
             return;
         }
         chatMessageService.sendRoomClosedMessage(room, userId);
         room.close();
-    }
-
-    private void requireParticipant(Card card, UUID userId) {
-        if (card.getRequester().getId().equals(userId)) return;
-        boolean isAcceptedApplicant = cardApplyRepository.findByCard(card).stream()
-                .anyMatch(a -> a.getStatus() == CardApplyStatus.ACCEPTED
-                            && a.getApplicant().getId().equals(userId));
-        if (!isAcceptedApplicant) {
-            throw new BusinessException(ErrorCode.FORBIDDEN, "채팅방 참여자가 아닙니다");
-        }
-    }
-
-    private ChatRoom findRoomOrThrow(UUID roomId) {
-        return chatRoomRepository.findById(roomId)
-                .orElseThrow(() -> new BusinessException(ErrorCode.NOT_FOUND, "채팅방을 찾을 수 없습니다"));
+        log.info("채팅방 종료 완료 [roomId={}, actorId={}]", roomId, userId);
     }
 
     private ChatRoomResponse toResponse(ChatRoom room, long unreadCount, User opponent, String lastMessage) {

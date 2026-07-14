@@ -11,14 +11,16 @@ import com.deoham.global.exception.BusinessException;
 import com.deoham.global.exception.ErrorCode;
 import com.deoham.user.entity.OauthProvider;
 import java.time.Instant;
+import com.deoham.TestcontainersConfiguration;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.test.context.ActiveProfiles;
+import org.springframework.context.annotation.Import;
 
 @SpringBootTest
-@ActiveProfiles("local")
+@Import(TestcontainersConfiguration.class)
 @DisplayName("AuthService Kakao OAuth validation test")
 class AuthServiceKakaoFailureTest {
 
@@ -79,6 +81,7 @@ class AuthServiceKakaoFailureTest {
 	}
 
 	@Test
+	@Disabled("일회용 인가 코드를 소스에 고정해 두면 재실행이 불가능하다 — Kakao API는 WireMock 등으로 모킹해 검증할 것")
 	@DisplayName("code only - Kakao token exchange로 code 유효성을 검증한다")
 	void validateCodeOnly_whenKakaoAcceptsCode_thenTokenResponseIsReturned() {
 		KakaoTokenResponse token = kakaoOAuthClient.exchangeCode(REAL_CODE);

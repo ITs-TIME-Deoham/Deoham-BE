@@ -97,7 +97,7 @@ class CardServiceMetricsTest {
         .expiresAt(Instant.now().plusSeconds(3600))
         .build();
 
-    when(cardRepository.findById(cardId)).thenReturn(Optional.of(card));
+    when(cardRepository.findByIdWithRequester(cardId)).thenReturn(Optional.of(card));
 
     // When
     cardReadService.getCard(cardId);
@@ -113,7 +113,7 @@ class CardServiceMetricsTest {
     // Given
     UUID cardId = UUID.randomUUID();
 
-    when(cardRepository.findById(cardId))
+    when(cardRepository.findByIdWithRequester(cardId))
         .thenThrow(new BusinessException(ErrorCode.NOT_FOUND, "카드를 찾을 수 없습니다."));
 
     // When & Then
@@ -183,7 +183,7 @@ class CardServiceMetricsTest {
     // Given
     UUID cardId = UUID.randomUUID();
 
-    when(cardRepository.findById(cardId))
+    when(cardRepository.findByIdWithRequester(cardId))
         .thenThrow(new BusinessException(ErrorCode.NOT_FOUND, "카드를 찾을 수 없습니다."));
 
     // When & Then
@@ -207,7 +207,7 @@ class CardServiceMetricsTest {
         .expiresAt(Instant.now().plusSeconds(3600))
         .build();
 
-    when(cardRepository.findById(cardId)).thenReturn(Optional.of(card));
+    when(cardRepository.findByIdWithRequester(cardId)).thenReturn(Optional.of(card));
 
     // When
     cardReadService.getCard(cardId);

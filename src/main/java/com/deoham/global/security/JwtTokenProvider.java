@@ -38,7 +38,14 @@ public class JwtTokenProvider {
 	public org.springframework.security.oauth2.jwt.Jwt parseToken(String token) {
 		try {
 			com.nimbusds.jwt.SignedJWT signedJWT = com.nimbusds.jwt.SignedJWT.parse(token);
-			signedJWT.verify(new com.nimbusds.jose.crypto.MACVerifier(jwtProperties.secret().getBytes()));
+			if (!JWSAlgorithm.HS256.equals(signedJWT.getHeader().getAlgorithm())) {
+				throw new org.springframework.security.oauth2.jwt.JwtException("Unsupported JWS algorithm");
+			}
+			boolean verified = signedJWT.verify(
+					new com.nimbusds.jose.crypto.MACVerifier(jwtProperties.secret().getBytes()));
+			if (!verified) {
+				throw new org.springframework.security.oauth2.jwt.JwtException("Invalid JWT signature");
+			}
 
 			JWTClaimsSet claims = signedJWT.getJWTClaimsSet();
 			java.util.Date iat = claims.getIssueTime();
@@ -50,7 +57,7 @@ public class JwtTokenProvider {
 					token,
 					java.time.Instant.ofEpochSecond(iat.getTime() / 1000),
 					java.time.Instant.ofEpochSecond(exp.getTime() / 1000),
-					java.util.Map.of(),
+					signedJWT.getHeader().toJSONObject(),
 					claims.getClaims()
 			);
 		} catch (Exception e) {
