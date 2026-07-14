@@ -25,6 +25,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
+import java.util.List;
 import java.util.UUID;
 
 @Service
@@ -189,6 +190,16 @@ public class DefaultCardWriteService implements CardWriteService {
         }
 
         cardApplyRepository.delete(apply);
+    }
+
+    @Override
+    @Transactional
+    public void expireCards() {
+        List<Card> expiredCards = cardRepository.findByStatusInAndExpiresAtBefore(
+                List.of(CardStatus.OPEN, CardStatus.MATCHED),
+                Instant.now()
+        );
+        expiredCards.forEach(card -> card.updateStatus(CardStatus.CANCELLED));
     }
 
     private Card findCardAndValidateOwner(UUID cardId, UUID userId) {
