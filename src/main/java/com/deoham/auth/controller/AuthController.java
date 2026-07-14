@@ -81,10 +81,10 @@ public class AuthController {
 					content = @Content
 			)
 	})
-	public ResponseEntity<KakaoCallbackResponse> kakaoCallback(
+	public ResponseEntity<ApiResponse<KakaoCallbackResponse>> kakaoCallback(
 			@RequestBody @Valid KakaoCallbackRequest request
 	) {
-		return ResponseEntity.ok(authService.kakaoLogin(request.code(), request.state()));
+		return ResponseEntity.ok(ApiResponse.ok(authService.kakaoLogin(request.code(), request.state())));
 	}
 
 	@PostMapping("/refresh")
