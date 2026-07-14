@@ -1,7 +1,7 @@
 package com.deoham.user.controller;
 
-import com.deoham.auth.dto.ProfileResponse;
-import com.deoham.auth.dto.ProfileUpdateRequest;
+import com.deoham.user.dto.ProfileResponse;
+import com.deoham.user.dto.ProfileUpdateRequest;
 import com.deoham.global.security.AuthenticationUtils;
 import com.deoham.user.service.UserReadService;
 import com.deoham.user.service.UserWriteService;

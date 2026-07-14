@@ -1,6 +1,6 @@
 package com.deoham.user.service.impl;
 
-import com.deoham.auth.dto.ProfileResponse;
+import com.deoham.user.dto.ProfileResponse;
 import com.deoham.global.exception.BusinessException;
 import com.deoham.global.exception.ErrorCode;
 import com.deoham.global.metrics.MetricsRegistry;

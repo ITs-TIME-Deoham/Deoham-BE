@@ -1,4 +1,4 @@
-package com.deoham.auth.dto;
+package com.deoham.user.dto;
 
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
