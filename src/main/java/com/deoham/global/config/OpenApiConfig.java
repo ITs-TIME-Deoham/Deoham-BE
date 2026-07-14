@@ -22,7 +22,9 @@ public class OpenApiConfig {
 				.info(new Info()
 						.title("Deoham API")
 						.description("Deoham backend REST API\n\n" +
-								"모든 API는 `Authorization: Bearer <Supabase JWT>` 헤더가 필요합니다.\n" +
+								"카카오 로그인(`/api/auth/kakao` → `/api/auth/kakao/callback`) 후 서버가 발급한 " +
+									"자체 JWT(HS256)를 `Authorization: Bearer <access token>` 헤더로 전달해야 합니다.\n" +
+									"인증 없이 호출 가능한 엔드포인트: `/api/auth/kakao`, `/api/auth/kakao/callback`, `/api/auth/refresh`.\n" +
 								"우측 상단 **Authorize** 버튼에서 토큰을 입력하세요.")
 						.version("v0.0.1")
 						.contact(new Contact()
@@ -38,6 +40,6 @@ public class OpenApiConfig {
 								.type(SecurityScheme.Type.HTTP)
 								.scheme("bearer")
 								.bearerFormat("JWT")
-								.description("Supabase access token — `Authorization: Bearer <token>`")));
+								.description("서버가 발급한 액세스 토큰(자체 HS256 JWT) — `Authorization: Bearer <token>`")));
 	}
 }

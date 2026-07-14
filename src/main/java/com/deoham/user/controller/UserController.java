@@ -64,8 +64,10 @@ public class UserController {
 
 	@PostMapping("/profile")
 	@Operation(
-			summary = "프로필 생성",
-			description = "회원가입 직후 현재 로그인한 사용자의 프로필을 생성합니다. 닉네임은 필수이며 프로필 이미지 URL은 선택입니다."
+			summary = "프로필 생성(최초 설정)",
+			description = "회원가입(카카오 최초 로그인) 직후 현재 로그인한 사용자의 프로필(닉네임, 프로필 이미지)을 설정합니다. " +
+					"유저 레코드 자체는 카카오 로그인 시점에 이미 생성되어 있으며, 이 API는 초기 프로필 정보를 채웁니다. " +
+					"닉네임은 필수이며 프로필 이미지 URL은 선택입니다. 설정된 프로필 정보를 201로 반환합니다."
 	)
 	@ApiResponses({
 			@io.swagger.v3.oas.annotations.responses.ApiResponse(
@@ -81,6 +83,11 @@ public class UserController {
 			@io.swagger.v3.oas.annotations.responses.ApiResponse(
 					responseCode = "401",
 					description = "인증 필요",
+					content = @Content
+			),
+			@io.swagger.v3.oas.annotations.responses.ApiResponse(
+					responseCode = "404",
+					description = "사용자 정보를 찾을 수 없음",
 					content = @Content
 			),
 			@io.swagger.v3.oas.annotations.responses.ApiResponse(
@@ -106,9 +113,9 @@ public class UserController {
 	@PutMapping("/profile")
 	@Operation(
 			summary = "프로필 업데이트",
-			description = "로그인 후 사용자의 닉네임과 프로필 사진 URL을 업데이트합니다. " +
+			description = "현재 로그인한 사용자의 닉네임과 프로필 사진 URL을 업데이트합니다. " +
 					"닉네임은 필수 입력값이며, 프로필 사진 URL은 선택사항입니다. " +
-					"업데이트된 프로필 정보를 반환합니다."
+					"성공 시 응답 본문 없이 204(No Content)를 반환합니다."
 	)
 	@ApiResponses({
 			@io.swagger.v3.oas.annotations.responses.ApiResponse(
@@ -124,6 +131,11 @@ public class UserController {
 			@io.swagger.v3.oas.annotations.responses.ApiResponse(
 					responseCode = "401",
 					description = "인증 필요",
+					content = @Content
+			),
+			@io.swagger.v3.oas.annotations.responses.ApiResponse(
+					responseCode = "404",
+					description = "사용자 정보를 찾을 수 없음",
 					content = @Content
 			),
 			@io.swagger.v3.oas.annotations.responses.ApiResponse(

@@ -90,7 +90,9 @@ public class AuthController {
 	@PostMapping("/refresh")
 	@Operation(
 			summary = "액세스 토큰 갱신",
-			description = "만료된 액세스 토큰을 리프레시 토큰으로 갱신합니다."
+			description = "만료된 액세스 토큰을 리프레시 토큰으로 갱신합니다. " +
+					"갱신 시 리프레시 토큰도 함께 회전(rotation)되어 새 리프레시 토큰이 발급되며, " +
+					"기존 리프레시 토큰은 더 이상 사용할 수 없습니다. 응답의 refreshToken을 반드시 교체 저장하세요."
 	)
 	@ApiResponses({
 			@io.swagger.v3.oas.annotations.responses.ApiResponse(
@@ -111,7 +113,19 @@ public class AuthController {
 	}
 
 	@PostMapping("/logout")
-	@Operation(summary = "로그아웃", description = "현재 사용자에게 저장된 리프레시 토큰을 폐기합니다.")
+	@Operation(summary = "로그아웃", description = "현재 사용자에게 저장된 리프레시 토큰을 모두 폐기합니다. " +
+			"발급된 액세스 토큰은 만료 시까지 유효하므로, 클라이언트에서도 저장된 토큰을 삭제해야 합니다.")
+	@ApiResponses({
+			@io.swagger.v3.oas.annotations.responses.ApiResponse(
+					responseCode = "200",
+					description = "로그아웃 성공 (data: null)"
+			),
+			@io.swagger.v3.oas.annotations.responses.ApiResponse(
+					responseCode = "401",
+					description = "인증 필요",
+					content = @Content
+			)
+	})
 	public ResponseEntity<ApiResponse<Void>> logout(Authentication authentication) {
 		authService.logout(authentication);
 		return ResponseEntity.ok(ApiResponse.ok(null));
