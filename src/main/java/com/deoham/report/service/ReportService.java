@@ -73,24 +73,12 @@ public class ReportService {
     }
 
     private void closeChatRoomBetweenUsers(UUID userId1, UUID userId2) {
-        cardApplyRepository.findAll().forEach(cardApply -> {
-            boolean isRelevantCard = isChatCardBetweenUsers(cardApply, userId1, userId2);
-            if (isRelevantCard && cardApply.getStatus() == CardApplyStatus.ACCEPTED) {
-                chatRoomRepository.findByCardId(cardApply.getCard().getId())
+        cardApplyRepository.findByStatusAndUserPair(CardApplyStatus.ACCEPTED, userId1, userId2)
+                .forEach(cardApply -> chatRoomRepository.findByCardId(cardApply.getCard().getId())
                         .ifPresent(chatRoom -> {
                             chatRoom.close();
                             chatRoomRepository.save(chatRoom);
-                        });
-            }
-        });
-    }
-
-    private boolean isChatCardBetweenUsers(com.deoham.card.entity.CardApply cardApply, UUID userId1, UUID userId2) {
-        UUID requesterId = cardApply.getCard().getRequester().getId();
-        UUID applicantId = cardApply.getApplicant().getId();
-
-        return (requesterId.equals(userId1) && applicantId.equals(userId2))
-                || (requesterId.equals(userId2) && applicantId.equals(userId1));
+                        }));
     }
 
     private void autoSuspendIfReportsExceed(User reportedUser) {
