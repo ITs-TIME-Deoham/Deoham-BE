@@ -356,6 +356,34 @@ public class MetricsRegistry {
     recordServiceFailure(sample, "chat.message.get", throwable);
   }
 
+  // ============ 공통 기록 템플릿 ============
+
+  /**
+   * 서비스 로직을 타이머로 감싸 실행하는 템플릿.
+   * 성공 시 "<prefix>.duration/count"(success), 예외 시 error_category 태그가 붙은
+   * failure 메트릭을 기록하고 예외를 그대로 재전파한다.
+   * (각 서비스에 반복되던 start/try/success/catch-failure 보일러플레이트 대체용)
+   */
+  public <T> T recordTimed(String metricPrefix, java.util.function.Supplier<T> action) {
+    Timer.Sample sample = Timer.start(meterRegistry);
+    try {
+      T result = action.get();
+      recordServiceSuccess(sample, metricPrefix);
+      return result;
+    } catch (RuntimeException exception) {
+      recordServiceFailure(sample, metricPrefix, exception);
+      throw exception;
+    }
+  }
+
+  /** {@link #recordTimed(String, java.util.function.Supplier)}의 void 버전. */
+  public void recordTimedRun(String metricPrefix, Runnable action) {
+    recordTimed(metricPrefix, () -> {
+      action.run();
+      return null;
+    });
+  }
+
   // ============ 공통 기록 헬퍼 ============
 
   /** "<prefix>.duration"(outcome=success) 타이머 종료 + "<prefix>.count"(result=success) 카운터 증가. */

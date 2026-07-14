@@ -14,7 +14,6 @@ import com.deoham.global.exception.BusinessException;
 import com.deoham.global.exception.ErrorCode;
 import com.deoham.global.metrics.MetricsRegistry;
 import com.deoham.user.repository.UserRepository;
-import io.micrometer.core.instrument.Timer;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -53,8 +52,7 @@ public class DefaultCardReadService implements CardReadService {
     @Override
     @Transactional(readOnly = true)
     public PaginatedCardListResponse getNearbyCards(double lat, double lng, String cursor, UUID userId) {
-        Timer.Sample sample = metricsRegistry.startCardSearchTimer();
-        try {
+        return metricsRegistry.recordTimed("card.search", () -> {
             CursorData cursorData = parseCursor(cursor);
             List<Object[]> rows = cardRepository.findNearbyCards(lat, lng, cursorData.distance(), cursorData.cardId());
 
@@ -82,29 +80,18 @@ public class DefaultCardReadService implements CardReadService {
 
             String nextCursor = hasMore ? encodeCursor(((Number) rows.get(PAGE_SIZE - 1)[14]).doubleValue(), rows.get(PAGE_SIZE - 1)[0].toString()) : null;
             Boolean has_seen_card_view_onboarding = userRepository.hasSeenCardViewOnboarding(userId);
-            PaginatedCardListResponse response = new PaginatedCardListResponse(cards, nextCursor, has_seen_card_view_onboarding);
-            metricsRegistry.recordCardSearchSuccess(sample);
-            return response;
-        } catch (Exception exception) {
-            metricsRegistry.recordCardSearchFailure(sample, exception);
-            throw exception;
-        }
+            return new PaginatedCardListResponse(cards, nextCursor, has_seen_card_view_onboarding);
+        });
     }
 
     @Override
     @Transactional(readOnly = true)
     public CardDetailResponse getCard(UUID cardId) {
-        Timer.Sample sample = metricsRegistry.startCardDetailTimer();
-        try {
+        return metricsRegistry.recordTimed("card.detail", () -> {
             Card card = cardRepository.findByIdWithRequester(cardId)
                     .orElseThrow(() -> new BusinessException(ErrorCode.NOT_FOUND, "카드를 찾을 수 없습니다."));
-            CardDetailResponse response = toDetailResponse(card);
-            metricsRegistry.recordCardDetailSuccess(sample);
-            return response;
-        } catch (Exception exception) {
-            metricsRegistry.recordCardDetailFailure(sample, exception);
-            throw exception;
-        }
+            return toDetailResponse(card);
+        });
     }
 
     @Override

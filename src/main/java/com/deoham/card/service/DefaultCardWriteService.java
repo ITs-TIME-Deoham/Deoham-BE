@@ -15,7 +15,6 @@ import com.deoham.global.metrics.MetricsRegistry;
 import com.deoham.user.entity.User;
 import com.deoham.user.repository.UserRepository;
 import com.deoham.user.service.UserWriteService;
-import io.micrometer.core.instrument.Timer;
 import lombok.RequiredArgsConstructor;
 import org.locationtech.jts.geom.Coordinate;
 import org.locationtech.jts.geom.GeometryFactory;
@@ -43,8 +42,7 @@ public class DefaultCardWriteService implements CardWriteService {
     @Override
     @Transactional
     public CardDetailResponse createCard(CreateCardRequest request, UUID userId) {
-        Timer.Sample sample = metricsRegistry.startCardCreateTimer();
-        try {
+        return metricsRegistry.recordTimed("card.create", () -> {
             User requester = userRepository.findById(userId)
                     .orElseThrow(() -> new BusinessException(ErrorCode.NOT_FOUND, "사용자를 찾을 수 없습니다."));
 
@@ -67,7 +65,7 @@ public class DefaultCardWriteService implements CardWriteService {
             requester.incrementHelpRequestCount();
             requester.markCardCreated();
 
-            CardDetailResponse response = new CardDetailResponse(
+            return new CardDetailResponse(
                     card.getId(),
                     card.getRequester().getId(),
                     card.getRequester().getNickname(),
@@ -84,12 +82,7 @@ public class DefaultCardWriteService implements CardWriteService {
                     card.getUpdatedAt(),
                     null  // distanceMeters: not applicable for created cards
             );
-            metricsRegistry.recordCardCreateSuccess(sample);
-            return response;
-        } catch (Exception exception) {
-            metricsRegistry.recordCardCreateFailure(sample, exception);
-            throw exception;
-        }
+        });
     }
 
     @Override
