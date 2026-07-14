@@ -30,8 +30,9 @@ services:
       POSTGRES_DB: deoham
       POSTGRES_USER: deoham
       POSTGRES_PASSWORD: deoham
+    # 외부 노출 금지 — 디버깅은 SSH 터널로 접근
     ports:
-      - "5432:5432"
+      - "127.0.0.1:5432:5432"
     volumes:
       - deoham_pg_data:/var/lib/postgresql/data
     healthcheck:
@@ -42,8 +43,9 @@ services:
 
   redis:
     image: redis:7-alpine
+    # 외부 노출 금지 — 인증 없는 Redis를 공개 인터페이스에 바인딩하지 않는다
     ports:
-      - "6379:6379"
+      - "127.0.0.1:6379:6379"
     volumes:
       - deoham_redis_data:/data
     healthcheck:
@@ -55,7 +57,7 @@ services:
   prometheus:
     image: prom/prometheus:latest
     ports:
-      - "19090:9090"
+      - "127.0.0.1:19090:9090"
     volumes:
       - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml:ro
       - deoham_prometheus_data:/prometheus
@@ -81,8 +83,9 @@ services:
   loki:
     image: grafana/loki:latest
     user: "0:0"
+    # Loki는 인증이 없으므로 외부 노출 금지 (Grafana가 내부 네트워크로 접근)
     ports:
-      - "3100:3100"
+      - "127.0.0.1:3100:3100"
     volumes:
       - ./monitoring/loki-config.yml:/etc/loki/local-config.yaml:ro
       - deoham_loki_data:/loki
