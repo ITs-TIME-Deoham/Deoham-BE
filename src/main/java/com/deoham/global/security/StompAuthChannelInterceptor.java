@@ -12,6 +12,7 @@ import org.springframework.messaging.simp.stomp.StompCommand;
 import org.springframework.messaging.simp.stomp.StompHeaderAccessor;
 import org.springframework.messaging.support.ChannelInterceptor;
 import org.springframework.messaging.support.MessageHeaderAccessor;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.authentication.AuthenticationServiceException;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.core.Authentication;
@@ -41,9 +42,31 @@ public class StompAuthChannelInterceptor implements ChannelInterceptor {
             authenticateConnect(accessor);
         } else if (StompCommand.SUBSCRIBE.equals(accessor.getCommand())) {
             authorizeSubscribe(accessor);
+        } else if (StompCommand.SEND.equals(accessor.getCommand())) {
+            authorizeSend(accessor);
         }
 
         return message;
+    }
+
+    /**
+     * SimpleBroker는 클라이언트가 /sub/** 로 직접 SEND한 프레임을 구독자 전체에 그대로 중계한다.
+     * 컨트롤러(@MessageMapping)와 참여자 검증을 우회한 위조 브로드캐스트를 막기 위해
+     * 애플리케이션 prefix(/pub)로 향하는 인증된 SEND만 허용한다.
+     */
+    private void authorizeSend(StompHeaderAccessor accessor) {
+        String sessionId = accessor.getSessionId();
+        String destination = accessor.getDestination();
+
+        if (!(accessor.getUser() instanceof Authentication auth)
+                || AuthenticationUtils.fromAuthentication(auth).isEmpty()) {
+            log.warn("STOMP SEND 거부 [sessionId={}, destination={}]: 인증되지 않은 전송 요청", sessionId, destination);
+            throw new AuthenticationServiceException("인증되지 않은 전송 요청입니다");
+        }
+        if (destination == null || !destination.startsWith("/pub/")) {
+            log.warn("STOMP SEND 거부 [sessionId={}, destination={}]: 허용되지 않은 목적지", sessionId, destination);
+            throw new AccessDeniedException("허용되지 않은 목적지입니다");
+        }
     }
 
     private void authenticateConnect(StompHeaderAccessor accessor) {
