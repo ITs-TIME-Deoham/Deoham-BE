@@ -125,13 +125,15 @@ public class ChatMessageService {
             ChatRoom room = chatRoomAccessService.findRoomOrThrow(roomId);
             chatRoomAccessService.requireParticipant(room.getCard(), userId);
 
-            PageRequest pageRequest = PageRequest.of(0, size + 1);
+            // size<=0이면 PageRequest가 예외를 던지고, 과도한 값은 메모리를 위협하므로 1~100으로 제한
+            int pageSize = Math.min(Math.max(size, 1), 100);
+            PageRequest pageRequest = PageRequest.of(0, pageSize + 1);
             List<ChatMessage> messages = before != null
                     ? chatMessageRepository.findByChatRoomIdAndSentAtBeforeOrderBySentAtDesc(roomId, before, pageRequest)
                     : chatMessageRepository.findByChatRoomIdOrderBySentAtDesc(roomId, pageRequest);
 
-            boolean hasNext = messages.size() > size;
-            List<ChatMessage> page = hasNext ? messages.subList(0, size) : messages;
+            boolean hasNext = messages.size() > pageSize;
+            List<ChatMessage> page = hasNext ? messages.subList(0, pageSize) : messages;
             Instant nextCursor = hasNext ? page.get(page.size() - 1).getSentAt() : null;
 
             ChatMessagePageResponse response = new ChatMessagePageResponse(page.stream().map(this::toResponse).toList(), hasNext, nextCursor);
