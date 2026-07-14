@@ -19,4 +19,6 @@ public interface CardWriteService {
     CardApplySummaryResponse submitApply(UUID cardId, UUID applicantId);
 
     void cancelApply(UUID cardId, UUID userId);
+
+    void expireCards();
 }

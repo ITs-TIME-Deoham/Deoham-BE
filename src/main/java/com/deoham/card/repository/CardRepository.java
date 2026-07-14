@@ -17,6 +17,8 @@ public interface CardRepository extends JpaRepository<Card, UUID> {
 
     Optional<Card> findFirstByRequesterIdAndStatusIn(UUID requesterId, List<CardStatus> statuses);
 
+    List<Card> findByStatusInAndExpiresAtBefore(List<CardStatus> statuses, java.time.Instant expiresAt);
+
     @Query("""
             SELECT c FROM Card c
             JOIN FETCH c.requester
