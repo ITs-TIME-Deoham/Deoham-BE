@@ -20,6 +20,15 @@ spring:
 jwt:
   secret: "my-test-secret-key-minimum-32-characters-required"
 
+# 테스트 컨텍스트 로딩용 더미 값 — 외부 API는 테스트에서 호출하지 않는다
+deoham:
+  kakao:
+    rest-api-key: ${KAKAO_REST_API_KEY:test-rest-api-key}
+    client-secret: ${KAKAO_CLIENT_SECRET:test-client-secret}
+    redirect-uri: ${KAKAO_REDIRECT_URI:http://localhost:3000/api/auth/kakao/callback}
+  s3:
+    bucket: ${AWS_S3_BUCKET:test-bucket}
+
 loki:
   url: http://localhost:3100
 

@@ -3,7 +3,8 @@ global:
   evaluation_interval: 30s
   external_labels:
     monitor: 'deoham-monitor'
-    environment: '${SPRING_PROFILES_ACTIVE:-local}'
+    # Prometheus 설정 파일은 환경변수 치환을 지원하지 않으므로 고정값 사용
+    environment: 'dev'
 
 alerting:
   alertmanagers:
@@ -22,4 +23,5 @@ scrape_configs:
     metrics_path: '/actuator/prometheus'
     scrape_interval: 30s
     static_configs:
-      - targets: ['localhost:8080']
+      # compose 네트워크의 app 서비스 — localhost는 Prometheus 컨테이너 자신을 가리킴
+      - targets: ['app:8080']

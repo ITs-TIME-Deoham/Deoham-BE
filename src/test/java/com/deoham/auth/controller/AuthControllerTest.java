@@ -78,12 +78,11 @@ class AuthControllerTest {
 				.contentType(MediaType.APPLICATION_JSON)
 				.content(objectMapper.writeValueAsString(request)))
 				.andExpect(status().isOk())
-				.andExpect(jsonPath("$.success").value(true))
-				.andExpect(jsonPath("$.data.accessToken").value("eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.test_access_token"))
-				.andExpect(jsonPath("$.data.refreshToken").value("refresh_token_test_12345"))
-				.andExpect(jsonPath("$.data.tokenType").value("Bearer"))
-				.andExpect(jsonPath("$.data.expiresIn").value(3600))
-				.andExpect(jsonPath("$.data.isNewUser").value(true));
+				.andExpect(jsonPath("$.accessToken").value("eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.test_access_token"))
+				.andExpect(jsonPath("$.refreshToken").value("refresh_token_test_12345"))
+				.andExpect(jsonPath("$.tokenType").value("Bearer"))
+				.andExpect(jsonPath("$.expiresIn").value(3600))
+				.andExpect(jsonPath("$.isNewUser").value(true));
 	}
 
 	@Test
@@ -110,8 +109,7 @@ class AuthControllerTest {
 				.contentType(MediaType.APPLICATION_JSON)
 				.content(objectMapper.writeValueAsString(request)))
 				.andExpect(status().isOk())
-				.andExpect(jsonPath("$.success").value(true))
-				.andExpect(jsonPath("$.data.isNewUser").value(false));
+				.andExpect(jsonPath("$.isNewUser").value(false));
 	}
 
 	@Test

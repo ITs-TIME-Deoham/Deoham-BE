@@ -32,13 +32,20 @@ public class ChatMessageStompController {
                             @Payload ChatMessageSendRequest request,
                             Principal principal) {
         UUID senderId = resolveUserId(principal);
+        log.debug("STOMP 메시지 수신 [roomId={}, senderId={}, type={}]", roomId, senderId, request.messageType());
         ChatMessageResponse saved = chatMessageService.sendMessage(roomId, senderId, request);
         messagingTemplate.convertAndSend("/sub/chat/rooms/" + roomId, saved);
+        log.info("STOMP 메시지 브로드캐스트 완료 [roomId={}, messageId={}, senderId={}]", roomId, saved.id(), senderId);
     }
 
     @MessageExceptionHandler(BusinessException.class)
     public void handleBusinessException(BusinessException ex) {
         log.warn("STOMP BusinessException [{}]: {}", ex.getErrorCode().name(), ex.getMessage());
+    }
+
+    @MessageExceptionHandler(Exception.class)
+    public void handleUnexpectedException(Exception ex) {
+        log.error("STOMP 처리 중 예기치 않은 예외 발생", ex);
     }
 
     private UUID resolveUserId(Principal principal) {

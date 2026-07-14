@@ -36,8 +36,9 @@ jobs:
       - name: Grant execute permission for gradlew
         run: chmod +x gradlew
 
-      - name: Build
-        run: ./gradlew --no-daemon clean build -x test
+      # Testcontainers(Postgres)는 러너의 Docker 데몬을 사용한다
+      - name: Build & test
+        run: ./gradlew --no-daemon clean build
 
       - name: Upload test report
         if: failure()
@@ -263,37 +264,18 @@ jobs:
 
           echo ""
           echo "=== Waiting for application startup ==="
-          sleep 15
+          sleep 40
 
           echo ""
-          echo "=== Health check (with exponential backoff) ==="
-          healthy=0
+          echo "=== Checking deoham-app-1 container health ==="
           max_attempts=5
+          healthy=0
 
           for attempt in $(seq 1 $max_attempts); do
-            wait_time=$((60 + (attempt - 1) * 5))
+            health_status=$(docker inspect deoham-app-1 --format '{{.State.Health.Status}}' 2>/dev/null || echo "none")
 
-            # Readiness probe
-            if curl -sf http://localhost:8080/actuator/health/readiness &>/dev/null; then
-              echo "✓ Application readiness check passed"
-
-              # DB probe
-              if curl -sf http://localhost:8080/actuator/health/db &>/dev/null; then
-                echo "✓ Database connectivity verified"
-              else
-                echo "⚠ Database health check warning (will retry)"
-              fi
-
-              # Redis probe
-              if curl -sf http://localhost:8080/actuator/health/redis &>/dev/null; then
-                echo "✓ Redis connectivity verified"
-              else
-                echo "⚠ Redis health check warning (will retry)"
-              fi
-
-              # Overall health
-              HEALTH=$(curl -sf http://localhost:8080/actuator/health 2>/dev/null | grep -o '"status":"[^"]*"')
-              echo "✓ Overall health: $HEALTH"
+            if [ "$health_status" = "healthy" ]; then
+              echo "✓ Application container is healthy"
               healthy=1
               break
             fi

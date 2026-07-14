@@ -16,7 +16,13 @@ import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
 import org.springframework.security.config.http.SessionCreationPolicy;
+import org.springframework.security.oauth2.core.DelegatingOAuth2TokenValidator;
+import org.springframework.security.oauth2.core.OAuth2Error;
+import org.springframework.security.oauth2.core.OAuth2TokenValidator;
+import org.springframework.security.oauth2.core.OAuth2TokenValidatorResult;
+import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.security.oauth2.jwt.JwtDecoder;
+import org.springframework.security.oauth2.jwt.JwtValidators;
 import org.springframework.security.oauth2.jwt.NimbusJwtDecoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.web.cors.CorsConfiguration;
@@ -41,7 +47,9 @@ public class SecurityConfig {
 			"/v3/api-docs/**",
 			"/api/auth/kakao",
 			"/api/auth/kakao/callback",
-			"/api/auth/refresh"
+			"/api/auth/refresh",
+			"/ws",
+			"/ws/**"
 	};
 
 	private final JwtProperties jwtProperties;
@@ -82,7 +90,15 @@ public class SecurityConfig {
 	@Bean
 	public JwtDecoder jwtDecoder() {
 		SecretKeySpec secretKey = new SecretKeySpec(jwtProperties.secret().getBytes(), "HmacSHA256");
-		return NimbusJwtDecoder.withSecretKey(secretKey).build();
+		NimbusJwtDecoder decoder = NimbusJwtDecoder.withSecretKey(secretKey).build();
+		// 리프레시 토큰(type=refresh)을 액세스 토큰처럼 API 인증에 쓰지 못하게 막는다
+		OAuth2TokenValidator<Jwt> accessTokenOnly = jwt -> "access".equals(jwt.getClaimAsString("type"))
+				? OAuth2TokenValidatorResult.success()
+				: OAuth2TokenValidatorResult.failure(
+						new OAuth2Error("invalid_token", "Not an access token", null));
+		decoder.setJwtValidator(new DelegatingOAuth2TokenValidator<>(
+				JwtValidators.createDefault(), accessTokenOnly));
+		return decoder;
 	}
 
 	private CorsConfigurationSource corsConfigurationSource() {
