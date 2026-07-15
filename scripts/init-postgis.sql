@@ -1,8 +1,8 @@
 -- Create PostGIS extension and initialize spatial reference systems
 CREATE EXTENSION IF NOT EXISTS postgis;
 
--- Populate spatial_ref_sys if not already done
-SELECT postgis_full_version();
+-- Upgrade PostGIS extensions to ensure spatial_ref_sys is fully populated
+SELECT postgis_extensions_upgrade();
 
 -- Create additional useful extensions for spatial databases
 CREATE EXTENSION IF NOT EXISTS postgis_topology;

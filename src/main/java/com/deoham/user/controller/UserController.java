@@ -126,20 +126,21 @@ public class UserController {
 	@MetricEndpoint("user.profile.create")
 	public ResponseEntity<ProfileResponse> createProfile(
 			Authentication authentication,
-			@RequestPart(name = "request")
+			@RequestPart(name = "request", required = false)
 			@Valid ProfileUpdateRequest request,
 			@RequestPart(name = "profileImage", required = false)
 			MultipartFile profileImage
 	) {
+		String nickname = request != null ? request.nickname() : null;
 		var updatedUser = userWriteService.updateProfile(
 				AuthenticationUtils.requiredUserId(authentication),
-				request.nickname(),
+				nickname,
 				profileImage
 		);
 		return ResponseEntity.status(HttpStatus.CREATED).body(ProfileResponse.from(updatedUser));
 	}
 
-	@PutMapping(value = "/profile", consumes = MediaType.MULTIPART_FORM_DATA_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)
+	@PutMapping(value = "/profile", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
 	@Operation(
 			summary = "프로필 업데이트",
 			description = "현재 로그인한 사용자의 닉네임과 프로필 이미지를 업데이트합니다. " +
@@ -154,19 +155,19 @@ public class UserController {
 			description = "multipart/form-data 형식. " +
 					"- request: ProfileUpdateRequest JSON (닉네임 선택사항) " +
 					"- profileImage: 이미지 파일 (선택사항)",
-			    content = @Content(
-            mediaType = MediaType.MULTIPART_FORM_DATA_VALUE,
-            schemaProperties = {
-                    @SchemaProperty(
-                            name = "request",
-                            schema = @Schema(implementation = ProfileUpdateRequest.class)
-                    ),
-                    @SchemaProperty(
-                            name = "profileImage",
-                            schema = @Schema(type = "string", format = "binary")
-                    )
-            }
-    	)
+			content = @Content(
+					mediaType = MediaType.MULTIPART_FORM_DATA_VALUE,
+					schemaProperties = {
+							@SchemaProperty(
+									name = "request",
+									schema = @Schema(implementation = ProfileUpdateRequest.class)
+							),
+							@SchemaProperty(
+									name = "profileImage",
+									schema = @Schema(type = "string", format = "binary")
+							)
+					}
+			)
 	)
 	@ApiResponses({
 			@io.swagger.v3.oas.annotations.responses.ApiResponse(
@@ -198,14 +199,15 @@ public class UserController {
 	@MetricEndpoint("user.profile.update")
 	public ResponseEntity<Void> updateProfile(
 			Authentication authentication,
-			@RequestPart(name = "request")
+			@RequestPart(name = "request", required = false)
 			@Valid ProfileUpdateRequest request,
 			@RequestPart(name = "profileImage", required = false)
 			MultipartFile profileImage
 	) {
+		String nickname = request != null ? request.nickname() : null;
 		userWriteService.updateProfile(
 				AuthenticationUtils.requiredUserId(authentication),
-				request.nickname(),
+				nickname,
 				profileImage
 		);
 		return ResponseEntity.noContent().build();

@@ -10,6 +10,7 @@ import org.springframework.validation.annotation.Validated;
 public record S3Properties(
 		@NotBlank String region,
 		@NotBlank String bucket,
-		@Positive long presignedUrlTtlSeconds
+		@Positive long presignedUrlTtlSeconds,
+		@Positive long maxImageSizeBytes
 ) {
 }
