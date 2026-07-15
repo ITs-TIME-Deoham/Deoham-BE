@@ -9,12 +9,14 @@ import com.deoham.user.service.UserWriteService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
+import io.swagger.v3.oas.annotations.media.SchemaProperty;
 import io.swagger.v3.oas.annotations.parameters.RequestBody;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -65,7 +67,7 @@ public class UserController {
 		return ResponseEntity.ok(profile);
 	}
 
-	@PostMapping("/profile")
+	@PostMapping(value = "/profile", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
 	@Operation(
 			summary = "프로필 생성(최초 설정)",
 			description = "회원가입(카카오 최초 로그인) 직후 현재 로그인한 사용자의 프로필(닉네임, 프로필 이미지)을 설정합니다. " +
@@ -77,10 +79,22 @@ public class UserController {
 					"- profileImage (파일): image.jpg"
 	)
 	@RequestBody(
-			description = "multipart/form-data 형식. " +
-					"- request: ProfileUpdateRequest JSON (닉네임 선택사항) " +
-					"- profileImage: 이미지 파일 (선택사항)",
-			content = @Content(mediaType = "multipart/form-data", schema = @Schema(type = "object"))
+		description = "multipart/form-data 형식. " +
+			"- request: ProfileUpdateRequest JSON (닉네임 선택사항) " +
+			"- profileImage: 이미지 파일 (선택사항)",
+			content = @Content(
+				mediaType = MediaType.MULTIPART_FORM_DATA_VALUE,
+				schemaProperties = {
+						@SchemaProperty(
+								name = "request",
+								schema = @Schema(implementation = ProfileUpdateRequest.class)
+						),
+						@SchemaProperty(
+								name = "profileImage",
+								schema = @Schema(type = "string", format = "binary")
+						)
+				}
+		)
 	)
 	@ApiResponses({
 			@io.swagger.v3.oas.annotations.responses.ApiResponse(
@@ -112,11 +126,9 @@ public class UserController {
 	@MetricEndpoint("user.profile.create")
 	public ResponseEntity<ProfileResponse> createProfile(
 			Authentication authentication,
-			@RequestPart
-			@Schema(example = "{\"nickname\": \"홍길동\"}")
+			@RequestPart(name = "request")
 			@Valid ProfileUpdateRequest request,
-			@RequestPart(required = false)
-			@Schema(example = "image.jpg")
+			@RequestPart(name = "profileImage", required = false)
 			MultipartFile profileImage
 	) {
 		var updatedUser = userWriteService.updateProfile(
@@ -127,7 +139,7 @@ public class UserController {
 		return ResponseEntity.status(HttpStatus.CREATED).body(ProfileResponse.from(updatedUser));
 	}
 
-	@PutMapping("/profile")
+	@PutMapping(value = "/profile", consumes = MediaType.MULTIPART_FORM_DATA_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)
 	@Operation(
 			summary = "프로필 업데이트",
 			description = "현재 로그인한 사용자의 닉네임과 프로필 이미지를 업데이트합니다. " +
@@ -142,7 +154,19 @@ public class UserController {
 			description = "multipart/form-data 형식. " +
 					"- request: ProfileUpdateRequest JSON (닉네임 선택사항) " +
 					"- profileImage: 이미지 파일 (선택사항)",
-			content = @Content(mediaType = "multipart/form-data", schema = @Schema(type = "object"))
+			    content = @Content(
+            mediaType = MediaType.MULTIPART_FORM_DATA_VALUE,
+            schemaProperties = {
+                    @SchemaProperty(
+                            name = "request",
+                            schema = @Schema(implementation = ProfileUpdateRequest.class)
+                    ),
+                    @SchemaProperty(
+                            name = "profileImage",
+                            schema = @Schema(type = "string", format = "binary")
+                    )
+            }
+    	)
 	)
 	@ApiResponses({
 			@io.swagger.v3.oas.annotations.responses.ApiResponse(
@@ -174,11 +198,9 @@ public class UserController {
 	@MetricEndpoint("user.profile.update")
 	public ResponseEntity<Void> updateProfile(
 			Authentication authentication,
-			@RequestPart
-			@Schema(example = "{\"nickname\": \"새로운닉네임\"}")
+			@RequestPart(name = "request")
 			@Valid ProfileUpdateRequest request,
-			@RequestPart(required = false)
-			@Schema(example = "new-image.jpg")
+			@RequestPart(name = "profileImage", required = false)
 			MultipartFile profileImage
 	) {
 		userWriteService.updateProfile(
