@@ -1,13 +1,15 @@
 package com.deoham.user.controller;
 
-import com.deoham.auth.dto.ProfileResponse;
-import com.deoham.auth.dto.ProfileUpdateRequest;
+import com.deoham.user.dto.ProfileResponse;
+import com.deoham.user.dto.ProfileUpdateRequest;
+import com.deoham.global.metrics.MetricEndpoint;
 import com.deoham.global.security.AuthenticationUtils;
 import com.deoham.user.service.UserReadService;
 import com.deoham.user.service.UserWriteService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
+import io.swagger.v3.oas.annotations.parameters.RequestBody;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
@@ -19,9 +21,11 @@ import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
-import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RequestPart;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.multipart.MultipartFile;
 
 @RestController
 @RequestMapping("/api/user")
@@ -55,17 +59,28 @@ public class UserController {
 					content = @Content
 			)
 	})
+	@MetricEndpoint("user.profile.get")
 	public ResponseEntity<ProfileResponse> getProfile(Authentication authentication) {
-		var principal = AuthenticationUtils.fromAuthentication(authentication)
-				.orElseThrow(() -> new IllegalStateException("Authentication required."));
-		var profile = userReadService.getProfile(principal.userId());
+		var profile = userReadService.getProfile(AuthenticationUtils.requiredUserId(authentication));
 		return ResponseEntity.ok(profile);
 	}
 
 	@PostMapping("/profile")
 	@Operation(
-			summary = "프로필 생성",
-			description = "회원가입 직후 현재 로그인한 사용자의 프로필을 생성합니다. 닉네임은 필수이며 프로필 이미지 URL은 선택입니다."
+			summary = "프로필 생성(최초 설정)",
+			description = "회원가입(카카오 최초 로그인) 직후 현재 로그인한 사용자의 프로필(닉네임, 프로필 이미지)을 설정합니다. " +
+					"유저 레코드 자체는 카카오 로그인 시점에 이미 생성되어 있으며, 이 API는 초기 프로필 정보를 채웁니다. " +
+					"닉네임과 프로필 이미지 중 최소 하나는 필수입니다. " +
+					"multipart/form-data로 전송하며, S3에 저장됩니다.\n\n" +
+					"**Request Body 예시:**\n" +
+					"- request (JSON part): `{\"nickname\":\"홍길동\"}`\n" +
+					"- profileImage (파일): image.jpg"
+	)
+	@RequestBody(
+			description = "multipart/form-data 형식. " +
+					"- request: ProfileUpdateRequest JSON (닉네임 선택사항) " +
+					"- profileImage: 이미지 파일 (선택사항)",
+			content = @Content(mediaType = "multipart/form-data", schema = @Schema(type = "object"))
 	)
 	@ApiResponses({
 			@io.swagger.v3.oas.annotations.responses.ApiResponse(
@@ -84,21 +99,30 @@ public class UserController {
 					content = @Content
 			),
 			@io.swagger.v3.oas.annotations.responses.ApiResponse(
+					responseCode = "404",
+					description = "사용자 정보를 찾을 수 없음",
+					content = @Content
+			),
+			@io.swagger.v3.oas.annotations.responses.ApiResponse(
 					responseCode = "409",
 					description = "닉네임 중복",
 					content = @Content
 			)
 	})
+	@MetricEndpoint("user.profile.create")
 	public ResponseEntity<ProfileResponse> createProfile(
 			Authentication authentication,
-			@RequestBody @Valid ProfileUpdateRequest request
+			@RequestPart
+			@Schema(example = "{\"nickname\": \"홍길동\"}")
+			@Valid ProfileUpdateRequest request,
+			@RequestPart(required = false)
+			@Schema(example = "image.jpg")
+			MultipartFile profileImage
 	) {
-		var principal = AuthenticationUtils.fromAuthentication(authentication)
-				.orElseThrow(() -> new IllegalStateException("Authentication required."));
 		var updatedUser = userWriteService.updateProfile(
-				principal.userId(),
+				AuthenticationUtils.requiredUserId(authentication),
 				request.nickname(),
-				request.profileImageUrl()
+				profileImage
 		);
 		return ResponseEntity.status(HttpStatus.CREATED).body(ProfileResponse.from(updatedUser));
 	}
@@ -106,9 +130,19 @@ public class UserController {
 	@PutMapping("/profile")
 	@Operation(
 			summary = "프로필 업데이트",
-			description = "로그인 후 사용자의 닉네임과 프로필 사진 URL을 업데이트합니다. " +
-					"닉네임은 필수 입력값이며, 프로필 사진 URL은 선택사항입니다. " +
-					"업데이트된 프로필 정보를 반환합니다."
+			description = "현재 로그인한 사용자의 닉네임과 프로필 이미지를 업데이트합니다. " +
+					"닉네임과 프로필 이미지 중 최소 하나는 필수입니다. " +
+					"multipart/form-data로 전송하며, S3에 저장됩니다. " +
+					"성공 시 응답 본문 없이 204(No Content)를 반환합니다.\n\n" +
+					"**Request Body 예시:**\n" +
+					"- request (JSON part): `{\"nickname\":\"새로운닉네임\"}`\n" +
+					"- profileImage (파일): image.jpg"
+	)
+	@RequestBody(
+			description = "multipart/form-data 형식. " +
+					"- request: ProfileUpdateRequest JSON (닉네임 선택사항) " +
+					"- profileImage: 이미지 파일 (선택사항)",
+			content = @Content(mediaType = "multipart/form-data", schema = @Schema(type = "object"))
 	)
 	@ApiResponses({
 			@io.swagger.v3.oas.annotations.responses.ApiResponse(
@@ -127,21 +161,30 @@ public class UserController {
 					content = @Content
 			),
 			@io.swagger.v3.oas.annotations.responses.ApiResponse(
+					responseCode = "404",
+					description = "사용자 정보를 찾을 수 없음",
+					content = @Content
+			),
+			@io.swagger.v3.oas.annotations.responses.ApiResponse(
 					responseCode = "409",
 					description = "닉네임 중복",
 					content = @Content
 			)
 	})
+	@MetricEndpoint("user.profile.update")
 	public ResponseEntity<Void> updateProfile(
 			Authentication authentication,
-			@RequestBody @Valid ProfileUpdateRequest request
+			@RequestPart
+			@Schema(example = "{\"nickname\": \"새로운닉네임\"}")
+			@Valid ProfileUpdateRequest request,
+			@RequestPart(required = false)
+			@Schema(example = "new-image.jpg")
+			MultipartFile profileImage
 	) {
-		var principal = AuthenticationUtils.fromAuthentication(authentication)
-				.orElseThrow(() -> new IllegalStateException("Authentication required."));
 		userWriteService.updateProfile(
-				principal.userId(),
+				AuthenticationUtils.requiredUserId(authentication),
 				request.nickname(),
-				request.profileImageUrl()
+				profileImage
 		);
 		return ResponseEntity.noContent().build();
 	}
@@ -168,10 +211,9 @@ public class UserController {
 					content = @Content
 			)
 	})
+	@MetricEndpoint("user.delete")
 	public ResponseEntity<Void> deleteUser(Authentication authentication) {
-		var principal = AuthenticationUtils.fromAuthentication(authentication)
-				.orElseThrow(() -> new IllegalStateException("Authentication required."));
-		userWriteService.deleteUser(principal.userId());
+		userWriteService.deleteUser(AuthenticationUtils.requiredUserId(authentication));
 		return ResponseEntity.noContent().build();
 	}
 }

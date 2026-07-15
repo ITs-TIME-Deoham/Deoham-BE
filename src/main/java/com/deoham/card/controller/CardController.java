@@ -9,8 +9,7 @@ import com.deoham.card.dto.response.MyActiveCardResponse;
 import com.deoham.card.dto.response.PaginatedCardListResponse;
 import com.deoham.card.service.CardReadService;
 import com.deoham.card.service.CardWriteService;
-import com.deoham.global.exception.BusinessException;
-import com.deoham.global.exception.ErrorCode;
+import com.deoham.global.metrics.MetricEndpoint;
 import com.deoham.global.response.ApiResponse;
 import com.deoham.global.security.AuthenticationUtils;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -42,6 +41,7 @@ public class CardController implements CardControllerDocs, CardApplyControllerDo
     private final CardWriteService cardWriteService;
 
     @Override
+    @MetricEndpoint("card.create")
     @PostMapping("/cards")
     public ResponseEntity<CardDetailResponse> createCard(
             @io.swagger.v3.oas.annotations.parameters.RequestBody(
@@ -49,13 +49,12 @@ public class CardController implements CardControllerDocs, CardApplyControllerDo
                     content = @Content(schema = @Schema(implementation = CreateCardRequest.class)))
             @Valid @RequestBody CreateCardRequest request
     ) {
-        UUID userId = AuthenticationUtils.currentPrincipal()
-                .orElseThrow(() -> new BusinessException(ErrorCode.UNAUTHORIZED, "인증 정보를 찾을 수 없습니다."))
-                .userId();
+        UUID userId = AuthenticationUtils.requiredUserId();
         return ResponseEntity.status(HttpStatus.CREATED).body(cardWriteService.createCard(request, userId));
     }
 
     @Override
+    @MetricEndpoint("card.search")
     @GetMapping("/cards/nearby")
     public ResponseEntity<PaginatedCardListResponse> getNearbyCards(
             @RequestParam @NotNull Double latitude,
@@ -63,87 +62,80 @@ public class CardController implements CardControllerDocs, CardApplyControllerDo
             @Parameter(description = "Optional pagination cursor 선택 항목", example = "NTAuNXxhMWIyYzNkNGU1ZjY=")
             @RequestParam(required = false) String cursor
     ) {
-        UUID userId = AuthenticationUtils.currentPrincipal()
-                .orElseThrow(() -> new BusinessException(ErrorCode.UNAUTHORIZED, "인증 정보를 찾을 수 없습니다."))
-                .userId();
+        UUID userId = AuthenticationUtils.requiredUserId();
         return ResponseEntity.ok(cardReadService.getNearbyCards(latitude, longitude, cursor, userId));
     }
 
     @Override
+    @MetricEndpoint("card.active")
     @GetMapping("/cards/my/active")
     public ResponseEntity<MyActiveCardResponse> getMyActiveCard() {
-        UUID userId = AuthenticationUtils.currentPrincipal()
-                .orElseThrow(() -> new BusinessException(ErrorCode.UNAUTHORIZED, "인증 정보를 찾을 수 없습니다."))
-                .userId();
+        UUID userId = AuthenticationUtils.requiredUserId();
         return ResponseEntity.ok(cardReadService.getMyActiveCard(userId));
     }
 
     @Override
+    @MetricEndpoint("card.detail")
     @GetMapping("/cards/{cardId}")
     public ResponseEntity<CardDetailResponse> getCard(@PathVariable UUID cardId) {
         return ResponseEntity.ok(cardReadService.getCard(cardId));
     }
 
     @Override
+    @MetricEndpoint("card.cancel")
     @PatchMapping("/cards/{cardId}/cancel")
     public ResponseEntity<Void> cancelCard(
             @Parameter(description = "Card ID", required = true)
             @PathVariable UUID cardId
     ) {
-        UUID userId = AuthenticationUtils.currentPrincipal()
-                .orElseThrow(() -> new BusinessException(ErrorCode.UNAUTHORIZED, "인증 정보를 찾을 수 없습니다."))
-                .userId();
+        UUID userId = AuthenticationUtils.requiredUserId();
         cardWriteService.cancelCard(cardId, userId);
         return ResponseEntity.noContent().build();
     }
 
     @Override
+    @MetricEndpoint("card.complete")
     @PatchMapping("/cards/{cardId}/complete")
     public ResponseEntity<Void> completeCard(
             @Parameter(description = "Card ID", required = true)
             @PathVariable UUID cardId
     ) {
-        UUID userId = AuthenticationUtils.currentPrincipal()
-                .orElseThrow(() -> new BusinessException(ErrorCode.UNAUTHORIZED, "인증 정보를 찾을 수 없습니다."))
-                .userId();
+        UUID userId = AuthenticationUtils.requiredUserId();
         cardWriteService.completeCard(cardId, userId);
         return ResponseEntity.noContent().build();
     }
 
     @Override
+    @MetricEndpoint("card.retry")
     @PatchMapping("/cards/{cardId}/retry")
     public ResponseEntity<Void> retryCard(
             @Parameter(description = "Card ID", required = true)
             @PathVariable UUID cardId
     ) {
-        UUID userId = AuthenticationUtils.currentPrincipal()
-                .orElseThrow(() -> new BusinessException(ErrorCode.UNAUTHORIZED, "인증 정보를 찾을 수 없습니다."))
-                .userId();
+        UUID userId = AuthenticationUtils.requiredUserId();
         cardWriteService.retryCard(cardId, userId);
         return ResponseEntity.noContent().build();
     }
 
     @Override
+    @MetricEndpoint("card.apply.submit")
     @PostMapping("/cards/{cardId}/applies")
     public ResponseEntity<CardApplySummaryResponse> submitApply(
             @Parameter(description = "Card ID", required = true)
             @PathVariable UUID cardId
     ) {
-        UUID userId = AuthenticationUtils.currentPrincipal()
-                .orElseThrow(() -> new BusinessException(ErrorCode.UNAUTHORIZED, "인증 정보를 찾을 수 없습니다."))
-                .userId();
+        UUID userId = AuthenticationUtils.requiredUserId();
         return ResponseEntity.status(HttpStatus.CREATED).body(cardWriteService.submitApply(cardId, userId));
     }
 
     @Override
+    @MetricEndpoint("card.apply.list")
     @GetMapping("/cards/{cardId}/applies")
     public ResponseEntity<List<CardApplySummaryResponse>> getApplies(
             @Parameter(description = "Card ID", required = true)
             @PathVariable UUID cardId
     ) {
-        UUID userId = AuthenticationUtils.currentPrincipal()
-                .orElseThrow(() -> new BusinessException(ErrorCode.UNAUTHORIZED, "인증 정보를 찾을 수 없습니다."))
-                .userId();
+        UUID userId = AuthenticationUtils.requiredUserId();
         return ResponseEntity.ok(cardReadService.getApplies(cardId, userId));
     }
 }

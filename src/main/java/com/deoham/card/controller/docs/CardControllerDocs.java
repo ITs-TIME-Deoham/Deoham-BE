@@ -19,7 +19,7 @@ import org.springframework.http.ResponseEntity;
 @Tag(name = "Card")
 public interface CardControllerDocs {
 
-    @Operation(summary = "Create card", description = "Creates a help request card.")
+    @Operation(summary = "Create card", description = "도움 요청 카드를 생성합니다. 만료 시각(expiresAt)은 서버가 생성 시점 기준으로 자동 설정하며, 상태는 OPEN으로 시작합니다.")
     @io.swagger.v3.oas.annotations.responses.ApiResponse(
             responseCode = "201", description = "Created",
             content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE,
@@ -91,7 +91,7 @@ public interface CardControllerDocs {
                     schema = @Schema(implementation = ApiResponse.class)))
     ResponseEntity<CardDetailResponse> getCard(@Parameter(description = "Card ID", required = true) UUID cardId);
 
-    @Operation(summary = "Cancel card", description = "Cancels an OPEN card.")
+    @Operation(summary = "Cancel card", description = "OPEN 상태의 카드를 취소(CANCELLED)합니다. 카드 작성자만 수행할 수 있으며(403), OPEN이 아닌 카드는 409를 반환합니다.")
     @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "204", description = "No Content")
     @io.swagger.v3.oas.annotations.responses.ApiResponse(
             responseCode = "401", description = "Unauthorized",
@@ -111,7 +111,7 @@ public interface CardControllerDocs {
                     schema = @Schema(implementation = ApiResponse.class)))
     ResponseEntity<Void> cancelCard(@Parameter(description = "Card ID", required = true) UUID cardId);
 
-    @Operation(summary = "Complete card", description = "Completes a MATCHED card.")
+    @Operation(summary = "Complete card", description = "MATCHED 상태의 카드를 완료(COMPLETED) 처리합니다. 카드 작성자만 수행할 수 있으며(403), 완료 시 요청자/지원자의 도움 횟수가 갱신됩니다. MATCHED가 아닌 카드는 409를 반환합니다.")
     @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "204", description = "No Content")
     @io.swagger.v3.oas.annotations.responses.ApiResponse(
             responseCode = "401", description = "Unauthorized",
@@ -131,7 +131,10 @@ public interface CardControllerDocs {
                     schema = @Schema(implementation = ApiResponse.class)))
     ResponseEntity<Void> completeCard(@Parameter(description = "Card ID", required = true) UUID cardId);
 
-    @Operation(summary = "Retry card", description = "Refreshes an OPEN card request.")
+    @Operation(summary = "Retry card", description = """
+            OPEN 상태 카드의 만료 시간을 지금 기준으로 연장(재요청)합니다.
+            재요청 횟수(retryCount)가 1 증가하며, 최대 횟수를 초과하면 409를 반환합니다.
+            """)
     @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "204", description = "No Content")
     @io.swagger.v3.oas.annotations.responses.ApiResponse(
             responseCode = "401", description = "Unauthorized",

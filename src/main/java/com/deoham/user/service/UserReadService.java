@@ -1,6 +1,6 @@
 package com.deoham.user.service;
 
-import com.deoham.auth.dto.ProfileResponse;
+import com.deoham.user.dto.ProfileResponse;
 import java.util.UUID;
 
 public interface UserReadService {

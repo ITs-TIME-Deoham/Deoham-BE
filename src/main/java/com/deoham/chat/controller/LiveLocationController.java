@@ -3,10 +3,7 @@ package com.deoham.chat.controller;
 import com.deoham.chat.controller.docs.LiveLocationControllerDocs;
 import com.deoham.chat.dto.LiveLocationEvent;
 import com.deoham.chat.service.LiveLocationService;
-import com.deoham.global.exception.BusinessException;
-import com.deoham.global.exception.ErrorCode;
 import com.deoham.global.response.ApiResponse;
-import com.deoham.global.security.AuthPrincipal;
 import com.deoham.global.security.AuthenticationUtils;
 import java.util.List;
 import java.util.UUID;
@@ -31,12 +28,6 @@ public class LiveLocationController implements LiveLocationControllerDocs {
     @Override
     @GetMapping("/live-location")
     public ApiResponse<List<LiveLocationEvent>> getSnapshot(@PathVariable UUID roomId) {
-        return ApiResponse.ok(liveLocationService.snapshot(roomId, currentUserId()));
-    }
-
-    private UUID currentUserId() {
-        AuthPrincipal principal = AuthenticationUtils.currentPrincipal()
-                .orElseThrow(() -> new BusinessException(ErrorCode.UNAUTHORIZED));
-        return principal.userId();
+        return ApiResponse.ok(liveLocationService.snapshot(roomId, AuthenticationUtils.requiredUserId()));
     }
 }
