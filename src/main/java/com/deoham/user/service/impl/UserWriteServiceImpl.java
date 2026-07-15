@@ -50,16 +50,31 @@ public class UserWriteServiceImpl implements UserWriteService {
 
         String profileImageUrl = null;
         if (profileImage != null && !profileImage.isEmpty()) {
+            validateProfileImage(profileImage);
             try {
                 profileImageUrl = uploadProfileImageToS3(userId, profileImage);
             } catch (Exception e) {
-                // S3 업로드 실패해도 계속 진행
-                // profileImageUrl은 null로 유지되어 기존 이미지 유지
+                throw new BusinessException(ErrorCode.INTERNAL_ERROR,
+                    "Failed to upload image to S3: " + e.getMessage());
             }
         }
 
         user.updateProfile(nickname, profileImageUrl);
         return userRepository.save(user);
+    }
+
+    private void validateProfileImage(MultipartFile file) {
+        if (file.getSize() > s3Properties.maxImageSizeBytes()) {
+            long maxSizeMB = s3Properties.maxImageSizeBytes() / (1024 * 1024);
+            throw new BusinessException(ErrorCode.INVALID_REQUEST,
+                "Image size exceeds maximum allowed size of " + maxSizeMB + "MB");
+        }
+
+        String contentType = file.getContentType();
+        if (contentType == null || !contentType.startsWith("image/")) {
+            throw new BusinessException(ErrorCode.INVALID_REQUEST,
+                "Invalid file type. Only image files are allowed");
+        }
     }
 
     private String uploadProfileImageToS3(UUID userId, MultipartFile file) throws Exception {
