@@ -1,5 +1,6 @@
 package com.deoham.user.service;
 
+import com.deoham.global.config.S3Properties;
 import com.deoham.global.exception.BusinessException;
 import com.deoham.global.exception.ErrorCode;
 import com.deoham.global.metrics.MetricsRegistry;
@@ -18,6 +19,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import software.amazon.awssdk.services.s3.S3Client;
 
 import java.util.Optional;
 import java.util.UUID;
@@ -39,6 +41,8 @@ class UserServiceMetricsTest {
   @Mock private UserSocialAccountRepository userSocialAccountRepository;
   @Mock private CardRepository cardRepository;
   @Mock private CardApplyRepository cardApplyRepository;
+  @Mock private S3Client s3Client;
+  @Mock private S3Properties s3Properties;
 
   @BeforeEach
   void setUp() {
@@ -51,7 +55,9 @@ class UserServiceMetricsTest {
             cardRepository,
             cardApplyRepository,
             userSocialAccountRepository,
-            metricsRegistry);
+            metricsRegistry,
+            s3Client,
+            s3Properties);
   }
 
   @Test
