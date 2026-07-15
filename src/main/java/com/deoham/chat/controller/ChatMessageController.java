@@ -5,11 +5,9 @@ import com.deoham.chat.dto.ChatMessagePageResponse;
 import com.deoham.chat.dto.ChatMessageResponse;
 import com.deoham.chat.dto.ChatMessageSendRequest;
 import com.deoham.chat.service.ChatMessageService;
-import com.deoham.global.exception.BusinessException;
-import com.deoham.global.exception.ErrorCode;
+import com.deoham.global.metrics.MetricEndpoint;
 import com.deoham.global.response.ApiResponse;
 import com.deoham.global.security.AuthenticationUtils;
-import com.deoham.global.security.AuthPrincipal;
 import jakarta.validation.Valid;
 import java.time.Instant;
 import java.util.UUID;
@@ -31,32 +29,29 @@ public class ChatMessageController implements ChatMessageControllerDocs {
     private final ChatMessageService chatMessageService;
 
     @Override
+    @MetricEndpoint("chat.message.send")
     @PostMapping("/messages")
     public ApiResponse<ChatMessageResponse> sendMessage(
             @PathVariable UUID roomId,
             @Valid @RequestBody ChatMessageSendRequest request) {
-        return ApiResponse.ok(chatMessageService.sendMessage(roomId, currentUserId(), request));
+        return ApiResponse.ok(chatMessageService.sendMessage(roomId, AuthenticationUtils.requiredUserId(), request));
     }
 
     @Override
+    @MetricEndpoint("chat.message.get")
     @GetMapping("/messages")
     public ApiResponse<ChatMessagePageResponse> getMessages(
             @PathVariable UUID roomId,
             @RequestParam(required = false) Instant before,
             @RequestParam(defaultValue = "30") int size) {
-        return ApiResponse.ok(chatMessageService.getMessages(roomId, currentUserId(), before, size));
+        return ApiResponse.ok(chatMessageService.getMessages(roomId, AuthenticationUtils.requiredUserId(), before, size));
     }
 
     @Override
+    @MetricEndpoint("chat.message.read")
     @PatchMapping("/read")
     public ApiResponse<Void> markMessagesAsRead(@PathVariable UUID roomId) {
-        chatMessageService.markMessagesAsRead(roomId, currentUserId());
+        chatMessageService.markMessagesAsRead(roomId, AuthenticationUtils.requiredUserId());
         return ApiResponse.ok();
-    }
-
-    private UUID currentUserId() {
-        AuthPrincipal principal = AuthenticationUtils.currentPrincipal()
-                .orElseThrow(() -> new BusinessException(ErrorCode.UNAUTHORIZED));
-        return principal.userId();
     }
 }

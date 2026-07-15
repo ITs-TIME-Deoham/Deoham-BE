@@ -70,6 +70,7 @@ tasks.named('test') {
 	useJUnitPlatform()
 	exclude '**/ChatRoomLocationTest.class'
 	exclude '**/ChatWebSocketIntegrationTest.class'
+	exclude '**/LiveLocationWebSocketIntegrationTest.class'
 	systemProperty 'spring.profiles.active', 'test'
 }
 

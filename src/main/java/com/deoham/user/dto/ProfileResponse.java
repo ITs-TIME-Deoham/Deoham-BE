@@ -1,4 +1,4 @@
-package com.deoham.auth.dto;
+package com.deoham.user.dto;
 
 import com.deoham.user.entity.User;
 import io.swagger.v3.oas.annotations.media.Schema;

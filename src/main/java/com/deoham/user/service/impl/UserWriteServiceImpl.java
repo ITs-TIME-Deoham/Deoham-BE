@@ -12,8 +12,6 @@ import com.deoham.user.entity.User;
 import com.deoham.user.repository.UserRepository;
 import com.deoham.user.repository.UserSocialAccountRepository;
 import com.deoham.user.service.UserWriteService;
-import io.micrometer.core.instrument.Timer;
-import java.io.IOException;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -99,17 +97,12 @@ public class UserWriteServiceImpl implements UserWriteService {
 
 	@Override
 	public void deleteUser(UUID userId) {
-		Timer.Sample sample = metricsRegistry.startUserDeleteTimer();
-		try {
+		metricsRegistry.recordTimedRun("user.delete", () -> {
 			User user = getUser(userId, "User not found.");
 			user.delete();
 			userRepository.save(user);
 			userSocialAccountRepository.deleteAllByUser_Id(userId);
-			metricsRegistry.recordUserDeleteSuccess(sample);
-		} catch (Exception exception) {
-			metricsRegistry.recordUserDeleteFailure(sample, exception);
-			throw exception;
-		}
+		});
 	}
 
 	private int safeCastToInt(long value) {

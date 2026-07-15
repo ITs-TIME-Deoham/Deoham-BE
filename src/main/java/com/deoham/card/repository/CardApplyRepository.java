@@ -43,4 +43,15 @@ public interface CardApplyRepository extends JpaRepository<CardApply, UUID> {
             """)
     List<CardApply> findByCardIdInAndStatus(
             @Param("cardIds") List<UUID> cardIds, @Param("status") CardApplyStatus status);
+
+    @Query("""
+            SELECT a FROM CardApply a
+            WHERE a.status = :status
+              AND ((a.card.requester.id = :userA AND a.applicant.id = :userB)
+                OR (a.card.requester.id = :userB AND a.applicant.id = :userA))
+            """)
+    List<CardApply> findByStatusAndUserPair(
+            @Param("status") CardApplyStatus status,
+            @Param("userA") UUID userA,
+            @Param("userB") UUID userB);
 }
