@@ -5,6 +5,7 @@ import com.deoham.chat.dto.ChatMessagePageResponse;
 import com.deoham.chat.dto.ChatMessageResponse;
 import com.deoham.chat.dto.ChatMessageSendRequest;
 import com.deoham.chat.service.ChatMessageService;
+import com.deoham.global.metrics.MetricEndpoint;
 import com.deoham.global.response.ApiResponse;
 import com.deoham.global.security.AuthenticationUtils;
 import jakarta.validation.Valid;
@@ -28,6 +29,7 @@ public class ChatMessageController implements ChatMessageControllerDocs {
     private final ChatMessageService chatMessageService;
 
     @Override
+    @MetricEndpoint("chat.message.send")
     @PostMapping("/messages")
     public ApiResponse<ChatMessageResponse> sendMessage(
             @PathVariable UUID roomId,
@@ -36,6 +38,7 @@ public class ChatMessageController implements ChatMessageControllerDocs {
     }
 
     @Override
+    @MetricEndpoint("chat.message.get")
     @GetMapping("/messages")
     public ApiResponse<ChatMessagePageResponse> getMessages(
             @PathVariable UUID roomId,
@@ -45,6 +48,7 @@ public class ChatMessageController implements ChatMessageControllerDocs {
     }
 
     @Override
+    @MetricEndpoint("chat.message.read")
     @PatchMapping("/read")
     public ApiResponse<Void> markMessagesAsRead(@PathVariable UUID roomId) {
         chatMessageService.markMessagesAsRead(roomId, AuthenticationUtils.requiredUserId());

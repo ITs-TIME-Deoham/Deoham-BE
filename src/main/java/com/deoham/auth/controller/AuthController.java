@@ -5,6 +5,7 @@ import com.deoham.auth.dto.KakaoCallbackResponse;
 import com.deoham.auth.dto.RefreshTokenRequest;
 import com.deoham.auth.dto.TokenResponse;
 import com.deoham.auth.service.AuthService;
+import com.deoham.global.metrics.MetricEndpoint;
 import com.deoham.global.response.ApiResponse;
 import com.deoham.global.security.AuthenticationUtils;
 import io.swagger.v3.oas.annotations.Operation;
@@ -50,6 +51,7 @@ public class AuthController {
 					)
 			)
 	})
+	@MetricEndpoint("auth.kakao.redirect")
 	public ResponseEntity<Void> kakaoAuthRedirect() {
 		return ResponseEntity.status(HttpStatus.FOUND)
 				.location(authService.kakaoAuthorizationUri())
@@ -81,6 +83,7 @@ public class AuthController {
 					content = @Content
 			)
 	})
+	@MetricEndpoint("auth.kakao.callback")
 	public ResponseEntity<KakaoCallbackResponse> kakaoCallback(
 			@RequestBody @Valid KakaoCallbackRequest request
 	) {
@@ -106,6 +109,7 @@ public class AuthController {
 					content = @Content
 			)
 	})
+	@MetricEndpoint("auth.refresh")
 	public ResponseEntity<ApiResponse<TokenResponse>> refresh(
 			@RequestBody @Valid RefreshTokenRequest request
 	) {
@@ -126,6 +130,7 @@ public class AuthController {
 					content = @Content
 			)
 	})
+	@MetricEndpoint("auth.logout")
 	public ResponseEntity<ApiResponse<Void>> logout(Authentication authentication) {
 		authService.logout(authentication);
 		return ResponseEntity.ok(ApiResponse.ok(null));

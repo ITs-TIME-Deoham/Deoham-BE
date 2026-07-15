@@ -1,5 +1,6 @@
 package com.deoham.notification.controller;
 
+import com.deoham.global.metrics.MetricEndpoint;
 import com.deoham.global.response.ApiResponse;
 import com.deoham.global.security.AuthenticationUtils;
 import com.deoham.notification.controller.docs.NotificationControllerDocs;
@@ -23,12 +24,14 @@ public class NotificationController implements NotificationControllerDocs {
     private final NotificationReadService notificationReadService;
 
     @Override
+    @MetricEndpoint("notification.list")
     @GetMapping
     public ApiResponse<Page<NotificationResponse>> getNotifications(Pageable pageable) {
         return ApiResponse.ok(notificationReadService.getNotifications(AuthenticationUtils.requiredUserId(), pageable));
     }
 
     @Override
+    @MetricEndpoint("notification.read")
     @PatchMapping("/{notificationId}/read")
     public ApiResponse<Void> markAsRead(@PathVariable UUID notificationId) {
         notificationReadService.markAsRead(AuthenticationUtils.requiredUserId(), notificationId);
@@ -36,6 +39,7 @@ public class NotificationController implements NotificationControllerDocs {
     }
 
     @Override
+    @MetricEndpoint("notification.read_all")
     @PatchMapping("/read-all")
     public ApiResponse<Void> markAllAsRead() {
         notificationReadService.markAllAsRead(AuthenticationUtils.requiredUserId());

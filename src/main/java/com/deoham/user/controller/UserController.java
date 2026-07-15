@@ -2,6 +2,7 @@ package com.deoham.user.controller;
 
 import com.deoham.user.dto.ProfileResponse;
 import com.deoham.user.dto.ProfileUpdateRequest;
+import com.deoham.global.metrics.MetricEndpoint;
 import com.deoham.global.security.AuthenticationUtils;
 import com.deoham.user.service.UserReadService;
 import com.deoham.user.service.UserWriteService;
@@ -55,6 +56,7 @@ public class UserController {
 					content = @Content
 			)
 	})
+	@MetricEndpoint("user.profile.get")
 	public ResponseEntity<ProfileResponse> getProfile(Authentication authentication) {
 		var profile = userReadService.getProfile(AuthenticationUtils.requiredUserId(authentication));
 		return ResponseEntity.ok(profile);
@@ -94,6 +96,7 @@ public class UserController {
 					content = @Content
 			)
 	})
+	@MetricEndpoint("user.profile.create")
 	public ResponseEntity<ProfileResponse> createProfile(
 			Authentication authentication,
 			@RequestBody @Valid ProfileUpdateRequest request
@@ -140,6 +143,7 @@ public class UserController {
 					content = @Content
 			)
 	})
+	@MetricEndpoint("user.profile.update")
 	public ResponseEntity<Void> updateProfile(
 			Authentication authentication,
 			@RequestBody @Valid ProfileUpdateRequest request
@@ -174,6 +178,7 @@ public class UserController {
 					content = @Content
 			)
 	})
+	@MetricEndpoint("user.delete")
 	public ResponseEntity<Void> deleteUser(Authentication authentication) {
 		userWriteService.deleteUser(AuthenticationUtils.requiredUserId(authentication));
 		return ResponseEntity.noContent().build();

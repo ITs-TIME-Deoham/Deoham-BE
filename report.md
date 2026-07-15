@@ -59,10 +59,10 @@
   - **ReportService.closeChatRoomBetweenUsers가 `cardApplyRepository.findAll()`로 전체 테이블을 메모리에 올려 필터링** — 데이터가 쌓이면 신고 API가 급격히 느려지는 구조. 동일 조건의 JPQL(`findByStatusAndUserPair`)로 대체 (기존 필터 조건과 논리적으로 동일).
   - `MetricsRegistry`(626줄)가 도메인별 복붙 메서드 덩어리로 SRP/DRY 위반 — 공통 헬퍼로 통합해 약 230줄 축소, 공개 API·메트릭 이름은 그대로 유지.
   - ISP 관점에서 빈 인터페이스 `NotificationWriteService` 제거(2번 항목과 중복).
+  - **MetricsAspect.extractEndpointName**의 클래스명/메서드명 문자열 매칭 if-체인 — OCP 위반(새 컨트롤러마다 이 메서드 자체를 수정해야 함)이라 신규 `@MetricEndpoint("card.detail")` 어노테이션 방식으로 교체. 각 컨트롤러 메서드에 명시적으로 라벨을 붙이고, 애노테이션이 없으면 기존과 동일하게 메서드명 소문자로 폴백. 부수 효과로 기존 if-체인의 숨은 버그도 같이 드러나 고침: 예를 들어 `CardController`는 `createCard`를 제외한 나머지 8개 메서드(`getNearbyCards`, `getCard`, `cancelCard` 등)가 메서드명에 "search"/"detail"/"create"/"update"가 안 들어 있어 전부 `card.other`로 뭉쳐 기록되고 있었고, `ChatRoomController`는 `getMyRooms`/`getRoom`/`getCardLocation` 세 엔드포인트가 전부 `chat.room.get`으로, `NotificationController`는 3개 엔드포인트가 전부 `notification`으로 뭉뚱그려 기록되고 있었음. 지금은 컨트롤러당 엔드포인트별로 고유 라벨이 붙음(`card.search`/`card.detail`/`card.cancel`/`card.complete`/`card.retry`/`card.active`/`card.apply.submit`/`card.apply.list`, `chat.room.list`/`chat.room.get`/`chat.room.location`, `notification.list`/`notification.read`/`notification.read_all` 등). 이 메트릭에 의존하는 대시보드/알람이 있다면 라벨이 세분화된 것을 반영해 쿼리를 갱신해야 함(기존에 `card.other`나 `chat.room.get`, `notification`으로 집계하던 쿼리는 더는 그 이름으로 데이터가 안 들어옴). 40건의 메트릭 단위테스트 + 컨트롤러 웹계층 테스트 포함 56건 전부 통과 확인.
+  - **ChatMessageService가 8개 의존성**을 가짐(메시지 저장 + 알림 + 브로드캐스트 + 메트릭) — 알림/브로드캐스트를 도메인 이벤트(ApplicationEventPublisher)로 분리하면 SRP가 개선되나 트랜잭션 경계가 바뀌는 큰 수술이라 미적용.
 - 적용하지 않고 제안만 (근거 포함):
   - **DefaultCardWriteService.createCard의 하드코딩** `radiusM(11100000)`, `city("korea")` — 명백한 임시값으로 보이나 의미를 알 수 없어 동작 변경 위험이 있어 그대로 둠. 상수화 또는 요청 파라미터화 필요.
-  - **MetricsAspect.extractEndpointName**의 클래스명 문자열 매칭 if-체인 — OCP 위반(새 컨트롤러마다 수정 필요)이지만 메트릭 라벨이 대시보드와 결합되어 있을 수 있어 미변경. `@Timed` 표준 어노테이션 기반으로 대체 검토 권장.
-  - **ChatMessageService가 8개 의존성**을 가짐(메시지 저장 + 알림 + 브로드캐스트 + 메트릭) — 알림/브로드캐스트를 도메인 이벤트(ApplicationEventPublisher)로 분리하면 SRP가 개선되나 트랜잭션 경계가 바뀌는 큰 수술이라 미적용.
   - **AuthService.generateDefaultNickname의 최대 1000회 existsByNickname 루프** — 실제로는 kakaoId가 유니크해서 첫 시도에 끝나지만, UUID suffix 방식으로 바꾸면 루프 자체가 불필요.
 
 ### 5. 디자인 패턴 적용 검토
@@ -78,17 +78,18 @@
 ## 변경된 파일 목록
 총 31개 파일, +285 / -563 (순감소 278줄)
 
-**신규**: `global/exception/StompExceptionHandler.java`
+**신규**: `global/exception/StompExceptionHandler.java`, `global/metrics/MetricEndpoint.java`
 **삭제**: `auth/dto/ProfileUpdateResponse.java`, `notification/service/NotificationWriteService.java`
 **이동**: `auth/dto/ProfileResponse.java` → `user/dto/`, `auth/dto/ProfileUpdateRequest.java` → `user/dto/`
-**수정(주요)**: `MetricsRegistry`(-397줄 규모 정리), `AuthenticationUtils`(+공통 메서드), 컨트롤러 10개(중복 제거·Swagger), `ReportService`+`CardApplyRepository`(전체 스캔 제거), `DefaultCardRead/WriteService`·`UserRead/WriteServiceImpl`(메트릭 템플릿), `OpenApiConfig`, docs 인터페이스 2개
+**수정(주요)**: `MetricsRegistry`(-397줄 규모 정리), `AuthenticationUtils`(+공통 메서드), 컨트롤러 10개(중복 제거·Swagger), `ReportService`+`CardApplyRepository`(전체 스캔 제거), `DefaultCardRead/WriteService`·`UserRead/WriteServiceImpl`(메트릭 템플릿), `OpenApiConfig`, docs 인터페이스 2개, `MetricsAspect`+`CardController`/`UserController`/`AuthController`/`ChatMessageController`/`ChatRoomController`/`NotificationController`(`@MetricEndpoint` 도입)
 
-커밋 (5개, 의미 단위):
+커밋 (6개, 의미 단위):
 1. `FIX: Swagger 문서 실제 동작 불일치 및 누락 설명 보완`
 2. `REF: 프로필 DTO를 user 도메인으로 이동 및 미사용 클래스 제거`
 3. `REF: 인증 주체 조회/예외 처리를 공통 유틸로 통합`
 4. `REF: MetricsRegistry 중복 제거 및 신고 처리 전체 테이블 스캔 개선`
 5. `REF: 메트릭 계측 보일러플레이트를 Template Method로 추출`
+6. `REF: MetricsAspect 엔드포인트 라벨링을 애노테이션 기반으로 전환`
 
 ## 빌드/테스트 상태
 - `compileJava` / `compileTestJava`: ✅ 매 커밋마다 성공 확인
@@ -108,3 +109,4 @@
    - createCard의 `radiusM(11100000)` / `city("korea")` 하드코딩
    - `has_seen_card_view_onboarding` snake_case 네이밍
    - 서비스 인터페이스 스타일(3가지 혼재) 통일 방향
+4. **MetricsAspect 메트릭 라벨 세분화 반영** — `card.other`/`chat.room.get`/`notification` 하나로 뭉쳐 있던 라벨이 엔드포인트별로 나뉨(위 4번 항목 참고). 이 라벨을 참조하는 대시보드/알람 쿼리가 있으면 새 라벨명으로 갱신 필요.

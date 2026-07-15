@@ -5,6 +5,7 @@ import com.deoham.chat.dto.ChatRoomCreateRequest;
 import com.deoham.chat.dto.ChatRoomLocationResponse;
 import com.deoham.chat.dto.ChatRoomResponse;
 import com.deoham.chat.service.ChatRoomService;
+import com.deoham.global.metrics.MetricEndpoint;
 import com.deoham.global.response.ApiResponse;
 import com.deoham.global.security.AuthenticationUtils;
 import jakarta.validation.Valid;
@@ -27,30 +28,35 @@ public class ChatRoomController implements ChatRoomControllerDocs {
     private final ChatRoomService chatRoomService;
 
     @Override
+    @MetricEndpoint("chat.room.create")
     @PostMapping
     public ApiResponse<ChatRoomResponse> getOrCreateRoom(@Valid @RequestBody ChatRoomCreateRequest request) {
         return ApiResponse.ok(chatRoomService.getOrCreateRoom(request.cardId(), AuthenticationUtils.requiredUserId()));
     }
 
     @Override
+    @MetricEndpoint("chat.room.list")
     @GetMapping
     public ApiResponse<Page<ChatRoomResponse>> getMyRooms(Pageable pageable) {
         return ApiResponse.ok(chatRoomService.getMyRooms(AuthenticationUtils.requiredUserId(), pageable));
     }
 
     @Override
+    @MetricEndpoint("chat.room.get")
     @GetMapping("/{roomId}")
     public ApiResponse<ChatRoomResponse> getRoom(@PathVariable UUID roomId) {
         return ApiResponse.ok(chatRoomService.getRoom(roomId, AuthenticationUtils.requiredUserId()));
     }
 
     @Override
+    @MetricEndpoint("chat.room.location")
     @GetMapping("/{roomId}/location")
     public ApiResponse<ChatRoomLocationResponse> getCardLocation(@PathVariable UUID roomId) {
         return ApiResponse.ok(chatRoomService.getCardLocation(roomId, AuthenticationUtils.requiredUserId()));
     }
 
     @Override
+    @MetricEndpoint("chat.room.close")
     @PostMapping("/{roomId}/close")
     public ApiResponse<Void> closeRoom(@PathVariable UUID roomId) {
         chatRoomService.closeRoom(roomId, AuthenticationUtils.requiredUserId());

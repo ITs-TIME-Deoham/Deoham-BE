@@ -9,6 +9,7 @@ import com.deoham.card.dto.response.MyActiveCardResponse;
 import com.deoham.card.dto.response.PaginatedCardListResponse;
 import com.deoham.card.service.CardReadService;
 import com.deoham.card.service.CardWriteService;
+import com.deoham.global.metrics.MetricEndpoint;
 import com.deoham.global.response.ApiResponse;
 import com.deoham.global.security.AuthenticationUtils;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -40,6 +41,7 @@ public class CardController implements CardControllerDocs, CardApplyControllerDo
     private final CardWriteService cardWriteService;
 
     @Override
+    @MetricEndpoint("card.create")
     @PostMapping("/cards")
     public ResponseEntity<CardDetailResponse> createCard(
             @io.swagger.v3.oas.annotations.parameters.RequestBody(
@@ -52,6 +54,7 @@ public class CardController implements CardControllerDocs, CardApplyControllerDo
     }
 
     @Override
+    @MetricEndpoint("card.search")
     @GetMapping("/cards/nearby")
     public ResponseEntity<PaginatedCardListResponse> getNearbyCards(
             @RequestParam @NotNull Double latitude,
@@ -64,6 +67,7 @@ public class CardController implements CardControllerDocs, CardApplyControllerDo
     }
 
     @Override
+    @MetricEndpoint("card.active")
     @GetMapping("/cards/my/active")
     public ResponseEntity<MyActiveCardResponse> getMyActiveCard() {
         UUID userId = AuthenticationUtils.requiredUserId();
@@ -71,12 +75,14 @@ public class CardController implements CardControllerDocs, CardApplyControllerDo
     }
 
     @Override
+    @MetricEndpoint("card.detail")
     @GetMapping("/cards/{cardId}")
     public ResponseEntity<CardDetailResponse> getCard(@PathVariable UUID cardId) {
         return ResponseEntity.ok(cardReadService.getCard(cardId));
     }
 
     @Override
+    @MetricEndpoint("card.cancel")
     @PatchMapping("/cards/{cardId}/cancel")
     public ResponseEntity<Void> cancelCard(
             @Parameter(description = "Card ID", required = true)
@@ -88,6 +94,7 @@ public class CardController implements CardControllerDocs, CardApplyControllerDo
     }
 
     @Override
+    @MetricEndpoint("card.complete")
     @PatchMapping("/cards/{cardId}/complete")
     public ResponseEntity<Void> completeCard(
             @Parameter(description = "Card ID", required = true)
@@ -99,6 +106,7 @@ public class CardController implements CardControllerDocs, CardApplyControllerDo
     }
 
     @Override
+    @MetricEndpoint("card.retry")
     @PatchMapping("/cards/{cardId}/retry")
     public ResponseEntity<Void> retryCard(
             @Parameter(description = "Card ID", required = true)
@@ -110,6 +118,7 @@ public class CardController implements CardControllerDocs, CardApplyControllerDo
     }
 
     @Override
+    @MetricEndpoint("card.apply.submit")
     @PostMapping("/cards/{cardId}/applies")
     public ResponseEntity<CardApplySummaryResponse> submitApply(
             @Parameter(description = "Card ID", required = true)
@@ -120,6 +129,7 @@ public class CardController implements CardControllerDocs, CardApplyControllerDo
     }
 
     @Override
+    @MetricEndpoint("card.apply.list")
     @GetMapping("/cards/{cardId}/applies")
     public ResponseEntity<List<CardApplySummaryResponse>> getApplies(
             @Parameter(description = "Card ID", required = true)
