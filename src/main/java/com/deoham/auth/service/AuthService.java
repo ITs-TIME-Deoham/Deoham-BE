@@ -97,8 +97,10 @@ public class AuthService {
 					.build());
 		} else {
 			user = socialAccount.getUser();
+			if (user.getDeletedAt() != null) {
+				user.reactivate();
+			}
 			user.updateAge(calculateAge(userInfo.birthyear()));
-			socialAccount.updateTokens(null, null, null);
 		}
 
 		String accessToken = jwtTokenProvider.generateAccessToken(
