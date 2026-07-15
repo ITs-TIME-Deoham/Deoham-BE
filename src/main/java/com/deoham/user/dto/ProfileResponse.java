@@ -10,7 +10,7 @@ public record ProfileResponse(
 		@Schema(description = "사용자 닉네임", example = "홍길동")
 		String nickname,
 
-		@Schema(description = "프로필 이미지 URL", example = "https://example.com/image.jpg")
+		@Schema(description = "프로필 이미지 URL", example = "https://bucket.s3.region.amazonaws.com/profiles/...")
 		String profileImageUrl,
 
 		@Schema(description = "도움을 받은 횟수", example = "5")
