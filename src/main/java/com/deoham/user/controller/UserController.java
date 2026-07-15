@@ -126,9 +126,17 @@ public class UserController {
 	@MetricEndpoint("user.profile.create")
 	public ResponseEntity<ProfileResponse> createProfile(
 			Authentication authentication,
+<<<<<<< Updated upstream
 			@RequestPart(name = "request", required = false)
 			@Valid ProfileUpdateRequest request,
 			@RequestPart(name = "profileImage", required = false)
+=======
+			@RequestPart("request")
+			@Schema(example = "{\"nickname\": \"홍길동\"}")
+			@Valid ProfileUpdateRequest request,
+			@RequestPart(name = "profileImage", required = false)
+			@Schema(example = "image.jpg")
+>>>>>>> Stashed changes
 			MultipartFile profileImage
 	) {
 		String nickname = request != null ? request.nickname() : null;
@@ -199,9 +207,17 @@ public class UserController {
 	@MetricEndpoint("user.profile.update")
 	public ResponseEntity<Void> updateProfile(
 			Authentication authentication,
+<<<<<<< Updated upstream
 			@RequestPart(name = "request", required = false)
 			@Valid ProfileUpdateRequest request,
 			@RequestPart(name = "profileImage", required = false)
+=======
+			@RequestPart("request")
+			@Schema(example = "{\"nickname\": \"새로운닉네임\"}")
+			@Valid ProfileUpdateRequest request,
+			@RequestPart(name = "profileImage", required = false)
+			@Schema(example = "new-image.jpg")
+>>>>>>> Stashed changes
 			MultipartFile profileImage
 	) {
 		String nickname = request != null ? request.nickname() : null;
