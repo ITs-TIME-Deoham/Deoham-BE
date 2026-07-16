@@ -2,8 +2,10 @@ package com.deoham.chat.service;
 
 import com.deoham.chat.dto.LiveLocationEvent;
 import com.deoham.chat.dto.LiveLocationRequest;
+import com.deoham.chat.service.ChatRoomAccessService.CardTargetLocation;
 import com.deoham.global.exception.BusinessException;
 import com.deoham.global.exception.ErrorCode;
+import com.deoham.global.util.GeoUtils;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import java.time.Duration;
@@ -53,12 +55,16 @@ class LiveLocationServiceTest {
     private UUID roomId;
     private UUID userId;
 
+    /** 카드 목표 지점(강남역). update() 시 남은 거리 계산에 사용된다. */
+    private static final CardTargetLocation TARGET = new CardTargetLocation(37.4979, 127.0276);
+
     @BeforeEach
     void setUp() {
         lenient().when(redisTemplate.opsForValue()).thenReturn(valueOperations);
         liveLocationService = new LiveLocationService(messagingTemplate, redisTemplate, chatRoomAccessService, objectMapper);
         roomId = UUID.randomUUID();
         userId = UUID.randomUUID();
+        lenient().when(chatRoomAccessService.cardTargetLocation(roomId)).thenReturn(TARGET);
     }
 
     private String cacheKey(UUID roomId, UUID userId) {
@@ -90,6 +96,33 @@ class LiveLocationServiceTest {
         assertThat(event.latitude()).isEqualTo(37.5665);
         assertThat(event.longitude()).isEqualTo(126.9780);
         assertThat(event.accuracy()).isEqualTo(5.0);
+        assertThat(event.distanceToTargetMeters())
+                .isEqualTo(GeoUtils.haversineMeters(37.5665, 126.9780, TARGET.latitude(), TARGET.longitude()));
+    }
+
+    @Test
+    @DisplayName("카드 목표 좌표는 방 단위로 캐시되어 같은 방의 후속 갱신에서 재조회하지 않는다")
+    void update_cachesCardTargetLocation_perRoom() {
+        UUID otherUserId = UUID.randomUUID();
+        LiveLocationRequest request = new LiveLocationRequest(37.0, 127.0, null);
+
+        // 서로 다른 사용자라 throttle에 걸리지 않고 둘 다 브로드캐스트된다
+        liveLocationService.update(roomId, userId, request);
+        liveLocationService.update(roomId, otherUserId, request);
+
+        verify(chatRoomAccessService, times(1)).cardTargetLocation(roomId);
+    }
+
+    @Test
+    @DisplayName("공유 종료 시 목표 좌표 캐시를 비우고 다음 갱신에서 재조회한다")
+    void stop_evictsTargetLocationCache() {
+        LiveLocationRequest request = new LiveLocationRequest(37.0, 127.0, null);
+
+        liveLocationService.update(roomId, userId, request);
+        liveLocationService.stop(roomId, userId);
+        liveLocationService.update(roomId, userId, request);
+
+        verify(chatRoomAccessService, times(2)).cardTargetLocation(roomId);
     }
 
     @Test
@@ -154,6 +187,7 @@ class LiveLocationServiceTest {
         assertThat(event.latitude()).isNull();
         assertThat(event.longitude()).isNull();
         assertThat(event.accuracy()).isNull();
+        assertThat(event.distanceToTargetMeters()).isNull();
     }
 
     @Test
@@ -186,7 +220,7 @@ class LiveLocationServiceTest {
                 .thenReturn(List.of(withLocation, withoutLocation));
 
         LiveLocationEvent cachedEvent = LiveLocationEvent.update(
-                withLocation, new LiveLocationRequest(37.1, 127.1, null), Instant.now());
+                withLocation, new LiveLocationRequest(37.1, 127.1, null), 100.0, Instant.now());
 
         when(valueOperations.get(cacheKey(roomId, withLocation))).thenReturn(cachedEvent);
         when(valueOperations.get(cacheKey(roomId, withoutLocation))).thenReturn(null);

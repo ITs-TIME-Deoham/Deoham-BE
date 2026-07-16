@@ -53,6 +53,21 @@ public class ChatRoomAccessService {
         requireParticipant(room.getCard(), userId);
     }
 
+    /** 카드에 저장된 목표 지점 좌표. 실시간 위치의 남은 거리 계산에 사용한다. */
+    public record CardTargetLocation(double latitude, double longitude) {
+    }
+
+    /**
+     * 채팅방 카드의 목표 지점 좌표를 반환한다.
+     * LiveLocationService는 비트랜잭션(+open-in-view=false)이므로 lazy 엔티티 탐색을
+     * 이 트랜잭션 경계 안에서 끝내고 순수 좌표만 넘긴다. JTS Point는 X=경도, Y=위도.
+     */
+    @Transactional(readOnly = true)
+    public CardTargetLocation cardTargetLocation(UUID roomId) {
+        var point = findRoomOrThrow(roomId).getCard().getLocation();
+        return new CardTargetLocation(point.getY(), point.getX());
+    }
+
     /**
      * 채팅방 참여자 userId 목록(카드 요청자 + ACCEPTED 지원자).
      * 실시간 위치 스냅샷에서 각 참여자의 마지막 위치 키를 조회하는 데 사용한다.
