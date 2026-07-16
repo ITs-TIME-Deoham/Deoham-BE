@@ -195,9 +195,9 @@ jobs:
         run: |
           ssh -i private_key.pem -o StrictHostKeyChecking=no \
             ${{ secrets.EC2_USERNAME }}@${{ secrets.EC2_HOST }} \
-            "mkdir -p ~/deoham/monitoring"
+            "mkdir -p ~/deoham/monitoring ~/deoham/nginx"
           scp -i private_key.pem -o StrictHostKeyChecking=no \
-            -r compose.yaml monitoring .env \
+            -r compose.yaml monitoring nginx .env \
             ${{ secrets.EC2_USERNAME }}@${{ secrets.EC2_HOST }}:~/deoham/
 
       # B. EC2 는 빌드 없이 GHCR 에서 pull 만 한다

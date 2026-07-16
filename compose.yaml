@@ -9,8 +9,7 @@ services:
     # volumes:
     #   - app_logs:/app/logs
     #   - ./secrets/fcm-service-account.json:/app/secrets/fcm-service-account.json:ro
-    ports:
-      - "80:8080"
+    # 외부 노출 금지 — nginx가 리버스 프록시로 80/443만 공개
     depends_on:
       postgres:
         condition: service_healthy
@@ -22,6 +21,24 @@ services:
       timeout: 5s
       retries: 5
       start_period: 50s
+    restart: unless-stopped
+
+  nginx:
+    image: nginx:1.27-alpine
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx/conf.d:/etc/nginx/conf.d:ro
+    depends_on:
+      app:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost/actuator/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
     restart: unless-stopped
 
   postgres:
