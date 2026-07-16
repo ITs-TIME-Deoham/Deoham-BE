@@ -216,6 +216,7 @@ jobs:
           echo "$GHCR_TOKEN" | docker login ghcr.io -u "$GHCR_USER" --password-stdin
 
           echo "=== Pull & start ==="
+          docker compose down
           docker compose pull
           docker compose up -d
 

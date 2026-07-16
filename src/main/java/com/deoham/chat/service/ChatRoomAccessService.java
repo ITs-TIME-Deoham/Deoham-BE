@@ -7,6 +7,8 @@ import com.deoham.chat.entity.ChatRoom;
 import com.deoham.chat.repository.ChatRoomRepository;
 import com.deoham.global.exception.BusinessException;
 import com.deoham.global.exception.ErrorCode;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -49,5 +51,21 @@ public class ChatRoomAccessService {
     public void verifySubscribeAccess(UUID roomId, UUID userId) {
         ChatRoom room = findRoomOrThrow(roomId);
         requireParticipant(room.getCard(), userId);
+    }
+
+    /**
+     * 채팅방 참여자 userId 목록(카드 요청자 + ACCEPTED 지원자).
+     * 실시간 위치 스냅샷에서 각 참여자의 마지막 위치 키를 조회하는 데 사용한다.
+     */
+    @Transactional(readOnly = true)
+    public List<UUID> participantIds(UUID roomId) {
+        Card card = findRoomOrThrow(roomId).getCard();
+        List<UUID> ids = new ArrayList<>();
+        ids.add(card.getRequester().getId());
+        cardApplyRepository.findByCard(card).stream()
+                .filter(a -> a.getStatus() == CardApplyStatus.ACCEPTED)
+                .map(a -> a.getApplicant().getId())
+                .forEach(ids::add);
+        return ids;
     }
 }

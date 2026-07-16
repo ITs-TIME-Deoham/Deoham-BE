@@ -4,6 +4,7 @@ import com.deoham.card.entity.CardApplyStatus;
 import com.deoham.card.entity.CardStatus;
 import com.deoham.card.repository.CardApplyRepository;
 import com.deoham.card.repository.CardRepository;
+import com.deoham.global.config.S3Properties;
 import com.deoham.global.exception.BusinessException;
 import com.deoham.global.exception.ErrorCode;
 import com.deoham.global.metrics.MetricsRegistry;
@@ -11,11 +12,14 @@ import com.deoham.user.entity.User;
 import com.deoham.user.repository.UserRepository;
 import com.deoham.user.repository.UserSocialAccountRepository;
 import com.deoham.user.service.UserWriteService;
-import io.micrometer.core.instrument.Timer;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
+import software.amazon.awssdk.core.sync.RequestBody;
+import software.amazon.awssdk.services.s3.S3Client;
+import software.amazon.awssdk.services.s3.model.PutObjectRequest;
 
 @Service
 @RequiredArgsConstructor
@@ -27,10 +31,16 @@ public class UserWriteServiceImpl implements UserWriteService {
 	private final CardApplyRepository cardApplyRepository;
 	private final UserSocialAccountRepository userSocialAccountRepository;
 	private final MetricsRegistry metricsRegistry;
+	private final S3Client s3Client;
+	private final S3Properties s3Properties;
 
     @Override
-    public User updateProfile(UUID userId, String nickname, String profileImageUrl) {
+    public User updateProfile(UUID userId, String nickname, MultipartFile profileImage) {
         User user = getUser(userId, "User not found.");
+
+        if (nickname == null && (profileImage == null || profileImage.isEmpty())) {
+            throw new BusinessException(ErrorCode.INVALID_REQUEST, "Nickname or profile image must be provided.");
+        }
 
         if (nickname != null && !nickname.equals(user.getNickname())) {
             if (userRepository.existsByNickname(nickname)) {
@@ -38,8 +48,49 @@ public class UserWriteServiceImpl implements UserWriteService {
             }
         }
 
+        String profileImageUrl = null;
+        if (profileImage != null && !profileImage.isEmpty()) {
+            validateProfileImage(profileImage);
+            try {
+                profileImageUrl = uploadProfileImageToS3(userId, profileImage);
+            } catch (Exception e) {
+                throw new BusinessException(ErrorCode.INTERNAL_ERROR,
+                    "Failed to upload image to S3: " + e.getMessage());
+            }
+        }
+
         user.updateProfile(nickname, profileImageUrl);
         return userRepository.save(user);
+    }
+
+    private void validateProfileImage(MultipartFile file) {
+        if (file.getSize() > s3Properties.maxImageSizeBytes()) {
+            long maxSizeMB = s3Properties.maxImageSizeBytes() / (1024 * 1024);
+            throw new BusinessException(ErrorCode.INVALID_REQUEST,
+                "Image size exceeds maximum allowed size of " + maxSizeMB + "MB");
+        }
+
+        String contentType = file.getContentType();
+        if (contentType == null || !contentType.startsWith("image/")) {
+            throw new BusinessException(ErrorCode.INVALID_REQUEST,
+                "Invalid file type. Only image files are allowed");
+        }
+    }
+
+    private String uploadProfileImageToS3(UUID userId, MultipartFile file) throws Exception {
+        String key = "profiles/" + userId + "/" + UUID.randomUUID() + "-" + file.getOriginalFilename();
+        byte[] bytes = file.getBytes();
+
+        PutObjectRequest putObjectRequest = PutObjectRequest.builder()
+                .bucket(s3Properties.bucket())
+                .key(key)
+                .contentType(file.getContentType())
+                .contentLength((long) bytes.length)
+                .build();
+
+        s3Client.putObject(putObjectRequest, RequestBody.fromBytes(bytes));
+
+        return "https://" + s3Properties.bucket() + ".s3." + s3Properties.region() + ".amazonaws.com/" + key;
     }
 
 	@Override
@@ -61,17 +112,12 @@ public class UserWriteServiceImpl implements UserWriteService {
 
 	@Override
 	public void deleteUser(UUID userId) {
-		Timer.Sample sample = metricsRegistry.startUserDeleteTimer();
-		try {
+		metricsRegistry.recordTimedRun("user.delete", () -> {
 			User user = getUser(userId, "User not found.");
 			user.delete();
 			userRepository.save(user);
 			userSocialAccountRepository.deleteAllByUser_Id(userId);
-			metricsRegistry.recordUserDeleteSuccess(sample);
-		} catch (Exception exception) {
-			metricsRegistry.recordUserDeleteFailure(sample, exception);
-			throw exception;
-		}
+		});
 	}
 
 	private int safeCastToInt(long value) {

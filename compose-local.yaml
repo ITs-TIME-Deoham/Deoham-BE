@@ -30,6 +30,7 @@ services:
       - "5432:5432"
     volumes:
       - deoham_pg_data:/var/lib/postgresql/data
+      - ./scripts/init-postgis.sql:/docker-entrypoint-initdb.d/01-init-postgis.sql
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U deoham -d deoham"]
       interval: 5s
@@ -47,6 +48,29 @@ services:
       interval: 5s
       timeout: 5s
       retries: 10
+
+  localstack:
+    image: localstack/localstack:latest
+    ports:
+      - "4566:4566"
+    environment:
+      SERVICES: s3
+      DEBUG: 1
+      DATA_DIR: /tmp/localstack/data
+      LAMBDA_EXECUTOR: docker-reuse
+      DOCKER_HOST: unix:///var/run/docker.sock
+      AWS_DEFAULT_REGION: ap-northeast-2
+      AWS_ACCESS_KEY_ID: test
+      AWS_SECRET_ACCESS_KEY: test
+    volumes:
+      - deoham_localstack_data:/tmp/localstack
+      - /var/run/docker.sock:/var/run/docker.sock
+    healthcheck:
+      test: ["CMD", "awslocal", "s3", "ls"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
 
   prometheus:
     image: prom/prometheus:latest
@@ -167,3 +191,4 @@ volumes:
   deoham_alertmanager_data:
   deoham_loki_data:
   deoham_grafana_data:
+  deoham_localstack_data:

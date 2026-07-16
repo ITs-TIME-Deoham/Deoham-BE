@@ -72,6 +72,7 @@ deoham:
     region: ${AWS_S3_REGION:ap-northeast-2}
     bucket: ${AWS_S3_BUCKET}
     presigned-url-ttl-seconds: ${AWS_S3_PRESIGNED_TTL:600}
+    max-image-size-bytes: ${AWS_S3_MAX_IMAGE_SIZE:52428800}
   gemini:
     api-key: ${GEMINI_API_KEY}
     model: ${GEMINI_MODEL:gemini-2.5-flash}

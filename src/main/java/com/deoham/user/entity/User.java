@@ -132,6 +132,11 @@ public class User extends BaseEntity {
         this.deletedAt = Instant.now();
     }
 
+    public void reactivate() {
+        this.status = UserStatus.ACTIVE;
+        this.deletedAt = null;
+    }
+
     public void markCardCreated() {
         this.hasCreatedCard = true;
     }

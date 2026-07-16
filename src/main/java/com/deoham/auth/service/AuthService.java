@@ -97,8 +97,10 @@ public class AuthService {
 					.build());
 		} else {
 			user = socialAccount.getUser();
+			if (user.getDeletedAt() != null) {
+				user.reactivate();
+			}
 			user.updateAge(calculateAge(userInfo.birthyear()));
-			socialAccount.updateTokens(null, null, null);
 		}
 
 		String accessToken = jwtTokenProvider.generateAccessToken(
@@ -160,9 +162,7 @@ public class AuthService {
 
 	@Transactional
 	public void logout(Authentication authentication) {
-		UUID userId = AuthenticationUtils.fromAuthentication(authentication)
-				.orElseThrow(() -> new BusinessException(ErrorCode.UNAUTHORIZED, "Authentication required."))
-				.userId();
+		UUID userId = AuthenticationUtils.requiredUserId(authentication);
 		userSocialAccountRepository.findAllByUser_Id(userId)
 				.forEach(UserSocialAccount::revokeRefreshToken);
 	}

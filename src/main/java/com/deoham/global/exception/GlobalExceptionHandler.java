@@ -10,6 +10,7 @@ import org.springframework.security.core.AuthenticationException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.HttpMediaTypeNotSupportedException;
 
 @Slf4j
 @RestControllerAdvice
@@ -53,6 +54,15 @@ public class GlobalExceptionHandler {
 		log.warn("인가 실패 [{} {}]: {}", request.getMethod(), request.getRequestURI(), ex.getMessage());
 		return ResponseEntity.status(ErrorCode.FORBIDDEN.getStatus())
 				.body(ApiResponse.fail(ErrorCode.FORBIDDEN, ex.getMessage()));
+	}
+
+	@ExceptionHandler(HttpMediaTypeNotSupportedException.class)
+	public ResponseEntity<ApiResponse<Void>> handleMediaTypeNotSupported(HttpMediaTypeNotSupportedException ex, HttpServletRequest request) {
+		String message = "Multipart form-data with 'request' (JSON) and 'profileImage' (file) parts required. " +
+				"Current Content-Type: " + request.getContentType();
+		log.warn("미지원 미디어 타입 [{} {}]: {}", request.getMethod(), request.getRequestURI(), message);
+		return ResponseEntity.status(ErrorCode.INVALID_REQUEST.getStatus())
+				.body(ApiResponse.fail(ErrorCode.INVALID_REQUEST, message));
 	}
 
 	@ExceptionHandler(Exception.class)
