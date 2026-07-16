@@ -126,7 +126,7 @@ public class UserController {
 	@MetricEndpoint("user.profile.create")
 	public ResponseEntity<ProfileResponse> createProfile(
 			Authentication authentication,
-			@RequestPart("request")
+			@RequestPart(name = "request", required = false)
 			@Schema(example = "{\"nickname\": \"홍길동\"}")
 			@Valid ProfileUpdateRequest request,
 			@RequestPart(name = "profileImage", required = false)
@@ -201,7 +201,7 @@ public class UserController {
 	@MetricEndpoint("user.profile.update")
 	public ResponseEntity<Void> updateProfile(
 			Authentication authentication,
-			@RequestPart("request")
+			@RequestPart(name = "request", required = false)
 			@Schema(example = "{\"nickname\": \"새로운닉네임\"}")
 			@Valid ProfileUpdateRequest request,
 			@RequestPart(name = "profileImage", required = false)
