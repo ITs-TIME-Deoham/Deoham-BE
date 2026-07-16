@@ -2,10 +2,13 @@ package com.deoham.user.controller;
 
 import com.deoham.user.dto.ProfileResponse;
 import com.deoham.user.dto.ProfileUpdateRequest;
+import com.deoham.global.exception.BusinessException;
+import com.deoham.global.exception.ErrorCode;
 import com.deoham.global.metrics.MetricEndpoint;
 import com.deoham.global.security.AuthenticationUtils;
 import com.deoham.user.service.UserReadService;
 import com.deoham.user.service.UserWriteService;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
@@ -37,6 +40,7 @@ public class UserController {
 
 	private final UserReadService userReadService;
 	private final UserWriteService userWriteService;
+	private final ObjectMapper objectMapper;
 
 	@GetMapping("/profile")
 	@Operation(
@@ -128,11 +132,20 @@ public class UserController {
 			Authentication authentication,
 			@RequestPart(name = "request", required = false)
 			@Schema(example = "{\"nickname\": \"홍길동\"}")
-			@Valid ProfileUpdateRequest request,
+			String requestJson,
 			@RequestPart(name = "profileImage", required = false)
 			@Schema(example = "image.jpg")
 			MultipartFile profileImage
-	) {
+	) throws Exception {
+		ProfileUpdateRequest request = null;
+		if (requestJson != null && !requestJson.isBlank()) {
+			request = objectMapper.readValue(requestJson, ProfileUpdateRequest.class);
+		}
+
+		if (request == null && (profileImage == null || profileImage.isEmpty())) {
+			throw new BusinessException(ErrorCode.INVALID_REQUEST, "닉네임 또는 프로필 이미지 중 최소 하나는 필수입니다");
+		}
+
 		String nickname = request != null ? request.nickname() : null;
 		var updatedUser = userWriteService.updateProfile(
 				AuthenticationUtils.requiredUserId(authentication),
@@ -203,11 +216,20 @@ public class UserController {
 			Authentication authentication,
 			@RequestPart(name = "request", required = false)
 			@Schema(example = "{\"nickname\": \"새로운닉네임\"}")
-			@Valid ProfileUpdateRequest request,
+			String requestJson,
 			@RequestPart(name = "profileImage", required = false)
 			@Schema(example = "new-image.jpg")
 			MultipartFile profileImage
-	) {
+	) throws Exception {
+		ProfileUpdateRequest request = null;
+		if (requestJson != null && !requestJson.isBlank()) {
+			request = objectMapper.readValue(requestJson, ProfileUpdateRequest.class);
+		}
+
+		if (request == null && (profileImage == null || profileImage.isEmpty())) {
+			throw new BusinessException(ErrorCode.INVALID_REQUEST, "닉네임 또는 프로필 이미지 중 최소 하나는 필수입니다");
+		}
+
 		String nickname = request != null ? request.nickname() : null;
 		userWriteService.updateProfile(
 				AuthenticationUtils.requiredUserId(authentication),

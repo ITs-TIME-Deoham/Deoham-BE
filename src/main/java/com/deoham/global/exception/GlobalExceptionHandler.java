@@ -58,7 +58,8 @@ public class GlobalExceptionHandler {
 
 	@ExceptionHandler(HttpMediaTypeNotSupportedException.class)
 	public ResponseEntity<ApiResponse<Void>> handleMediaTypeNotSupported(HttpMediaTypeNotSupportedException ex, HttpServletRequest request) {
-		String message = "Multipart form-data with 'request' (JSON) and 'profileImage' (file) parts required. " +
+		String message = "Multipart form-data 형식이 필요합니다. " +
+				"'request' (JSON) 또는 'profileImage' (파일) 중 최소 하나는 필수입니다. " +
 				"Current Content-Type: " + request.getContentType();
 		log.warn("미지원 미디어 타입 [{} {}]: {}", request.getMethod(), request.getRequestURI(), message);
 		return ResponseEntity.status(ErrorCode.INVALID_REQUEST.getStatus())
