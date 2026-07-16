@@ -29,6 +29,17 @@ SUPABASE_JWT_JWKS_URI=https://<ref>.supabase.co/auth/v1/.well-known/jwks.json\
   ./gradlew bootRun
 ```
 
+Secrets (Kakao OAuth keys, Gemini API key, etc.) are kept out of the yml files and loaded from a local `.env` file, gitignored and never committed:
+
+```bash
+cp .env.example .env   # then fill in the real values
+./gradlew bootRun      # bootRun reads .env automatically (see build.gradle)
+```
+
+`KAKAO_REST_API_KEY`, `KAKAO_CLIENT_SECRET`, and `GEMINI_API_KEY` (get one at https://aistudio.google.com/apikey) have no default and are required — the app fails to start without them (`@NotBlank` validation on `GeminiProperties`, and unresolved `${...}` placeholders for the Kakao keys). Everything else in `.env.example` is optional and falls back to the default in `application-local.yml`.
+
+`docker compose` (`compose.yaml` / `compose-local.yaml`) reads the same `.env` via `env_file`, so there's one source of truth for local secrets regardless of how you run the app.
+
 Production env vars are listed in `CLAUDE.md`.
 
 ## Build

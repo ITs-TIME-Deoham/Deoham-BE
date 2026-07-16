@@ -4,6 +4,7 @@ import com.deoham.global.config.GeminiProperties;
 import com.deoham.global.exception.BusinessException;
 import com.deoham.global.exception.ErrorCode;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.context.annotation.Primary;
 import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Component;
@@ -17,15 +18,14 @@ import org.springframework.web.client.RestClientResponseException;
 public class GeminiTranslationProvider implements TranslationProvider {
 
 	private static final String PROVIDER_NAME = "GEMINI";
+	private static final String BASE_URL = "https://generativelanguage.googleapis.com";
 
 	private final RestClient restClient;
 	private final GeminiProperties properties;
 
-	public GeminiTranslationProvider(GeminiProperties properties) {
+	public GeminiTranslationProvider(@Qualifier("gemini") RestClient.Builder restClientBuilder, GeminiProperties properties) {
 		this.properties = properties;
-		this.restClient = RestClient.builder()
-				.baseUrl("https://generativelanguage.googleapis.com")
-				.build();
+		this.restClient = restClientBuilder.baseUrl(BASE_URL).build();
 	}
 
 	@Override

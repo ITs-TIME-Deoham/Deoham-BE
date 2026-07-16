@@ -75,7 +75,7 @@ deoham:
     max-image-size-bytes: ${AWS_S3_MAX_IMAGE_SIZE:52428800}
   gemini:
     api-key: ${GEMINI_API_KEY}
-    model: ${GEMINI_MODEL:gemini-2.5-flash}
+    model: ${GEMINI_MODEL:gemini-3.5-flash}
 
 fcm:
   service-account-key-path: ${FCM_KEY_PATH}
