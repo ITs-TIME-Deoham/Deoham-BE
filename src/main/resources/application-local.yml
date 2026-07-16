@@ -35,6 +35,9 @@ deoham:
   s3:
     region: ${AWS_S3_REGION:ap-northeast-2}
     bucket: ${AWS_S3_BUCKET:ondo-2026-itstime}
+  gemini:
+    api-key: ${GEMINI_API_KEY}
+    model: ${GEMINI_MODEL:gemini-3.5-flash}
 
 fcm:
   service-account-key-path: src/main/resources/firebase/local-service-account.json

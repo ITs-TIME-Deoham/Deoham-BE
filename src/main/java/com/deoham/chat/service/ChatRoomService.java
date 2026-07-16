@@ -44,10 +44,7 @@ public class ChatRoomService {
     @Transactional
     public ChatRoomResponse getOrCreateRoom(UUID cardId, UUID userId) {
         Card card = cardRepository.findById(cardId)
-                .orElseThrow(() -> {
-                    log.warn("채팅방 생성 실패 [cardId={}, userId={}]: 카드를 찾을 수 없음", cardId, userId);
-                    return new BusinessException(ErrorCode.NOT_FOUND, "카드를 찾을 수 없습니다");
-                });
+                .orElseThrow(() -> new BusinessException(ErrorCode.NOT_FOUND, "카드를 찾을 수 없습니다"));
         chatRoomAccessService.requireParticipant(card, userId);
 
         var existingRoom = chatRoomRepository.findByCardId(cardId);

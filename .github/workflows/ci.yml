@@ -117,6 +117,9 @@ jobs:
           KAKAO_REDIRECT_URI=${{ vars.KAKAO_REDIRECT_URI }}
           KAKAO_CLIENT_SECRET=${{ secrets.KAKAO_CLIENT_SECRET }}
 
+          # Gemini — 채팅 메시지 번역 프로바이더
+          GEMINI_API_KEY=${{ secrets.GEMINI_API_KEY }}
+
           # FCM — Java 바인딩 없음, 구현 완료 후 활성화
           # FCM_KEY_PATH=/app/secrets/fcm-service-account.json
 
@@ -279,16 +282,28 @@ jobs:
             fi
 
             if [ $attempt -lt $max_attempts ]; then
-              echo "Attempt $attempt/$max_attempts - health status: $health_status (waiting...)"
-              sleep 5
+              echo "Attempt $attempt/$max_attempts failed"
+              echo "  Retrying in ${wait_time}s (exponential backoff)..."
+              sleep $wait_time
             fi
           done
 
+          echo ""
+          echo "=== Container status ==="
+          docker compose ps
+
           if [ "$healthy" -ne 1 ]; then
-            echo "❌ Container failed to reach healthy state"
             echo ""
-            echo "=== Application logs (last 50 lines) ==="
-            docker compose logs --tail=50 app || true
+            echo "❌ Health check failed after $max_attempts attempts"
+            echo ""
+            echo "=== Application logs (last 100 lines) ==="
+            docker compose logs --tail=100 app || true
+            echo ""
+            echo "=== Database logs ==="
+            docker compose logs --tail=100 postgres || true
+            echo ""
+            echo "=== Redis logs ==="
+            docker compose logs --tail=100 redis || true
             exit 1
           fi
 

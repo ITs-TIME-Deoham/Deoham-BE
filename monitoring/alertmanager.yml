@@ -1,0 +1,33 @@
+global:
+  resolve_timeout: 5m
+
+route:
+  receiver: 'discord-warning'
+  group_by: ['alertname', 'service']
+  group_wait: 30s
+  group_interval: 5m
+  repeat_interval: 4h
+  routes:
+    - matchers:
+        - severity="critical"
+      receiver: 'discord-critical'
+      repeat_interval: 1h
+
+receivers:
+  - name: 'discord-warning'
+    discord_configs:
+      - webhook_url_file: /etc/alertmanager/secrets/discord_webhook_url
+        title: '⚠️ {{ .CommonAnnotations.summary }}'
+        message: |
+          {{ range .Alerts }}**{{ .Labels.alertname }}** ({{ .Labels.severity }} / {{ .Labels.service }})
+          {{ .Annotations.description }}
+          {{ end }}
+
+  - name: 'discord-critical'
+    discord_configs:
+      - webhook_url_file: /etc/alertmanager/secrets/discord_webhook_url
+        title: '🚨 {{ .CommonAnnotations.summary }}'
+        message: |
+          {{ range .Alerts }}**{{ .Labels.alertname }}** ({{ .Labels.severity }} / {{ .Labels.service }})
+          {{ .Annotations.description }}
+          {{ end }}

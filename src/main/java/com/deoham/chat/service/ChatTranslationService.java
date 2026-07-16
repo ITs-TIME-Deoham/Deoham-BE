@@ -4,7 +4,6 @@ import com.deoham.chat.dto.ChatTranslationResponse;
 import com.deoham.chat.entity.ChatMessage;
 import com.deoham.chat.entity.ChatMessageTranslation;
 import com.deoham.chat.entity.ChatMessageType;
-import com.deoham.chat.repository.ChatMessageRepository;
 import com.deoham.chat.repository.ChatMessageTranslationRepository;
 import com.deoham.chat.translation.TranslationProvider;
 import com.deoham.chat.translation.TranslationResult;
@@ -21,20 +20,14 @@ import org.springframework.transaction.annotation.Transactional;
 @Transactional
 public class ChatTranslationService {
 
-    private final ChatMessageRepository chatMessageRepository;
     private final ChatMessageTranslationRepository translationRepository;
-    private final ChatRoomAccessService chatRoomAccessService;
+    private final ChatAccessGuard chatAccessGuard;
     private final TranslationProvider translationProvider;
 
     public ChatTranslationResponse translate(UUID requesterId, UUID messageId, String targetLanguage) {
-        ChatMessage message = chatMessageRepository.findById(messageId)
-                .orElseThrow(() -> new BusinessException(ErrorCode.NOT_FOUND, "메시지를 찾을 수 없습니다"));
-
-        chatRoomAccessService.requireParticipant(message.getChatRoom().getCard(), requesterId);
-
-        if (message.getMessageType() != ChatMessageType.TEXT) {
-            throw new BusinessException(ErrorCode.INVALID_REQUEST, "텍스트 메시지만 번역할 수 있습니다");
-        }
+        ChatMessage message = chatAccessGuard.findMessageOrThrow(messageId);
+        chatAccessGuard.requireParticipant(message.getChatRoom().getCard(), requesterId);
+        requireTextMessage(message);
 
         Optional<ChatMessageTranslation> cached =
                 translationRepository.findByChatMessageIdAndTargetLanguage(messageId, targetLanguage);
@@ -52,6 +45,12 @@ public class ChatTranslationService {
                 .build());
 
         return toResponse(saved, false);
+    }
+
+    private void requireTextMessage(ChatMessage message) {
+        if (message.getMessageType() != ChatMessageType.TEXT) {
+            throw new BusinessException(ErrorCode.INVALID_REQUEST, "텍스트 메시지만 번역할 수 있습니다");
+        }
     }
 
     private ChatTranslationResponse toResponse(ChatMessageTranslation translation, boolean cached) {

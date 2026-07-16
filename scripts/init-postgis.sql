@@ -4,6 +4,7 @@ CREATE EXTENSION IF NOT EXISTS postgis;
 -- Upgrade PostGIS extensions to ensure spatial_ref_sys is fully populated
 SELECT postgis_extensions_upgrade();
 
+
 -- Create additional useful extensions for spatial databases
 CREATE EXTENSION IF NOT EXISTS postgis_topology;
 

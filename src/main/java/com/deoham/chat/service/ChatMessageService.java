@@ -84,8 +84,7 @@ public class ChatMessageService {
 
     @Transactional
     public void sendRoomClosedMessage(ChatRoom room, UUID actorId) {
-        User actor = userRepository.findById(actorId)
-                .orElseThrow(() -> new BusinessException(ErrorCode.NOT_FOUND, "사용자를 찾을 수 없습니다"));
+        User actor = findUserOrThrow(actorId);
 
         ChatMessage saved = chatMessageRepository.save(ChatMessage.builder()
                 .chatRoom(room)
@@ -179,6 +178,11 @@ public class ChatMessageService {
             throw new BusinessException(ErrorCode.INVALID_REQUEST, "content는 필수입니다");
         }
         return request.content();
+    }
+
+    private User findUserOrThrow(UUID userId) {
+        return userRepository.findById(userId)
+                .orElseThrow(() -> new BusinessException(ErrorCode.NOT_FOUND, "사용자를 찾을 수 없습니다"));
     }
 
     private ChatRoom findActiveRoomOrThrow(UUID roomId) {
