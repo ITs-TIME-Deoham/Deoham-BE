@@ -27,6 +27,9 @@ public record LiveLocationEvent(
         @Schema(description = "위치 정확도(미터). STOP 또는 미측정 시 null", example = "5.0", nullable = true)
         Double accuracy,
 
+        @Schema(description = "카드 목표 지점까지 남은 거리(미터, 정수 반올림). STOP 이벤트에서는 null", example = "154.0", nullable = true)
+        Double distanceToTargetMeters,
+
         @Schema(description = "이벤트 발생 시각 (ISO-8601)", example = "2026-07-14T07:49:42.994Z")
         Instant sentAt
 ) {
@@ -37,17 +40,19 @@ public record LiveLocationEvent(
         STOP
     }
 
-    public static LiveLocationEvent update(UUID senderId, LiveLocationRequest request, Instant sentAt) {
+    public static LiveLocationEvent update(
+            UUID senderId, LiveLocationRequest request, Double distanceToTargetMeters, Instant sentAt) {
         return new LiveLocationEvent(
                 Type.UPDATE,
                 senderId,
                 request.latitude(),
                 request.longitude(),
                 request.accuracy(),
+                distanceToTargetMeters,
                 sentAt);
     }
 
     public static LiveLocationEvent stop(UUID senderId, Instant sentAt) {
-        return new LiveLocationEvent(Type.STOP, senderId, null, null, null, sentAt);
+        return new LiveLocationEvent(Type.STOP, senderId, null, null, null, null, sentAt);
     }
 }

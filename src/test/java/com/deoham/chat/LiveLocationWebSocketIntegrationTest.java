@@ -12,6 +12,7 @@ import com.deoham.chat.dto.LiveLocationRequest;
 import com.deoham.chat.entity.ChatRoom;
 import com.deoham.chat.repository.ChatRoomRepository;
 import com.deoham.global.security.JwtTokenProvider;
+import com.deoham.global.util.GeoUtils;
 import com.deoham.user.entity.User;
 import com.deoham.user.repository.UserRepository;
 
@@ -144,6 +145,9 @@ class LiveLocationWebSocketIntegrationTest {
         assertThat(event.senderId()).isEqualTo(applicant.getId());
         assertThat(event.latitude()).isEqualTo(37.5665);
         assertThat(event.longitude()).isEqualTo(126.9780);
+        // 카드 목표 지점(37.5326, 126.9903)까지 남은 거리를 서버가 계산해 포함한다
+        assertThat(event.distanceToTargetMeters())
+                .isEqualTo(GeoUtils.haversineMeters(37.5665, 126.9780, 37.5326, 126.9903));
 
         subscriber.disconnect();
         sender.disconnect();
@@ -180,6 +184,7 @@ class LiveLocationWebSocketIntegrationTest {
         assertThat(event).isNotNull();
         assertThat(event.type()).isEqualTo(LiveLocationEvent.Type.STOP);
         assertThat(event.senderId()).isEqualTo(applicant.getId());
+        assertThat(event.distanceToTargetMeters()).isNull();
 
         subscriber.disconnect();
         sender.disconnect();
@@ -223,6 +228,8 @@ class LiveLocationWebSocketIntegrationTest {
         assertThat(response.getStatusCode().is2xxSuccessful()).isTrue();
         assertThat(response.getBody()).contains(applicant.getId().toString());
         assertThat(response.getBody()).contains("UPDATE");
+        // Redis 직렬화 왕복 후에도 남은 거리 필드가 유지된다
+        assertThat(response.getBody()).contains("distanceToTargetMeters");
 
         subscriber.disconnect();
         sender.disconnect();

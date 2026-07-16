@@ -2,6 +2,8 @@ package com.deoham.chat.service;
 
 import com.deoham.chat.dto.LiveLocationEvent;
 import com.deoham.chat.dto.LiveLocationRequest;
+import com.deoham.chat.service.ChatRoomAccessService.CardTargetLocation;
+import com.deoham.global.util.GeoUtils;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.time.Duration;
 import java.time.Instant;
@@ -39,6 +41,9 @@ public class LiveLocationService {
     /** roomId:userId -> 마지막 브로드캐스트 시각(epoch ms). 서버측 throttle. */
     private final ConcurrentHashMap<String, Long> lastBroadcastAt = new ConcurrentHashMap<>();
 
+    /** roomId -> 카드 목표 지점 좌표. 카드 위치는 불변이므로 핑마다 DB 조회하지 않도록 캐시한다. */
+    private final ConcurrentHashMap<UUID, CardTargetLocation> targetLocationCache = new ConcurrentHashMap<>();
+
     public void update(UUID roomId, UUID userId, LiveLocationRequest request) {
         chatRoomAccessService.verifySubscribeAccess(roomId, userId);
 
@@ -51,7 +56,13 @@ public class LiveLocationService {
             return;
         }
 
-        LiveLocationEvent event = LiveLocationEvent.update(userId, request, Instant.ofEpochMilli(now));
+        // throttle 통과 후에만 계산해 드롭 프레임에는 비용이 들지 않는다.
+        CardTargetLocation target = targetLocationCache.computeIfAbsent(
+                roomId, chatRoomAccessService::cardTargetLocation);
+        double distance = GeoUtils.haversineMeters(
+                request.latitude(), request.longitude(), target.latitude(), target.longitude());
+
+        LiveLocationEvent event = LiveLocationEvent.update(userId, request, distance, Instant.ofEpochMilli(now));
         redisTemplate.opsForValue().set(redisKey(roomId, userId), event, LOCATION_TTL);
         messagingTemplate.convertAndSend(topic(roomId), event);
         log.debug("실시간 위치 브로드캐스트 [roomId={}, userId={}]", roomId, userId);
@@ -60,6 +71,7 @@ public class LiveLocationService {
     public void stop(UUID roomId, UUID userId) {
         redisTemplate.delete(redisKey(roomId, userId));
         lastBroadcastAt.remove(throttleKey(roomId, userId));
+        targetLocationCache.remove(roomId);
         messagingTemplate.convertAndSend(topic(roomId), LiveLocationEvent.stop(userId, Instant.now()));
         log.info("실시간 위치 공유 종료 [roomId={}, userId={}]", roomId, userId);
     }
