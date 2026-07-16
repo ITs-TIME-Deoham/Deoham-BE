@@ -25,16 +25,17 @@ import static org.springframework.test.web.client.response.MockRestResponseCreat
 class GeminiTranslationProviderTest {
 
     private static final GeminiProperties PROPERTIES = new GeminiProperties("test-api-key", "gemini-3.5-flash");
-    private static final String EXPECTED_URI =
-            "https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash:generateContent";
+    private static final String BASE_URL = "https://generativelanguage.googleapis.com";
+    private static final String EXPECTED_URI = BASE_URL + "/v1beta/models/gemini-3.5-flash:generateContent";
 
-    private RestClient.Builder builder;
     private MockRestServiceServer server;
+    private RestClient client;
 
     @BeforeEach
     void setUp() {
-        builder = RestClient.builder();
+        RestClient.Builder builder = RestClient.builder().baseUrl(BASE_URL);
         server = MockRestServiceServer.bindTo(builder).build();
+        client = builder.build();
     }
 
     @Test
@@ -51,7 +52,7 @@ class GeminiTranslationProviderTest {
                         }
                         """, MediaType.APPLICATION_JSON));
 
-        GeminiTranslationProvider provider = new GeminiTranslationProvider(builder, PROPERTIES);
+        GeminiTranslationProvider provider = new GeminiTranslationProvider(client, PROPERTIES);
 
         TranslationResult result = provider.translate("안녕하세요", "en");
 
@@ -67,7 +68,7 @@ class GeminiTranslationProviderTest {
                         {"candidates": [{"content": {"parts": [{"text": "Hello"}]}}]}
                         """, MediaType.APPLICATION_JSON));
 
-        GeminiTranslationProvider provider = new GeminiTranslationProvider(builder, PROPERTIES);
+        GeminiTranslationProvider provider = new GeminiTranslationProvider(client, PROPERTIES);
 
         TranslationResult result = provider.translate("안녕하세요", "en");
 
@@ -79,7 +80,7 @@ class GeminiTranslationProviderTest {
         server.expect(requestTo(containsString("generateContent")))
                 .andRespond(withServerError());
 
-        GeminiTranslationProvider provider = new GeminiTranslationProvider(builder, PROPERTIES);
+        GeminiTranslationProvider provider = new GeminiTranslationProvider(client, PROPERTIES);
 
         assertThatThrownBy(() -> provider.translate("안녕하세요", "en"))
                 .isInstanceOf(BusinessException.class)
@@ -93,7 +94,7 @@ class GeminiTranslationProviderTest {
                         {"candidates": []}
                         """, MediaType.APPLICATION_JSON));
 
-        GeminiTranslationProvider provider = new GeminiTranslationProvider(builder, PROPERTIES);
+        GeminiTranslationProvider provider = new GeminiTranslationProvider(client, PROPERTIES);
 
         assertThatThrownBy(() -> provider.translate("안녕하세요", "en"))
                 .isInstanceOf(BusinessException.class)
@@ -107,7 +108,7 @@ class GeminiTranslationProviderTest {
                         {"candidates": [{"content": {"parts": [{"text": "   "}]}}]}
                         """, MediaType.APPLICATION_JSON));
 
-        GeminiTranslationProvider provider = new GeminiTranslationProvider(builder, PROPERTIES);
+        GeminiTranslationProvider provider = new GeminiTranslationProvider(client, PROPERTIES);
 
         assertThatThrownBy(() -> provider.translate("안녕하세요", "en"))
                 .isInstanceOf(BusinessException.class)
@@ -116,7 +117,7 @@ class GeminiTranslationProviderTest {
 
     @Test
     void getProviderName_returnsGemini() {
-        GeminiTranslationProvider provider = new GeminiTranslationProvider(builder, PROPERTIES);
+        GeminiTranslationProvider provider = new GeminiTranslationProvider(client, PROPERTIES);
 
         assertThat(provider.getProviderName()).isEqualTo("GEMINI");
     }

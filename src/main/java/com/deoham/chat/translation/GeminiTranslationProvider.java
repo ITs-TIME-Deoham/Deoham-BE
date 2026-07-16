@@ -18,14 +18,13 @@ import org.springframework.web.client.RestClientResponseException;
 public class GeminiTranslationProvider implements TranslationProvider {
 
 	private static final String PROVIDER_NAME = "GEMINI";
-	private static final String BASE_URL = "https://generativelanguage.googleapis.com";
 
 	private final RestClient restClient;
 	private final GeminiProperties properties;
 
-	public GeminiTranslationProvider(@Qualifier("gemini") RestClient.Builder restClientBuilder, GeminiProperties properties) {
+	public GeminiTranslationProvider(@Qualifier("gemini") RestClient restClient, GeminiProperties properties) {
+		this.restClient = restClient;
 		this.properties = properties;
-		this.restClient = restClientBuilder.baseUrl(BASE_URL).build();
 	}
 
 	@Override
