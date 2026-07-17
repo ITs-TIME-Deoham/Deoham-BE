@@ -28,6 +28,9 @@ deoham:
     redirect-uri: ${KAKAO_REDIRECT_URI:http://localhost:3000/api/auth/kakao/callback}
   s3:
     bucket: ${AWS_S3_BUCKET:test-bucket}
+  deepl:
+    api-key: ${DEEPL_API_KEY:test-deepl-key}
+    api-url: ${DEEPL_API_URL:https://api-free.deepl.com}
 
 loki:
   url: http://localhost:3100

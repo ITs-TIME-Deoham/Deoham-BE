@@ -84,6 +84,9 @@ deoham:
   gemini:
     api-key: ${GEMINI_API_KEY}
     model: ${GEMINI_MODEL:gemini-3.5-flash}
+  deepl:
+    api-key: ${DEEPL_API_KEY}
+    api-url: ${DEEPL_API_URL:https://api-free.deepl.com}
 
 fcm:
   service-account-key-path: ${FCM_KEY_PATH}
