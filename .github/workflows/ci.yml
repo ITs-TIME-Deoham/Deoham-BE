@@ -117,8 +117,11 @@ jobs:
           KAKAO_REDIRECT_URI=${{ vars.KAKAO_REDIRECT_URI }}
           KAKAO_CLIENT_SECRET=${{ secrets.KAKAO_CLIENT_SECRET }}
 
-          # Gemini — 채팅 메시지 번역 프로바이더
+          # Gemini — (구) 채팅 메시지 번역 프로바이더, DeepL 전환 후 미사용이나 @NotBlank 바인딩 유지용
           GEMINI_API_KEY=${{ secrets.GEMINI_API_KEY }}
+
+          # DeepL — 채팅 메시지 번역 프로바이더 (현재 @Primary)
+          DEEPL_API_KEY=${{ secrets.DEEPL_API_KEY }}
 
           # FCM — Java 바인딩 없음, 구현 완료 후 활성화
           # FCM_KEY_PATH=/app/secrets/fcm-service-account.json
@@ -145,7 +148,8 @@ jobs:
           echo "=== Checking required environment variables ==="
           MISSING_VARS=""
           for var in JWT_SECRET AWS_S3_REGION AWS_S3_BUCKET AWS_S3_PRESIGNED_TTL \
-                      KAKAO_REST_API_KEY KAKAO_CLIENT_SECRET GRAFANA_ADMIN_USER GRAFANA_ADMIN_PASSWORD; do
+                      KAKAO_REST_API_KEY KAKAO_CLIENT_SECRET GEMINI_API_KEY DEEPL_API_KEY \
+                      GRAFANA_ADMIN_USER GRAFANA_ADMIN_PASSWORD; do
             if grep -q "^$var=$" .env; then
               echo "❌ ERROR: $var is empty"
               MISSING_VARS="$MISSING_VARS $var"
