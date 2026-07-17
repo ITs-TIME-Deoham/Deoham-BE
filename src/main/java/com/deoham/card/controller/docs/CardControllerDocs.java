@@ -54,7 +54,7 @@ public interface CardControllerDocs {
     ResponseEntity<PaginatedCardListResponse> getNearbyCards(
             @Parameter(description = "Latitude", required = true, example = "37.5326") @NotNull Double latitude,
             @Parameter(description = "Longitude", required = true, example = "126.9903") @NotNull Double longitude,
-            @Parameter(description = "Optional pagination cursor", example = "NTAuNXxhMWIyYzNkNGU1ZjY=") String cursor);
+            @Parameter(description = "Optional pagination cursor 선택 항목", example = "NTAuNXxhMWIyYzNkNGU1ZjY=") String cursor);
 
     @Operation(
             summary = "내 활성 카드 조회",

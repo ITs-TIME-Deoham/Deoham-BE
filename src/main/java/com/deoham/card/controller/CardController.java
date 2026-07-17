@@ -12,9 +12,6 @@ import com.deoham.card.service.CardWriteService;
 import com.deoham.global.metrics.MetricEndpoint;
 import com.deoham.global.response.ApiResponse;
 import com.deoham.global.security.AuthenticationUtils;
-import io.swagger.v3.oas.annotations.Parameter;
-import io.swagger.v3.oas.annotations.media.Content;
-import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;
 import lombok.RequiredArgsConstructor;
@@ -44,9 +41,6 @@ public class CardController implements CardControllerDocs, CardApplyControllerDo
     @MetricEndpoint("card.create")
     @PostMapping("/cards")
     public ResponseEntity<CardDetailResponse> createCard(
-            @io.swagger.v3.oas.annotations.parameters.RequestBody(
-                    description = "Card create request", required = true,
-                    content = @Content(schema = @Schema(implementation = CreateCardRequest.class)))
             @Valid @RequestBody CreateCardRequest request
     ) {
         UUID userId = AuthenticationUtils.requiredUserId();
@@ -59,7 +53,6 @@ public class CardController implements CardControllerDocs, CardApplyControllerDo
     public ResponseEntity<PaginatedCardListResponse> getNearbyCards(
             @RequestParam @NotNull Double latitude,
             @RequestParam @NotNull Double longitude,
-            @Parameter(description = "Optional pagination cursor 선택 항목", example = "NTAuNXxhMWIyYzNkNGU1ZjY=")
             @RequestParam(required = false) String cursor
     ) {
         UUID userId = AuthenticationUtils.requiredUserId();
@@ -85,7 +78,6 @@ public class CardController implements CardControllerDocs, CardApplyControllerDo
     @MetricEndpoint("card.cancel")
     @PatchMapping("/cards/{cardId}/cancel")
     public ResponseEntity<Void> cancelCard(
-            @Parameter(description = "Card ID", required = true)
             @PathVariable UUID cardId
     ) {
         UUID userId = AuthenticationUtils.requiredUserId();
@@ -97,7 +89,6 @@ public class CardController implements CardControllerDocs, CardApplyControllerDo
     @MetricEndpoint("card.complete")
     @PatchMapping("/cards/{cardId}/complete")
     public ResponseEntity<Void> completeCard(
-            @Parameter(description = "Card ID", required = true)
             @PathVariable UUID cardId
     ) {
         UUID userId = AuthenticationUtils.requiredUserId();
@@ -109,7 +100,6 @@ public class CardController implements CardControllerDocs, CardApplyControllerDo
     @MetricEndpoint("card.retry")
     @PatchMapping("/cards/{cardId}/retry")
     public ResponseEntity<Void> retryCard(
-            @Parameter(description = "Card ID", required = true)
             @PathVariable UUID cardId
     ) {
         UUID userId = AuthenticationUtils.requiredUserId();
@@ -121,7 +111,6 @@ public class CardController implements CardControllerDocs, CardApplyControllerDo
     @MetricEndpoint("card.apply.submit")
     @PostMapping("/cards/{cardId}/applies")
     public ResponseEntity<CardApplySummaryResponse> submitApply(
-            @Parameter(description = "Card ID", required = true)
             @PathVariable UUID cardId
     ) {
         UUID userId = AuthenticationUtils.requiredUserId();
@@ -132,7 +121,6 @@ public class CardController implements CardControllerDocs, CardApplyControllerDo
     @MetricEndpoint("card.apply.list")
     @GetMapping("/cards/{cardId}/applies")
     public ResponseEntity<List<CardApplySummaryResponse>> getApplies(
-            @Parameter(description = "Card ID", required = true)
             @PathVariable UUID cardId
     ) {
         UUID userId = AuthenticationUtils.requiredUserId();
