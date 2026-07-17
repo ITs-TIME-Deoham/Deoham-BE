@@ -27,6 +27,8 @@ server:
     enabled: true
   tomcat:
     max-post-size: 52428800
+    multipart:
+      max-file-size: 52428800
   servlet:
     multipart:
       max-file-size: 50MB
