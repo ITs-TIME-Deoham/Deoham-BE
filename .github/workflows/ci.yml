@@ -191,6 +191,18 @@ jobs:
           free -h
           ENDSSH
 
+      # C. Let's Encrypt 인증서 자동 갱신 cron 보장 (idempotent, 인증서는 최초 1회 수동 발급 필요)
+      - name: Ensure certbot renewal cron on EC2 (idempotent)
+        run: |
+          ssh -i private_key.pem -o StrictHostKeyChecking=no \
+            ${{ secrets.EC2_USERNAME }}@${{ secrets.EC2_HOST }} 'bash -s' << 'ENDSSH'
+          set -e
+          CRON_CMD="cd ~/deoham && docker compose run --rm certbot renew --quiet && docker compose exec -T nginx nginx -s reload"
+          ( crontab -l 2>/dev/null | grep -vF "docker compose run --rm certbot renew" ; echo "0 3 * * * $CRON_CMD >> ~/deoham/certbot-renew.log 2>&1" ) | crontab -
+          echo "certbot renewal cron ensured:"
+          crontab -l | grep certbot
+          ENDSSH
+
       - name: Prepare EC2 directory & transfer files
         run: |
           ssh -i private_key.pem -o StrictHostKeyChecking=no \
@@ -218,6 +230,17 @@ jobs:
           echo "=== Pull & start ==="
           docker compose down
           docker compose pull
+
+          # 인증서가 이미 있으면 HTTPS 서버 블록을 기동 전에 활성화한다.
+          # (인증서 없이 ssl.conf 가 conf.d 에 있으면 nginx 기동 실패 → 최초 발급 전에는 HTTP-only 로 기동)
+          echo "=== Enable HTTPS config if certificate exists ==="
+          if docker compose run --rm --entrypoint sh certbot -c 'test -e /etc/letsencrypt/live/piec.store/fullchain.pem' 2>/dev/null; then
+            cp nginx/ssl.conf nginx/conf.d/ssl.conf
+            echo "✓ Existing certificate found — ssl.conf enabled"
+          else
+            echo "No certificate yet — starting HTTP-only (will issue after startup)"
+          fi
+
           docker compose up -d
 
           echo "=== Prune old images ==="
@@ -270,6 +293,7 @@ jobs:
           echo ""
           echo "=== Checking deoham-app-1 container health ==="
           max_attempts=5
+          wait_time=15
           healthy=0
 
           for attempt in $(seq 1 $max_attempts); do
@@ -305,6 +329,37 @@ jobs:
             echo "=== Redis logs ==="
             docker compose logs --tail=100 redis || true
             exit 1
+          fi
+
+          echo ""
+          echo "=== Ensure Let's Encrypt certificate (piec.store) ==="
+          if [ ! -f nginx/conf.d/ssl.conf ]; then
+            # nginx 가 떠서 ACME challenge(/.well-known/acme-challenge/)를 서빙할 수 있을 때까지 대기
+            for i in {1..12}; do
+              nginx_state=$(docker inspect deoham-nginx-1 --format '{{.State.Status}}' 2>/dev/null || echo "none")
+              [ "$nginx_state" = "running" ] && break
+              echo "  Waiting for nginx... ($i/12)"
+              sleep 5
+            done
+
+            if docker compose run --rm certbot certonly --webroot -w /var/www/certbot \
+                 -d piec.store -d www.piec.store \
+                 --email toosee1005@gmail.com --agree-tos --no-eff-email --non-interactive; then
+              cp nginx/ssl.conf nginx/conf.d/ssl.conf
+              docker compose exec -T nginx nginx -s reload
+              echo "✓ Certificate issued & HTTPS enabled"
+            else
+              # 발급 실패(LE rate limit 등)로 배포 전체를 실패시키지는 않는다 — HTTP 로는 계속 서비스
+              echo "⚠ Certificate issuance failed — serving HTTP-only. Check logs and re-deploy."
+            fi
+          fi
+
+          echo ""
+          echo "=== HTTPS smoke test ==="
+          if curl -sf --resolve piec.store:443:127.0.0.1 https://piec.store/actuator/health > /dev/null; then
+            echo "✓ https://piec.store/actuator/health OK"
+          else
+            echo "⚠ HTTPS health check failed (certificate may not be issued yet)"
           fi
 
           echo ""

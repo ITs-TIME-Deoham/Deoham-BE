@@ -30,6 +30,8 @@ services:
       - "443:443"
     volumes:
       - ./nginx/conf.d:/etc/nginx/conf.d:ro
+      - deoham_certbot_conf:/etc/letsencrypt:ro
+      - deoham_certbot_www:/var/www/certbot:ro
     depends_on:
       app:
         condition: service_healthy
@@ -40,6 +42,15 @@ services:
       retries: 5
       start_period: 10s
     restart: unless-stopped
+
+  # 상시 구동 서비스가 아님 — `docker compose up -d` 대상에서 제외되고
+  # 인증서 최초 발급/갱신 시에만 `docker compose run --rm certbot ...` 로 실행
+  certbot:
+    image: certbot/certbot:latest
+    profiles: ["certbot"]
+    volumes:
+      - deoham_certbot_conf:/etc/letsencrypt
+      - deoham_certbot_www:/var/www/certbot
 
   postgres:
     image: postgis/postgis:16-3.4
@@ -193,3 +204,5 @@ volumes:
   deoham_alertmanager_data:
   deoham_loki_data:
   deoham_grafana_data:
+  deoham_certbot_conf:
+  deoham_certbot_www:
