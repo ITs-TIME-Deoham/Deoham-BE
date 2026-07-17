@@ -19,6 +19,14 @@ resource "aws_security_group" "app" {
     cidr_blocks = ["0.0.0.0/0"]
   }
 
+  # HTTPS
+  ingress {
+    from_port   = 443
+    to_port     = 443
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
   # 앱 직접 접근 (테스트용)
   ingress {
     from_port   = 8080
@@ -50,6 +58,12 @@ resource "aws_instance" "app" {
   root_block_device {
     volume_size = 30
     volume_type = "gp3"
+  }
+
+  # AMI data source가 최신 이미지를 다시 조회하면서 발생하는
+  # 의도치 않은 인스턴스 재생성(운영 DB 볼륨 유실) 방지
+  lifecycle {
+    ignore_changes = [ami]
   }
 
   # Docker + Docker Compose 자동 설치
