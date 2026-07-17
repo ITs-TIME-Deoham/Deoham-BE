@@ -99,8 +99,8 @@ public class DefaultCardWriteService implements CardWriteService {
     @Transactional
     public void completeCard(UUID cardId, UUID userId) {
         Card card = findCardAndValidateOwner(cardId, userId);
-        if (card.getStatus() != CardStatus.MATCHED) {
-            throw new BusinessException(ErrorCode.CONFLICT, "MATCHED 상태의 카드만 완료할 수 있습니다.");
+        if (card.getStatus() != CardStatus.MATCHED && card.getStatus() != CardStatus.CANCELLED) {
+            throw new BusinessException(ErrorCode.CONFLICT, "MATCHED 또는 CANCELLED 상태의 카드만 완료할 수 있습니다.");
         }
         CardApply acceptedApply = cardApplyRepository.findByCardAndStatus(card, CardApplyStatus.ACCEPTED)
                 .orElseThrow(() -> new BusinessException(ErrorCode.NOT_FOUND, "승인된 신청을 찾을 수 없습니다."));
