@@ -198,7 +198,8 @@ jobs:
             ${{ secrets.EC2_USERNAME }}@${{ secrets.EC2_HOST }} 'bash -s' << 'ENDSSH'
           set -e
           CRON_CMD="cd ~/deoham && docker compose run --rm certbot renew --quiet && docker compose exec -T nginx nginx -s reload"
-          ( crontab -l 2>/dev/null | grep -vF "docker compose run --rm certbot renew" ; echo "0 3 * * * $CRON_CMD >> ~/deoham/certbot-renew.log 2>&1" ) | crontab -
+          # grep -v 는 결과가 0줄이면 exit 1 을 반환하므로(빈 crontab 등) `|| true` 로 set -e 중단을 방지
+          ( crontab -l 2>/dev/null | grep -vF "docker compose run --rm certbot renew" || true ; echo "0 3 * * * $CRON_CMD >> ~/deoham/certbot-renew.log 2>&1" ) | crontab -
           echo "certbot renewal cron ensured:"
           crontab -l | grep certbot
           ENDSSH
