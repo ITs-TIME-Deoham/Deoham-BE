@@ -10,6 +10,7 @@ import com.deoham.card.repository.CardRepository;
 import com.deoham.global.exception.BusinessException;
 import com.deoham.global.exception.ErrorCode;
 import com.deoham.global.metrics.MetricsRegistry;
+import com.deoham.notification.service.NotificationService;
 import com.deoham.user.entity.User;
 import com.deoham.user.repository.UserRepository;
 import com.deoham.user.service.UserWriteService;
@@ -52,13 +53,14 @@ class CardServiceMetricsTest {
   @Mock private CardApplyRepository cardApplyRepository;
   @Mock private UserRepository userRepository;
   @Mock private UserWriteService userWriteServiceMock;
+  @Mock private NotificationService notificationService;
 
   @BeforeEach
   void setUp() {
     meterRegistry = new SimpleMeterRegistry();
     metricsRegistry = new MetricsRegistry(meterRegistry);
     cardReadService = new DefaultCardReadService(cardRepository, cardApplyRepository, userRepository, metricsRegistry);
-    cardWriteService = new DefaultCardWriteService(cardRepository, cardApplyRepository, userRepository, userWriteServiceMock, metricsRegistry);
+    cardWriteService = new DefaultCardWriteService(cardRepository, cardApplyRepository, userRepository, userWriteServiceMock, metricsRegistry, notificationService);
   }
 
   @Test
