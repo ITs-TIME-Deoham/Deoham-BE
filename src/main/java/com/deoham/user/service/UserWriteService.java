@@ -9,5 +9,9 @@ public interface UserWriteService {
 
 	void updateHelpCounts(UUID requesterId, UUID applicantId);
 
+	void deleteProfileImage(UUID userId);
+
+	void deleteExpiredDeletedUsers();
+
 	void deleteUser(UUID userId);
 }

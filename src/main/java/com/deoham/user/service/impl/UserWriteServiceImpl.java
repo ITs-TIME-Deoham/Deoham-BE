@@ -8,28 +8,41 @@ import com.deoham.global.config.S3Properties;
 import com.deoham.global.exception.BusinessException;
 import com.deoham.global.exception.ErrorCode;
 import com.deoham.global.metrics.MetricsRegistry;
+import com.deoham.notification.repository.FcmTokenRepository;
+import com.deoham.notification.repository.NotificationRepository;
 import com.deoham.user.entity.User;
+import com.deoham.user.entity.UserStatus;
 import com.deoham.user.repository.UserRepository;
 import com.deoham.user.repository.UserSocialAccountRepository;
 import com.deoham.user.service.UserWriteService;
+import java.time.Instant;
+import java.time.temporal.ChronoUnit;
+import java.util.List;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 import software.amazon.awssdk.core.sync.RequestBody;
 import software.amazon.awssdk.services.s3.S3Client;
 import software.amazon.awssdk.services.s3.model.PutObjectRequest;
+import software.amazon.awssdk.core.exception.SdkClientException;
+import software.amazon.awssdk.core.exception.SdkServiceException;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 @Transactional
 public class UserWriteServiceImpl implements UserWriteService {
 
-    private final UserRepository userRepository;
+	private final UserRepository userRepository;
 	private final CardRepository cardRepository;
 	private final CardApplyRepository cardApplyRepository;
 	private final UserSocialAccountRepository userSocialAccountRepository;
+	private final FcmTokenRepository fcmTokenRepository;
+	private final NotificationRepository notificationRepository;
 	private final MetricsRegistry metricsRegistry;
 	private final S3Client s3Client;
 	private final S3Properties s3Properties;
@@ -114,10 +127,108 @@ public class UserWriteServiceImpl implements UserWriteService {
 	public void deleteUser(UUID userId) {
 		metricsRegistry.recordTimedRun("user.delete", () -> {
 			User user = getUser(userId, "User not found.");
+
+			if (user.getProfileImageUrl() != null && !user.getProfileImageUrl().isBlank()) {
+				try {
+					deleteProfileImage(user);
+				} catch (Exception e) {
+					log.error("Failed to delete profile image for user: {}", userId, e);
+				}
+			}
+
 			user.delete();
 			userRepository.save(user);
 			userSocialAccountRepository.deleteAllByUser_Id(userId);
 		});
+	}
+
+	@Override
+	public void deleteProfileImage(UUID userId) {
+		User user = getUser(userId, "User not found.");
+		deleteProfileImage(user);
+	}
+
+	private void deleteProfileImage(User user) {
+		String profileImageUrl = user.getProfileImageUrl();
+
+		user.clearProfileImage();
+		userRepository.save(user);
+
+		if (profileImageUrl != null && !profileImageUrl.isBlank()) {
+			deleteProfileImageAsync(profileImageUrl);
+		}
+	}
+
+	@Async
+	private void deleteProfileImageAsync(String imageUrl) {
+		try {
+			deleteProfileImageFromS3(imageUrl);
+		} catch (Exception e) {
+			log.error("Failed to delete S3 image asynchronously: {}", imageUrl, e);
+		}
+	}
+
+	private void deleteProfileImageFromS3(String imageUrl) {
+		String key = extractS3KeyFromUrl(imageUrl);
+
+		if (key == null || key.isBlank()) {
+			log.warn("Failed to extract S3 key from URL: {}", imageUrl);
+			throw new BusinessException(ErrorCode.INTERNAL_ERROR,
+				"Invalid S3 image URL format: " + imageUrl);
+		}
+
+		s3Client.deleteObject(builder -> builder
+			.bucket(s3Properties.bucket())
+			.key(key)
+			.build());
+
+		log.debug("Deleted S3 object: {}/{}", s3Properties.bucket(), key);
+	}
+
+	private String extractS3KeyFromUrl(String imageUrl) {
+		String prefix = buildS3UrlPrefix();
+		if (imageUrl != null && imageUrl.startsWith(prefix)) {
+			return imageUrl.substring(prefix.length());
+		}
+		return null;
+	}
+
+	private String buildS3UrlPrefix() {
+		return "https://" + s3Properties.bucket() + ".s3." + s3Properties.region() + ".amazonaws.com/";
+	}
+
+	public void deleteExpiredDeletedUsers() {
+		Instant thirtyDaysAgo = Instant.now().minus(30, ChronoUnit.DAYS);
+		List<User> expiredUsers = userRepository.findByStatusAndDeletedAtBefore(
+			UserStatus.DELETED, thirtyDaysAgo);
+
+		if (expiredUsers.isEmpty()) {
+			log.debug("No expired deleted users found");
+			return;
+		}
+
+		log.info("Found {} users to permanently delete (deleted 30+ days ago)", expiredUsers.size());
+
+		for (User user : expiredUsers) {
+			try {
+				permanentlyDeleteUser(user);
+			} catch (Exception e) {
+				log.error("Error permanently deleting user {}: {}", user.getId(), e.getMessage(), e);
+			}
+		}
+
+		log.info("Permanently deleted {} users", expiredUsers.size());
+	}
+
+	@Transactional
+	private void permanentlyDeleteUser(User user) {
+		UUID userId = user.getId();
+
+		fcmTokenRepository.deleteAllByUser_Id(userId);
+		notificationRepository.deleteAllByUser_Id(userId);
+
+		userRepository.delete(user);
+		log.debug("Permanently deleted user: {}", userId);
 	}
 
 	private int safeCastToInt(long value) {
