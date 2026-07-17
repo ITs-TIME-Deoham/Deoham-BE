@@ -79,6 +79,9 @@ public class User extends BaseEntity {
     @Column(name = "has_seen_card_view_onboarding", nullable = false)
     private boolean hasSeenCardViewOnboarding = false;
 
+    @Column(name = "onboarding_completed", nullable = false)
+    private boolean onboardingCompleted = false;
+
     @Builder
     private User(String firebaseUid, String nickname, String profileImageUrl, GenderType gender, Integer age) {
         this.firebaseUid = firebaseUid != null ? firebaseUid : UUID.randomUUID().toString();
@@ -143,6 +146,10 @@ public class User extends BaseEntity {
 
     public void markCardViewOnboardingSeen() {
         this.hasSeenCardViewOnboarding = true;
+    }
+
+    public void completeOnboarding() {
+        this.onboardingCompleted = true;
     }
 
     public void clearProfileImage() {

@@ -73,6 +73,9 @@ public class UserWriteServiceImpl implements UserWriteService {
         }
 
         user.updateProfile(nickname, profileImageUrl);
+        if (nickname != null) {
+            user.completeOnboarding();
+        }
         return userRepository.save(user);
     }
 

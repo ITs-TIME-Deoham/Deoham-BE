@@ -80,9 +80,8 @@ public class AuthService {
 				.findByProviderAndProviderUid(OauthProvider.KAKAO, kakaoId)
 				.orElse(null);
 
-		boolean isNewUser = socialAccount == null;
 		User user;
-		if (isNewUser) {
+		if (socialAccount == null) {
 			user = userRepository.save(User.builder()
 					.nickname(generateDefaultNickname(kakaoId))
 					.gender(parseGender(userInfo.gender()))
@@ -111,12 +110,17 @@ public class AuthService {
 				refreshToken,
 				Instant.now().plusSeconds(jwtProperties.refreshTokenExpirySeconds()));
 
+		// "신규 사용자"는 레코드가 방금 생성됐는지가 아니라 온보딩(닉네임 설정)을 마쳤는지로 판단한다.
+		// 콜백에서 User/UserSocialAccount는 즉시 저장되므로, 닉네임 설정 없이 이탈 후 재로그인해도
+		// 온보딩이 미완료면 계속 신규 사용자로 안내한다.
+		boolean needsOnboarding = !user.isOnboardingCompleted();
+
 		return new KakaoCallbackResponse(
 				accessToken,
 				refreshToken,
 				"Bearer",
 				jwtProperties.accessTokenExpirySeconds(),
-				isNewUser);
+				needsOnboarding);
 	}
 
 	@Transactional
