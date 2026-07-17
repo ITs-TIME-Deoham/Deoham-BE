@@ -25,6 +25,12 @@ server:
   forward-headers-strategy: framework
   compression:
     enabled: true
+  tomcat:
+    max-post-size: 52428800
+  servlet:
+    multipart:
+      max-file-size: 50MB
+      max-request-size: 50MB
 
 management:
   endpoints:

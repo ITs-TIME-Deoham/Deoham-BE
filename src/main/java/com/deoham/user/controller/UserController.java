@@ -94,6 +94,14 @@ public class UserController implements UserControllerDocs {
 	}
 
 	@Override
+	@DeleteMapping("/profile")
+	@MetricEndpoint("user.profile.image.delete")
+	public ResponseEntity<Void> deleteProfileImage(Authentication authentication) {
+		userWriteService.deleteProfileImage(AuthenticationUtils.requiredUserId(authentication));
+		return ResponseEntity.noContent().build();
+	}
+
+	@Override
 	@DeleteMapping
 	@MetricEndpoint("user.delete")
 	public ResponseEntity<Void> deleteUser(Authentication authentication) {

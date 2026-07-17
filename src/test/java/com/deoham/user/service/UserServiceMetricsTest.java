@@ -4,6 +4,8 @@ import com.deoham.global.config.S3Properties;
 import com.deoham.global.exception.BusinessException;
 import com.deoham.global.exception.ErrorCode;
 import com.deoham.global.metrics.MetricsRegistry;
+import com.deoham.notification.repository.FcmTokenRepository;
+import com.deoham.notification.repository.NotificationRepository;
 import com.deoham.user.entity.User;
 import com.deoham.user.repository.UserRepository;
 import com.deoham.user.repository.UserSocialAccountRepository;
@@ -41,6 +43,8 @@ class UserServiceMetricsTest {
   @Mock private UserSocialAccountRepository userSocialAccountRepository;
   @Mock private CardRepository cardRepository;
   @Mock private CardApplyRepository cardApplyRepository;
+  @Mock private FcmTokenRepository fcmTokenRepository;
+  @Mock private NotificationRepository notificationRepository;
   @Mock private S3Client s3Client;
   @Mock private S3Properties s3Properties;
 
@@ -55,6 +59,8 @@ class UserServiceMetricsTest {
             cardRepository,
             cardApplyRepository,
             userSocialAccountRepository,
+            fcmTokenRepository,
+            notificationRepository,
             metricsRegistry,
             s3Client,
             s3Properties);
