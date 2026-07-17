@@ -1,5 +1,6 @@
 package com.deoham.notification.service;
 
+import com.deoham.card.entity.CardApply;
 import com.deoham.chat.entity.ChatMessage;
 import com.deoham.chat.entity.ChatMessageType;
 import com.deoham.notification.entity.Notification;
@@ -29,6 +30,28 @@ public class NotificationService {
                 .referenceId(chatMessage.getId())
                 .message(preview)
                 .build()));
+    }
+
+    @Transactional
+    public void notifyCardApplied(CardApply apply) {
+        String preview = apply.getApplicant().getNickname() + "님이 회원님의 카드에 지원했습니다";
+        notificationRepository.save(Notification.builder()
+                .user(apply.getCard().getRequester())
+                .type(NotifyType.CARD_APPLIED)
+                .referenceId(apply.getId())
+                .message(preview)
+                .build());
+    }
+
+    @Transactional
+    public void notifyMatchAccepted(CardApply apply) {
+        String preview = apply.getCard().getRequester().getNickname() + "님과 매칭되었습니다";
+        notificationRepository.save(Notification.builder()
+                .user(apply.getApplicant())
+                .type(NotifyType.MATCH_ACCEPTED)
+                .referenceId(apply.getId())
+                .message(preview)
+                .build());
     }
 
     private String buildPreviewText(ChatMessage chatMessage) {

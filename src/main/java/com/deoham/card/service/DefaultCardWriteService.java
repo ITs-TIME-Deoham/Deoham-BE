@@ -12,6 +12,7 @@ import com.deoham.card.repository.CardRepository;
 import com.deoham.global.exception.BusinessException;
 import com.deoham.global.exception.ErrorCode;
 import com.deoham.global.metrics.MetricsRegistry;
+import com.deoham.notification.service.NotificationService;
 import com.deoham.user.entity.User;
 import com.deoham.user.repository.UserRepository;
 import com.deoham.user.service.UserWriteService;
@@ -38,6 +39,7 @@ public class DefaultCardWriteService implements CardWriteService {
     private final UserRepository userRepository;
     private final UserWriteService userWriteService;
     private final MetricsRegistry metricsRegistry;
+    private final NotificationService notificationService;
 
     @Override
     @Transactional
@@ -152,9 +154,11 @@ public class DefaultCardWriteService implements CardWriteService {
                 .build();
 
         cardApplyRepository.save(apply);
+        notificationService.notifyCardApplied(apply);
 
         apply.accept();
         card.updateStatus(CardStatus.MATCHED);
+        notificationService.notifyMatchAccepted(apply);
 
         return new CardApplySummaryResponse(
                 apply.getId(),
