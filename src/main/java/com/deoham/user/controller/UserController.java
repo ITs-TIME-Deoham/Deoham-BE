@@ -239,6 +239,34 @@ public class UserController {
 		return ResponseEntity.noContent().build();
 	}
 
+	@DeleteMapping("/profile")
+	@Operation(
+			summary = "프로필 이미지 삭제",
+			description = "현재 로그인한 사용자의 프로필 이미지를 삭제합니다."
+	)
+	@ApiResponses({
+			@io.swagger.v3.oas.annotations.responses.ApiResponse(
+					responseCode = "204",
+					description = "프로필 이미지 삭제 성공",
+					content = @Content
+			),
+			@io.swagger.v3.oas.annotations.responses.ApiResponse(
+					responseCode = "401",
+					description = "인증 필요",
+					content = @Content
+			),
+			@io.swagger.v3.oas.annotations.responses.ApiResponse(
+					responseCode = "404",
+					description = "사용자 정보를 찾을 수 없음",
+					content = @Content
+			)
+	})
+	@MetricEndpoint("user.profile.image.delete")
+	public ResponseEntity<Void> deleteProfileImage(Authentication authentication) {
+		userWriteService.deleteProfileImage(AuthenticationUtils.requiredUserId(authentication));
+		return ResponseEntity.noContent().build();
+	}
+
 	@DeleteMapping
 	@Operation(
 			summary = "회원 탈퇴",

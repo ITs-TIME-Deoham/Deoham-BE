@@ -144,4 +144,8 @@ public class User extends BaseEntity {
     public void markCardViewOnboardingSeen() {
         this.hasSeenCardViewOnboarding = true;
     }
+
+    public void clearProfileImage() {
+        this.profileImageUrl = null;
+    }
 }
