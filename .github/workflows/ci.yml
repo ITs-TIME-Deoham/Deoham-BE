@@ -235,7 +235,8 @@ jobs:
           # 인증서가 이미 있으면 HTTPS 서버 블록을 기동 전에 활성화한다.
           # (인증서 없이 ssl.conf 가 conf.d 에 있으면 nginx 기동 실패 → 최초 발급 전에는 HTTP-only 로 기동)
           echo "=== Enable HTTPS config if certificate exists ==="
-          if docker compose run --rm --entrypoint sh certbot -c 'test -e /etc/letsencrypt/live/piec.store/fullchain.pem' 2>/dev/null; then
+          # </dev/null 필수 — docker compose run 이 stdin 을 attach 하면 heredoc 의 나머지 스크립트를 삼켜버린다
+          if docker compose run --rm --entrypoint sh certbot -c 'test -e /etc/letsencrypt/live/piec.store/fullchain.pem' </dev/null 2>/dev/null; then
             cp nginx/ssl.conf nginx/conf.d/ssl.conf
             echo "✓ Existing certificate found — ssl.conf enabled"
           else
@@ -345,9 +346,9 @@ jobs:
 
             if docker compose run --rm certbot certonly --webroot -w /var/www/certbot \
                  -d piec.store -d www.piec.store \
-                 --email toosee1005@gmail.com --agree-tos --no-eff-email --non-interactive; then
+                 --email toosee1005@gmail.com --agree-tos --no-eff-email --non-interactive </dev/null; then
               cp nginx/ssl.conf nginx/conf.d/ssl.conf
-              docker compose exec -T nginx nginx -s reload
+              docker compose exec -T nginx nginx -s reload </dev/null
               echo "✓ Certificate issued & HTTPS enabled"
             else
               # 발급 실패(LE rate limit 등)로 배포 전체를 실패시키지는 않는다 — HTTP 로는 계속 서비스
