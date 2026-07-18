@@ -32,6 +32,9 @@ public class UserSocialAccount {
     @Column(name = "id", nullable = false, updatable = false)
     private UUID id;
 
+    @Column(name = "user_id", nullable = false, updatable = false, insertable = false)
+    private UUID userId;
+
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "user_id", nullable = false, updatable = false)
     private User user;

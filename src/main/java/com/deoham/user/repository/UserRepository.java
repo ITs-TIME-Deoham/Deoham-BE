@@ -17,6 +17,9 @@ public interface UserRepository extends JpaRepository<User, UUID> {
 
     boolean existsByNickname(String nickname);
 
+    @Query(value = "SELECT * FROM users WHERE id = :userId", nativeQuery = true)
+    Optional<User> findByIdIncludeDeleted(@Param("userId") UUID userId);
+
     @Query("SELECT u.hasSeenCardViewOnboarding FROM User u WHERE u.id = :userId")
     boolean hasSeenCardViewOnboarding(@Param("userId") UUID userId);
 
