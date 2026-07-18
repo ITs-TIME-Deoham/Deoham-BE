@@ -109,6 +109,7 @@ public class AuthService {
 				null,
 				refreshToken,
 				Instant.now().plusSeconds(jwtProperties.refreshTokenExpirySeconds()));
+		userSocialAccountRepository.save(socialAccount);
 
 		// "신규 사용자"는 레코드가 방금 생성됐는지가 아니라 온보딩(닉네임 설정)을 마쳤는지로 판단한다.
 		// 콜백에서 User/UserSocialAccount는 즉시 저장되므로, 닉네임 설정 없이 이탈 후 재로그인해도
@@ -190,7 +191,7 @@ public class AuthService {
 		String base = "kakao_" + kakaoId;
 		if (!userRepository.existsByNickname(base)) {
 			return base;
-		}
+		} 
 		for (int suffix = 1; suffix < 1000; suffix++) {
 			String candidate = base + "_" + suffix;
 			if (!userRepository.existsByNickname(candidate)) {

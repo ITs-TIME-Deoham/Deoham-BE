@@ -24,6 +24,6 @@ public interface UserRepository extends JpaRepository<User, UUID> {
     @Query("UPDATE User u SET u.hasSeenCardViewOnboarding = true WHERE u.id = :userId")
     void markCardViewOnboardingSeen(@Param("userId") UUID userId);
 
-    @Query("SELECT u FROM User u WHERE u.status = :status AND u.deletedAt < :deletedBefore")
-    List<User> findByStatusAndDeletedAtBefore(@Param("status") UserStatus status, @Param("deletedBefore") Instant deletedBefore);
+    @Query(value = "SELECT * FROM users WHERE status = :status AND deleted_at < :deletedBefore", nativeQuery = true)
+    List<User> findByStatusAndDeletedAtBefore(@Param("status") String status, @Param("deletedBefore") Instant deletedBefore);
 }

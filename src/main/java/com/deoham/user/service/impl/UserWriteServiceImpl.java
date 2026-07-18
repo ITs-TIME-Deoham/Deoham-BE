@@ -203,7 +203,7 @@ public class UserWriteServiceImpl implements UserWriteService {
 	public void deleteExpiredDeletedUsers() {
 		Instant thirtyDaysAgo = Instant.now().minus(30, ChronoUnit.DAYS);
 		List<User> expiredUsers = userRepository.findByStatusAndDeletedAtBefore(
-			UserStatus.DELETED, thirtyDaysAgo);
+			UserStatus.DELETED.name(), thirtyDaysAgo);
 
 		if (expiredUsers.isEmpty()) {
 			log.debug("No expired deleted users found");
