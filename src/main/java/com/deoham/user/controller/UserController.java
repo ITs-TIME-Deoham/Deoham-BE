@@ -49,14 +49,8 @@ public class UserController implements UserControllerDocs {
 			@RequestPart(name = "request", required = false) String requestJson,
 			@RequestPart(name = "profileImage", required = false) MultipartFile profileImage
 	) throws Exception {
-		ProfileUpdateRequest request = null;
-		if (requestJson != null && !requestJson.isBlank()) {
-			request = objectMapper.readValue(requestJson, ProfileUpdateRequest.class);
-		}
-
-		if (request == null && (profileImage == null || profileImage.isEmpty())) {
-			throw new BusinessException(ErrorCode.INVALID_REQUEST, "닉네임 또는 프로필 이미지 중 최소 하나는 필수입니다");
-		}
+		ProfileUpdateRequest request = parseProfileRequest(requestJson);
+		validateProfileUpdateRequest(request, profileImage);
 
 		String nickname = request != null ? request.nickname() : null;
 		var updatedUser = userWriteService.updateProfile(
@@ -75,14 +69,8 @@ public class UserController implements UserControllerDocs {
 			@RequestPart(name = "request", required = false) String requestJson,
 			@RequestPart(name = "profileImage", required = false) MultipartFile profileImage
 	) throws Exception {
-		ProfileUpdateRequest request = null;
-		if (requestJson != null && !requestJson.isBlank()) {
-			request = objectMapper.readValue(requestJson, ProfileUpdateRequest.class);
-		}
-
-		if (request == null && (profileImage == null || profileImage.isEmpty())) {
-			throw new BusinessException(ErrorCode.INVALID_REQUEST, "닉네임 또는 프로필 이미지 중 최소 하나는 필수입니다");
-		}
+		ProfileUpdateRequest request = parseProfileRequest(requestJson);
+		validateProfileUpdateRequest(request, profileImage);
 
 		String nickname = request != null ? request.nickname() : null;
 		userWriteService.updateProfile(
@@ -91,6 +79,19 @@ public class UserController implements UserControllerDocs {
 				profileImage
 		);
 		return ResponseEntity.noContent().build();
+	}
+
+	private ProfileUpdateRequest parseProfileRequest(String requestJson) throws Exception {
+		if (requestJson == null || requestJson.isBlank()) {
+			return null;
+		}
+		return objectMapper.readValue(requestJson, ProfileUpdateRequest.class);
+	}
+
+	private void validateProfileUpdateRequest(ProfileUpdateRequest request, MultipartFile profileImage) {
+		if (request == null && (profileImage == null || profileImage.isEmpty())) {
+			throw new BusinessException(ErrorCode.INVALID_REQUEST, "닉네임 또는 프로필 이미지 중 최소 하나는 필수입니다");
+		}
 	}
 
 	@Override

@@ -138,6 +138,7 @@ public class User extends BaseEntity {
     public void reactivate() {
         this.status = UserStatus.ACTIVE;
         this.deletedAt = null;
+        // 닉네임 등 모든 프로필 정보는 유지됨
     }
 
     public void markCardCreated() {

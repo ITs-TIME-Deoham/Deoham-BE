@@ -122,6 +122,39 @@ class AuthServiceOnboardingTest {
 		assertThat(response.isNewUser()).isFalse();
 	}
 
+	@Test
+	@DisplayName("탈퇴 회원 재로그인 시 계정 복구 및 온보딩 상태 유지")
+	void reLogin_deletedUser_reactivatesAndKeepsOnboardingStatus() {
+		User deletedAndOnboarded = User.builder()
+				.nickname("이전닉네임")
+				.gender(GenderType.MALE)
+				.age(30)
+				.build();
+		deletedAndOnboarded.completeOnboarding();
+		deletedAndOnboarded.delete();  // 탈퇴 처리
+
+		UserSocialAccount socialAccount = UserSocialAccount.builder()
+				.user(deletedAndOnboarded)
+				.provider(OauthProvider.KAKAO)
+				.providerUid(KAKAO_ID.toString())
+				.providerEmail("user@example.com")
+				.build();
+		when(userSocialAccountRepository.findByProviderAndProviderUid(OauthProvider.KAKAO, KAKAO_ID.toString()))
+				.thenReturn(Optional.of(socialAccount));
+		when(userSocialAccountRepository.save(any(UserSocialAccount.class)))
+				.thenAnswer(inv -> inv.getArgument(0));
+
+		KakaoCallbackResponse response = authService.kakaoLogin(CODE, STATE);
+
+		// 탈퇴된 사용자가 복구됨
+		assertThat(deletedAndOnboarded.getDeletedAt()).isNull();
+		assertThat(deletedAndOnboarded.getStatus().name()).isEqualTo("ACTIVE");
+		// 온보딩 상태는 유지됨
+		assertThat(response.isNewUser()).isFalse();
+		// 닉네임은 유지됨
+		assertThat(deletedAndOnboarded.getNickname()).isEqualTo("이전닉네임");
+	}
+
 	private void mockExistingSocialAccount(User user) {
 		UserSocialAccount socialAccount = UserSocialAccount.builder()
 				.user(user)
