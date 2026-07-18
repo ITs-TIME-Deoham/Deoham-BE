@@ -162,8 +162,8 @@ services:
       - "3001:3000"
     environment:
       # 기본 관리자 계정
-      GF_SECURITY_ADMIN_USER: ${GRAFANA_ADMIN_USER:-admin}
-      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD:-admin}
+      GF_SECURITY_ADMIN_USER: ${GRAFANA_ADMIN_USER:-ondo}
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD:-ondo}
       # 프록시 최적화
       GF_DATAPROXY_TIMEOUT: 10s
       GF_DATAPROXY_DIALTIEMOUT: 10s
@@ -175,6 +175,7 @@ services:
       GF_AUTH_GITHUB_AUTH_URL: "https://github.com/login/oauth/authorize"
       GF_AUTH_GITHUB_TOKEN_URL: "https://github.com/login/oauth/access_token"
       GF_AUTH_GITHUB_API_URL: "https://api.github.com/user"
+      GF_AUTH_GITHUB_OAUTH_REDIRECT_URI: ${GRAFANA_OAUTH_REDIRECT_URI}
       GF_USERS_ALLOW_SIGN_UP: "false"
     volumes:
       - deoham_grafana_data:/var/lib/grafana

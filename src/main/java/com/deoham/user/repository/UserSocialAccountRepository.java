@@ -11,8 +11,8 @@ import org.springframework.data.repository.query.Param;
 
 public interface UserSocialAccountRepository extends JpaRepository<UserSocialAccount, UUID> {
 
-	@Query("SELECT sa FROM UserSocialAccount sa LEFT JOIN FETCH sa.user WHERE sa.provider = :provider AND sa.providerUid = :providerUid")
-	Optional<UserSocialAccount> findByProviderAndProviderUid(@Param("provider") OauthProvider provider, @Param("providerUid") String providerUid);
+	@Query(value = "SELECT sa.id, sa.user_id, sa.provider, sa.provider_uid, sa.provider_email, sa.access_token, sa.refresh_token, sa.token_expires_at, sa.created_at, sa.updated_at FROM user_social_accounts sa WHERE sa.provider = CAST(:provider AS oauth_provider) AND sa.provider_uid = :providerUid", nativeQuery = true)
+	Optional<UserSocialAccount> findByProviderAndProviderUid(@Param("provider") String provider, @Param("providerUid") String providerUid);
 
 	Optional<UserSocialAccount> findByRefreshToken(String refreshToken);
 

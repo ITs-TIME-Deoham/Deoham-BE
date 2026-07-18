@@ -77,7 +77,7 @@ public class AuthService {
 		String kakaoId = userInfo.id().toString();
 
 		UserSocialAccount socialAccount = userSocialAccountRepository
-				.findByProviderAndProviderUid(OauthProvider.KAKAO, kakaoId)
+				.findByProviderAndProviderUid(OauthProvider.KAKAO.name(), kakaoId)
 				.orElse(null);
 
 		User user;
@@ -95,7 +95,8 @@ public class AuthService {
 					.providerEmail(userInfo.email())
 					.build());
 		} else {
-			user = socialAccount.getUser();
+			user = userRepository.findByIdIncludeDeleted(socialAccount.getUserId())
+					.orElseThrow(() -> new BusinessException(ErrorCode.NOT_FOUND, "User not found"));
 			if (user.getDeletedAt() != null) {
 				user.reactivate();
 			}
