@@ -9,6 +9,7 @@ import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.condition.EnabledIfEnvironmentVariable;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Import;
@@ -22,6 +23,9 @@ import static org.assertj.core.api.Assertions.assertThat;
 @Import(TestcontainersConfiguration.class)
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @DisplayName("UserWriteService S3 통합 테스트 (실제 AWS)")
+@EnabledIfEnvironmentVariable(named = "AWS_S3_REAL_TEST", matches = "true")
+// 실제 AWS S3 버킷(ondo-2026-itstime)에 접근하는 통합 테스트 — CI 러너에는 자격증명이
+// 없어 기본적으로 스킵된다. 로컬에서 실제 AWS 자격증명이 있을 때 AWS_S3_REAL_TEST=true 로 실행.
 class UserWriteServiceS3Test {
 
 	private static final String TEST_JWT_SECRET = "test-jwt-secret-key-for-s3-integration-tests-minimum-32!";

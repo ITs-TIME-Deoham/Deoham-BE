@@ -11,7 +11,8 @@ public record NotificationResponse(
         String message,
         boolean isRead,
         Instant createdAt,
-        UUID referenceId
+        UUID referenceId,
+        UUID targetId
 ) {
     public static NotificationResponse from(Notification notification) {
         return new NotificationResponse(
@@ -20,7 +21,8 @@ public record NotificationResponse(
                 notification.getMessage(),
                 notification.isRead(),
                 notification.getCreatedAt(),
-                notification.getReferenceId()
+                notification.getReferenceId(),
+                notification.getTargetId()
         );
     }
 }
