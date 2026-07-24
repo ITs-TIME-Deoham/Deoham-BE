@@ -54,7 +54,7 @@ public class GeminiTranslationProvider implements TranslationProvider {
 		}
 
 		String modelVersion = response.modelVersion() != null ? response.modelVersion() : properties.model();
-		return new TranslationResult(translatedText.trim(), modelVersion);
+		return new TranslationResult(translatedText.trim(), PROVIDER_NAME, modelVersion);
 	}
 
 	@Override

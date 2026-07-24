@@ -40,7 +40,7 @@ public class ChatTranslationService {
                 .chatMessage(message)
                 .targetLanguage(targetLanguage)
                 .translatedText(result.translatedText())
-                .providerName(translationProvider.getProviderName())
+                .providerName(result.providerName())
                 .modelVersion(result.modelVersion())
                 .build());
 

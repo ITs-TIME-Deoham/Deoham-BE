@@ -7,7 +7,6 @@ import java.util.Locale;
 import java.util.Set;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Qualifier;
-import org.springframework.context.annotation.Primary;
 import org.springframework.context.annotation.Profile;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Component;
@@ -15,7 +14,6 @@ import org.springframework.web.client.RestClient;
 import org.springframework.web.client.RestClientResponseException;
 
 @Slf4j
-@Primary
 @Profile("!test")
 @Component
 public class DeepLTranslationProvider implements TranslationProvider {
@@ -67,7 +65,7 @@ public class DeepLTranslationProvider implements TranslationProvider {
 			throw new BusinessException(ErrorCode.INTERNAL_ERROR, "번역 결과를 받지 못했습니다.");
 		}
 
-		return new TranslationResult(translatedText.trim(), PROVIDER_NAME);
+		return new TranslationResult(translatedText.trim(), PROVIDER_NAME, PROVIDER_NAME);
 	}
 
 	/**
