@@ -79,7 +79,7 @@ class AuthServiceOnboardingTest {
 	@Test
 	@DisplayName("최초 로그인(소셜 계정 없음)이면 isNewUser=true")
 	void firstLogin_returnsNewUser() {
-		when(userSocialAccountRepository.findByProviderAndProviderUid(OauthProvider.KAKAO, KAKAO_ID.toString()))
+		when(userSocialAccountRepository.findByProviderAndProviderUid(OauthProvider.KAKAO.name(), KAKAO_ID.toString()))
 				.thenReturn(Optional.empty());
 		when(userRepository.existsByNickname(any())).thenReturn(false);
 		when(userRepository.save(any(User.class))).thenAnswer(inv -> inv.getArgument(0));
@@ -139,8 +139,9 @@ class AuthServiceOnboardingTest {
 				.providerUid(KAKAO_ID.toString())
 				.providerEmail("user@example.com")
 				.build();
-		when(userSocialAccountRepository.findByProviderAndProviderUid(OauthProvider.KAKAO, KAKAO_ID.toString()))
+		when(userSocialAccountRepository.findByProviderAndProviderUid(OauthProvider.KAKAO.name(), KAKAO_ID.toString()))
 				.thenReturn(Optional.of(socialAccount));
+		when(userRepository.findByIdIncludeDeleted(any())).thenReturn(Optional.of(deletedAndOnboarded));
 		when(userSocialAccountRepository.save(any(UserSocialAccount.class)))
 				.thenAnswer(inv -> inv.getArgument(0));
 
@@ -162,7 +163,8 @@ class AuthServiceOnboardingTest {
 				.providerUid(KAKAO_ID.toString())
 				.providerEmail("user@example.com")
 				.build();
-		when(userSocialAccountRepository.findByProviderAndProviderUid(OauthProvider.KAKAO, KAKAO_ID.toString()))
+		when(userSocialAccountRepository.findByProviderAndProviderUid(OauthProvider.KAKAO.name(), KAKAO_ID.toString()))
 				.thenReturn(Optional.of(socialAccount));
+		when(userRepository.findByIdIncludeDeleted(any())).thenReturn(Optional.of(user));
 	}
 }

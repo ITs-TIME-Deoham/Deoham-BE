@@ -28,6 +28,7 @@ public class NotificationService {
                 .user(recipient)
                 .type(NotifyType.CHAT_MESSAGE)
                 .referenceId(chatMessage.getId())
+                .targetId(chatMessage.getChatRoom().getId())
                 .message(preview)
                 .build()));
     }
@@ -39,6 +40,7 @@ public class NotificationService {
                 .user(apply.getCard().getRequester())
                 .type(NotifyType.CARD_APPLIED)
                 .referenceId(apply.getId())
+                .targetId(apply.getCard().getId())
                 .message(preview)
                 .build());
     }
@@ -50,6 +52,7 @@ public class NotificationService {
                 .user(apply.getApplicant())
                 .type(NotifyType.MATCH_ACCEPTED)
                 .referenceId(apply.getId())
+                .targetId(apply.getCard().getId())
                 .message(preview)
                 .build());
     }
