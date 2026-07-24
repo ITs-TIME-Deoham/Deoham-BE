@@ -7,6 +7,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Component;
+import org.springframework.util.StringUtils;
 import org.springframework.web.client.RestClient;
 import org.springframework.web.client.RestClientResponseException;
 
@@ -48,7 +49,7 @@ public class GeminiTranslationProvider implements TranslationProvider {
 		}
 
 		String translatedText = response != null ? response.firstText() : null;
-		if (translatedText == null || translatedText.isBlank()) {
+		if (!StringUtils.hasText(translatedText)) {
 			log.warn("Gemini returned no translation candidates for target language {}", targetLanguage);
 			throw new BusinessException(ErrorCode.INTERNAL_ERROR, "번역 결과를 받지 못했습니다.");
 		}
