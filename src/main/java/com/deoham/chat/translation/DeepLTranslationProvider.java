@@ -7,15 +7,15 @@ import java.util.Locale;
 import java.util.Set;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Qualifier;
-import org.springframework.context.annotation.Primary;
 import org.springframework.context.annotation.Profile;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Component;
+import org.springframework.util.StringUtils;
 import org.springframework.web.client.RestClient;
 import org.springframework.web.client.RestClientResponseException;
 
 @Slf4j
-@Primary
 @Profile("!test")
 @Component
 public class DeepLTranslationProvider implements TranslationProvider {
@@ -54,7 +54,7 @@ public class DeepLTranslationProvider implements TranslationProvider {
 			log.warn("DeepL translation request failed. targetLang={} (원본 {}), Status: {}, Response: {}",
 					targetLang, targetLanguage, e.getStatusCode(), e.getResponseBodyAsString());
 			// 400 = target_lang 미지원 등 클라이언트 입력 문제 → 인증/서버 오류(401/403/456/5xx)와 구분
-			if (e.getStatusCode().value() == 400) {
+			if (e.getStatusCode().equals(HttpStatus.BAD_REQUEST)) {
 				throw new BusinessException(ErrorCode.INVALID_REQUEST,
 						"지원하지 않는 번역 대상 언어입니다: " + targetLanguage);
 			}
@@ -62,12 +62,12 @@ public class DeepLTranslationProvider implements TranslationProvider {
 		}
 
 		String translatedText = response != null ? response.firstText() : null;
-		if (translatedText == null || translatedText.isBlank()) {
+		if (!StringUtils.hasText(translatedText)) {
 			log.warn("DeepL returned no translation for target language {}", targetLang);
 			throw new BusinessException(ErrorCode.INTERNAL_ERROR, "번역 결과를 받지 못했습니다.");
 		}
 
-		return new TranslationResult(translatedText.trim(), PROVIDER_NAME);
+		return new TranslationResult(translatedText.trim(), PROVIDER_NAME, PROVIDER_NAME);
 	}
 
 	/**
