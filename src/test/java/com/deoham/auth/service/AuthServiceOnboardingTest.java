@@ -141,6 +141,7 @@ class AuthServiceOnboardingTest {
 				.build();
 		when(userSocialAccountRepository.findByProviderAndProviderUid(OauthProvider.KAKAO.name(), KAKAO_ID.toString()))
 				.thenReturn(Optional.of(socialAccount));
+		when(userRepository.findByIdIncludeDeleted(any())).thenReturn(Optional.of(deletedAndOnboarded));
 		when(userSocialAccountRepository.save(any(UserSocialAccount.class)))
 				.thenAnswer(inv -> inv.getArgument(0));
 
@@ -164,5 +165,6 @@ class AuthServiceOnboardingTest {
 				.build();
 		when(userSocialAccountRepository.findByProviderAndProviderUid(OauthProvider.KAKAO.name(), KAKAO_ID.toString()))
 				.thenReturn(Optional.of(socialAccount));
+		when(userRepository.findByIdIncludeDeleted(any())).thenReturn(Optional.of(user));
 	}
 }
