@@ -6,7 +6,7 @@ import com.deoham.chat.entity.ChatMessageTranslation;
 import com.deoham.chat.entity.ChatMessageType;
 import com.deoham.chat.repository.ChatMessageTranslationRepository;
 import com.deoham.chat.translation.TranslationProvider;
-import com.deoham.chat.translation.TranslationResult;
+import com.deoham.chat.translation.dto.TranslationResult;
 import com.deoham.global.exception.BusinessException;
 import com.deoham.global.exception.ErrorCode;
 import java.util.Optional;
