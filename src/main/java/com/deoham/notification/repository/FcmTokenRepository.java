@@ -7,12 +7,24 @@ import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
+import java.util.Collection;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 public interface FcmTokenRepository extends JpaRepository<FcmToken, UUID> {
 
     List<FcmToken> findByUser(User user);
+
+    List<FcmToken> findByUser_Id(UUID userId);
+
+    Optional<FcmToken> findByToken(String token);
+
+    Optional<FcmToken> findByUser_IdAndDeviceId(UUID userId, String deviceId);
+
+    void deleteByToken(String token);
+
+    void deleteByTokenIn(Collection<String> tokens);
 
     @Modifying
     @Query("DELETE FROM FcmToken f WHERE f.user.id = :userId")
