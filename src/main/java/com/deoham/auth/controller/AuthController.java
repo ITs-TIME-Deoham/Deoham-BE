@@ -3,11 +3,15 @@ package com.deoham.auth.controller;
 import com.deoham.auth.controller.docs.AuthControllerDocs;
 import com.deoham.auth.dto.KakaoCallbackRequest;
 import com.deoham.auth.dto.KakaoCallbackResponse;
-import com.deoham.auth.dto.RefreshTokenRequest;
+import com.deoham.auth.dto.KakaoLoginResult;
 import com.deoham.auth.dto.TokenResponse;
 import com.deoham.auth.service.AuthService;
+import com.deoham.global.config.HttpOnlyAuthProperties;
 import com.deoham.global.metrics.MetricEndpoint;
 import com.deoham.global.response.ApiResponse;
+import com.deoham.global.security.CookieUtils;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -25,6 +29,7 @@ import org.springframework.web.bind.annotation.RestController;
 public class AuthController implements AuthControllerDocs {
 
 	private final AuthService authService;
+	private final HttpOnlyAuthProperties httpOnlyAuthProperties;
 
 	@Override
 	@GetMapping("/kakao")
@@ -38,26 +43,65 @@ public class AuthController implements AuthControllerDocs {
 	@Override
 	@PostMapping("/kakao/callback")
 	@MetricEndpoint("auth.kakao.callback")
-	public ResponseEntity<KakaoCallbackResponse> kakaoCallback(
-			@RequestBody @Valid KakaoCallbackRequest request
+	public ResponseEntity<ApiResponse<KakaoCallbackResponse>> kakaoCallback(
+			@RequestBody @Valid KakaoCallbackRequest request,
+			HttpServletResponse response
 	) {
-		return ResponseEntity.ok(authService.kakaoLogin(request.code(), request.state()));
+		KakaoLoginResult loginResult = authService.kakaoLogin(request.code(), request.state());
+
+		// refreshToken을 HttpOnly 쿠키로 설정
+		CookieUtils.setRefreshTokenCookie(
+				response,
+				loginResult.refreshToken(),
+				httpOnlyAuthProperties.secureCookie()
+		);
+
+		// accessToken은 Authorization 헤더에 담아서 반환
+		response.addHeader("Authorization", "Bearer " + loginResult.accessToken());
+
+		// Response body는 ApiResponse로 감싸서 반환 (CLAUDE.md 규칙 준수)
+		return ResponseEntity.ok(ApiResponse.ok(new KakaoCallbackResponse(loginResult.isNewUser())));
 	}
 
 	@Override
 	@PostMapping("/refresh")
 	@MetricEndpoint("auth.refresh")
-	public ResponseEntity<ApiResponse<TokenResponse>> refresh(
-			@RequestBody @Valid RefreshTokenRequest request
+	public ResponseEntity<ApiResponse<Void>> refresh(
+			HttpServletRequest request,
+			HttpServletResponse response
 	) {
-		return ResponseEntity.ok(ApiResponse.ok(authService.refresh(request.refreshToken())));
+		// 쿠키에서 refreshToken 자동 추출
+		String refreshToken = CookieUtils.getRefreshTokenFromCookie(request);
+
+		TokenResponse tokenResponse = authService.refresh(refreshToken);
+
+		// accessToken은 Authorization 헤더에만 담기
+		response.addHeader("Authorization", "Bearer " + tokenResponse.accessToken());
+
+		// 새로운 refreshToken이 있으면 쿠키에만 설정
+		if (tokenResponse.refreshToken() != null) {
+			CookieUtils.setRefreshTokenCookie(
+					response,
+					tokenResponse.refreshToken(),
+					httpOnlyAuthProperties.secureCookie()
+			);
+		}
+
+		return ResponseEntity.ok(ApiResponse.ok(null));
 	}
 
 	@Override
 	@PostMapping("/logout")
 	@MetricEndpoint("auth.logout")
-	public ResponseEntity<ApiResponse<Void>> logout(Authentication authentication) {
+	public ResponseEntity<ApiResponse<Void>> logout(
+			Authentication authentication,
+			HttpServletResponse response
+	) {
 		authService.logout(authentication);
+
+		// refreshToken 쿠키 삭제
+		CookieUtils.deleteRefreshTokenCookie(response, httpOnlyAuthProperties.secureCookie());
+
 		return ResponseEntity.ok(ApiResponse.ok(null));
 	}
 }
