@@ -7,7 +7,7 @@ import static org.mockito.Mockito.when;
 import com.deoham.auth.client.KakaoOAuthClient;
 import com.deoham.auth.client.KakaoTokenResponse;
 import com.deoham.auth.client.KakaoUserInfo;
-import com.deoham.auth.dto.KakaoCallbackResponse;
+import com.deoham.auth.dto.KakaoLoginResult;
 import com.deoham.auth.entity.OAuthState;
 import com.deoham.auth.repository.OAuthStateRepository;
 import com.deoham.global.config.KakaoOAuthProperties;
@@ -86,7 +86,7 @@ class AuthServiceOnboardingTest {
 		when(userSocialAccountRepository.save(any(UserSocialAccount.class)))
 				.thenAnswer(inv -> inv.getArgument(0));
 
-		KakaoCallbackResponse response = authService.kakaoLogin(CODE, STATE);
+		KakaoLoginResult response = authService.kakaoLogin(CODE, STATE);
 
 		assertThat(response.isNewUser()).isTrue();
 	}
@@ -101,7 +101,7 @@ class AuthServiceOnboardingTest {
 				.build();
 		mockExistingSocialAccount(notOnboarded);
 
-		KakaoCallbackResponse response = authService.kakaoLogin(CODE, STATE);
+		KakaoLoginResult response = authService.kakaoLogin(CODE, STATE);
 
 		assertThat(response.isNewUser()).isTrue();
 	}
@@ -117,7 +117,7 @@ class AuthServiceOnboardingTest {
 		onboarded.completeOnboarding();
 		mockExistingSocialAccount(onboarded);
 
-		KakaoCallbackResponse response = authService.kakaoLogin(CODE, STATE);
+		KakaoLoginResult response = authService.kakaoLogin(CODE, STATE);
 
 		assertThat(response.isNewUser()).isFalse();
 	}
@@ -145,7 +145,7 @@ class AuthServiceOnboardingTest {
 		when(userSocialAccountRepository.save(any(UserSocialAccount.class)))
 				.thenAnswer(inv -> inv.getArgument(0));
 
-		KakaoCallbackResponse response = authService.kakaoLogin(CODE, STATE);
+		KakaoLoginResult response = authService.kakaoLogin(CODE, STATE);
 
 		// 탈퇴된 사용자가 복구됨
 		assertThat(deletedAndOnboarded.getDeletedAt()).isNull();

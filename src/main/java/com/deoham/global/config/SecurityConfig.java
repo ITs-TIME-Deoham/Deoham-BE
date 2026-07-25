@@ -2,6 +2,7 @@ package com.deoham.global.config;
 
 import com.deoham.global.security.AppJwtAuthenticationConverter;
 import com.deoham.global.security.JwtProperties;
+import com.deoham.global.security.RefreshTokenFilter;
 import com.deoham.global.security.RestAccessDeniedHandler;
 import com.deoham.global.security.RestAuthenticationEntryPoint;
 import java.util.List;
@@ -25,6 +26,7 @@ import org.springframework.security.oauth2.jwt.JwtDecoder;
 import org.springframework.security.oauth2.jwt.JwtValidators;
 import org.springframework.security.oauth2.jwt.NimbusJwtDecoder;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
@@ -32,7 +34,7 @@ import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 @Configuration
 @EnableWebSecurity
 @EnableMethodSecurity
-@EnableConfigurationProperties({ JwtProperties.class, CorsProperties.class, KakaoOAuthProperties.class })
+@EnableConfigurationProperties({ JwtProperties.class, CorsProperties.class, KakaoOAuthProperties.class, HttpOnlyAuthProperties.class })
 @RequiredArgsConstructor
 public class SecurityConfig {
 
@@ -56,6 +58,7 @@ public class SecurityConfig {
 	private final CorsProperties corsProperties;
 	private final RestAuthenticationEntryPoint authenticationEntryPoint;
 	private final RestAccessDeniedHandler accessDeniedHandler;
+	private final RefreshTokenFilter refreshTokenFilter;
 
 	@Bean
 	public AppJwtAuthenticationConverter jwtAuthenticationConverter() {
@@ -106,8 +109,9 @@ public class SecurityConfig {
 		config.setAllowedOrigins(corsProperties.allowedOrigins());
 		config.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
 		config.setAllowedHeaders(List.of("*"));
-		config.setExposedHeaders(List.of("Location", "Content-Disposition"));
-		config.setAllowCredentials(true);
+		// Authorization 헤더 expose (accessToken을 response 헤더에서 읽을 수 있도록)
+		config.setExposedHeaders(List.of("Location", "Content-Disposition", "Authorization"));
+		config.setAllowCredentials(true); // HttpOnly 쿠키 전송을 위해 필수
 		config.setMaxAge(3600L);
 
 		UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();

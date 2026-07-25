@@ -4,6 +4,7 @@ import com.deoham.auth.client.KakaoOAuthClient;
 import com.deoham.auth.client.KakaoTokenResponse;
 import com.deoham.auth.client.KakaoUserInfo;
 import com.deoham.auth.dto.KakaoCallbackResponse;
+import com.deoham.auth.dto.KakaoLoginResult;
 import com.deoham.auth.dto.TokenResponse;
 import com.deoham.auth.entity.OAuthState;
 import com.deoham.auth.repository.OAuthStateRepository;
@@ -69,7 +70,7 @@ public class AuthService {
 	}
 
 	@Transactional
-	public KakaoCallbackResponse kakaoLogin(String code, String state) {
+	public KakaoLoginResult kakaoLogin(String code, String state) {
 		consumeOAuthState(state, OauthProvider.KAKAO);
 
 		KakaoTokenResponse kakaoToken = kakaoOAuthClient.exchangeCode(code);
@@ -117,16 +118,18 @@ public class AuthService {
 		// 온보딩이 미완료면 계속 신규 사용자로 안내한다.
 		boolean needsOnboarding = !user.isOnboardingCompleted();
 
-		return new KakaoCallbackResponse(
+		return new KakaoLoginResult(
 				accessToken,
 				refreshToken,
-				"Bearer",
-				jwtProperties.accessTokenExpirySeconds(),
 				needsOnboarding);
 	}
 
 	@Transactional
 	public TokenResponse refresh(String refreshToken) {
+		if (refreshToken == null || refreshToken.isBlank()) {
+			throw new BusinessException(ErrorCode.UNAUTHORIZED, "Refresh token is required.");
+		}
+
 		Jwt jwt;
 		try {
 			jwt = jwtTokenProvider.parseToken(refreshToken);
@@ -153,11 +156,21 @@ public class AuthService {
 		User user = socialAccount.getUser();
 		String newAccessToken = jwtTokenProvider.generateAccessToken(
 				user.getId(), socialAccount.getProviderEmail(), user.getRole().name());
-		String newRefreshToken = jwtTokenProvider.generateRefreshToken(user.getId());
-		socialAccount.updateTokens(
-				null,
-				newRefreshToken,
-				Instant.now().plusSeconds(jwtProperties.refreshTokenExpirySeconds()));
+
+		// refreshToken 만료 임박 시 (24시간 이내) 갱신, 아니면 기존 토큰 유지
+		String newRefreshToken = null;
+		Instant newTokenExpiresAt = socialAccount.getTokenExpiresAt();
+
+		Instant renewalThreshold = Instant.now().plusSeconds(24 * 60 * 60); // 24 hours
+		if (newTokenExpiresAt.isBefore(renewalThreshold)) {
+			// RefreshToken 갱신
+			newRefreshToken = jwtTokenProvider.generateRefreshToken(user.getId());
+			newTokenExpiresAt = Instant.now().plusSeconds(jwtProperties.refreshTokenExpirySeconds());
+		}
+
+		if (newRefreshToken != null) {
+			socialAccount.updateTokens(null, newRefreshToken, newTokenExpiresAt);
+		}
 
 		return new TokenResponse(
 				newAccessToken,
