@@ -42,7 +42,8 @@ public class FcmSender {
     public void handle(FcmPushEvent event) {
         FirebaseMessaging messaging = firebaseMessagingProvider.getIfAvailable();
         if (messaging == null) {
-            log.warn("FCM 비활성화 상태 - 푸시 스킵 [type={}, userId={}]", event.type(), event.recipientUserId());
+            // 비활성화는 기동 시 1회 WARN으로 이미 알렸으므로 이벤트별로는 debug (로그 도배 방지)
+            log.debug("FCM 비활성화 상태 - 푸시 스킵 [type={}, userId={}]", event.type(), event.recipientUserId());
             return;
         }
 
@@ -89,6 +90,9 @@ public class FcmSender {
             MessagingErrorCode errorCode = sendResponse.getException().getMessagingErrorCode();
             if (errorCode == MessagingErrorCode.UNREGISTERED || errorCode == MessagingErrorCode.INVALID_ARGUMENT) {
                 invalidTokens.add(tokenValues.get(i));
+            } else {
+                // 일시 오류(UNAVAILABLE/INTERNAL 등)는 토큰을 지우지 않는다 — 재시도 없이 유실되므로 사유를 남겨 진단 지원
+                log.debug("FCM 발송 실패(토큰 유지) [errorCode={}]", errorCode);
             }
         }
         if (!invalidTokens.isEmpty()) {
