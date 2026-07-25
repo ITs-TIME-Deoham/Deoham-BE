@@ -28,11 +28,14 @@ public class LiveLocationSessionRegistry {
     /** 해당 세션의 특정 구독이 해제된 경우에만 제거하고 반환한다. */
     public Optional<Entry> removeBySubscription(String sessionId, String subscriptionId) {
         Entry current = sessions.get(sessionId);
-        if (current != null && current.subscriptionId().equals(subscriptionId)
-                && sessions.remove(sessionId, current)) {
+        if (isSameSubscription(current, subscriptionId) && sessions.remove(sessionId, current)) {
             return Optional.of(current);
         }
         return Optional.empty();
+    }
+
+    private static boolean isSameSubscription(Entry entry, String subscriptionId) {
+        return entry != null && entry.subscriptionId().equals(subscriptionId);
     }
 
     /** 세션이 종료되면 등록 정보를 제거하고 반환한다. */

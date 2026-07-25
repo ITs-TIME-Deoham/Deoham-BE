@@ -27,6 +27,11 @@ server:
       enabled: true
       pattern: '%h %l %u %t "%r" %s %b %D'
 
+app:
+  auth:
+    httponly:
+      secure-cookie: true
+
 management:
   endpoints:
     web:

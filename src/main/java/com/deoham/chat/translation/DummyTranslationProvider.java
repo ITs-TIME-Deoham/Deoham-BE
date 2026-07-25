@@ -12,7 +12,7 @@ public class DummyTranslationProvider implements TranslationProvider {
 
     @Override
     public TranslationResult translate(String text, String targetLanguage) {
-        return new TranslationResult("[%s] %s".formatted(targetLanguage.toUpperCase(), text), "dummy-v1");
+        return new TranslationResult("[%s] %s".formatted(targetLanguage.toUpperCase(), text), "DUMMY", "dummy-v1");
     }
 
     @Override

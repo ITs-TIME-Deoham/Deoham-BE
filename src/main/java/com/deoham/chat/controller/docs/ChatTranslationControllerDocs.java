@@ -28,6 +28,9 @@ public interface ChatTranslationControllerDocs {
 
                     **`targetLanguage` 값**: 번역 제공자가 지원하는 언어 코드를 사용합니다 (예: `ko`, `en`, `ja`, `zh`).
                     현재 번역 제공자는 설정에 따라 다를 수 있으며, 지원 언어 코드는 제공자 문서를 참고하세요.
+
+                    **Failover**: DeepL을 우선 시도하고 실패하면 자동으로 Gemini로 재시도합니다.
+                    실제로 응답을 생성한 제공자는 서버 로그로만 확인 가능하며, 클라이언트 응답에는 노출되지 않습니다.
                     """
     )
     @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "번역 성공 (캐시 적중 또는 신규 번역)")

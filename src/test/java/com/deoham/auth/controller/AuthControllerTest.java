@@ -2,6 +2,7 @@ package com.deoham.auth.controller;
 
 import com.deoham.auth.dto.KakaoCallbackRequest;
 import com.deoham.auth.dto.KakaoCallbackResponse;
+import com.deoham.auth.dto.KakaoLoginResult;
 import com.deoham.auth.service.AuthService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.DisplayName;
@@ -62,27 +63,22 @@ class AuthControllerTest {
 		String state = "test_state_value";
 		KakaoCallbackRequest request = new KakaoCallbackRequest(code, state);
 
-		KakaoCallbackResponse mockResponse = new KakaoCallbackResponse(
+		KakaoLoginResult mockLoginResult = new KakaoLoginResult(
 				"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.test_access_token",
 				"refresh_token_test_12345",
-				"Bearer",
-				3600L,
 				true
 		);
 
 		when(authService.kakaoLogin(code, state))
-				.thenReturn(mockResponse);
+				.thenReturn(mockLoginResult);
 
 		// when & then
 		mockMvc.perform(post("/api/auth/kakao/callback")
 				.contentType(MediaType.APPLICATION_JSON)
 				.content(objectMapper.writeValueAsString(request)))
 				.andExpect(status().isOk())
-				.andExpect(jsonPath("$.accessToken").value("eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.test_access_token"))
-				.andExpect(jsonPath("$.refreshToken").value("refresh_token_test_12345"))
-				.andExpect(jsonPath("$.tokenType").value("Bearer"))
-				.andExpect(jsonPath("$.expiresIn").value(3600))
-				.andExpect(jsonPath("$.isNewUser").value(true));
+				.andExpect(jsonPath("$.success").value(true))
+				.andExpect(jsonPath("$.data.isNewUser").value(true));
 	}
 
 	@Test
@@ -93,23 +89,22 @@ class AuthControllerTest {
 		String state = "test_state_value";
 		KakaoCallbackRequest request = new KakaoCallbackRequest(code, state);
 
-		KakaoCallbackResponse mockResponse = new KakaoCallbackResponse(
+		KakaoLoginResult mockLoginResult = new KakaoLoginResult(
 				"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.test_access_token_existing",
 				"refresh_token_existing_12345",
-				"Bearer",
-				3600L,
 				false
 		);
 
 		when(authService.kakaoLogin(code, state))
-				.thenReturn(mockResponse);
+				.thenReturn(mockLoginResult);
 
 		// when & then
 		mockMvc.perform(post("/api/auth/kakao/callback")
 				.contentType(MediaType.APPLICATION_JSON)
 				.content(objectMapper.writeValueAsString(request)))
 				.andExpect(status().isOk())
-				.andExpect(jsonPath("$.isNewUser").value(false));
+				.andExpect(jsonPath("$.success").value(true))
+				.andExpect(jsonPath("$.data.isNewUser").value(false));
 	}
 
 	@Test

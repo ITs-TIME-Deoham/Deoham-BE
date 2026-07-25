@@ -21,7 +21,11 @@ public interface NotificationControllerDocs {
                     Notification type values match the `notify_type` database enum:
                     `NEW_CARD`, `CARD_APPLIED`, `MATCH_ACCEPTED`, `MATCH_REJECTED`, `CHAT_MESSAGE`.
 
-                    `referenceId` is the linked resource ID. For `CHAT_MESSAGE`, it can be the message UUID.
+                    `referenceId` is the source record ID: `CardApply.id` for `CARD_APPLIED`/`MATCH_ACCEPTED`,
+                    `ChatMessage.id` for `CHAT_MESSAGE`.
+
+                    `targetId` is the deep-link navigation target: `Card.id` for `CARD_APPLIED`/`MATCH_ACCEPTED`,
+                    `ChatRoom.id` for `CHAT_MESSAGE`. Use `type` + `targetId` to route directly to the relevant screen.
                     """
     )
     @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Notifications returned")

@@ -1,6 +1,6 @@
 # Deoham-BE
 
-Spring Boot 3.5 / Java 17 backend for Deoham. Auth via Supabase (Kakao OAuth → Supabase JWT). Postgres on Supabase, Redis cache, S3 file storage.
+Spring Boot 3.5 / Java 17 backend for Deoham. Auth via Kakao OAuth + self-issued HS256 JWT. PostgreSQL + Redis cache, S3 file storage.
 
 ## Prerequisites
 
@@ -21,15 +21,9 @@ Spring Boot's docker-compose support auto-starts Postgres+Redis from `compose.ya
 
 ## Configuration
 
-Local defaults are in `src/main/resources/application-local.yml`. To hit a real Supabase project locally, override:
+Local defaults are in `src/main/resources/application-local.yml`.
 
-```bash
-SUPABASE_JWT_ISSUER=https://<ref>.supabase.co/auth/v1\
-SUPABASE_JWT_JWKS_URI=https://<ref>.supabase.co/auth/v1/.well-known/jwks.json\
-  ./gradlew bootRun
-```
-
-Secrets (Kakao OAuth keys, Gemini API key, etc.) are kept out of the yml files and loaded from a local `.env` file, gitignored and never committed:
+Secrets (Kakao OAuth keys, Gemini API key, JWT secret, etc.) are kept out of the yml files and loaded from a local `.env` file, gitignored and never committed:
 
 ```bash
 cp .env.example .env   # then fill in the real values
@@ -52,4 +46,4 @@ docker build -t deoham-be .   # container image
 
 ## Layout
 
-See `CLAUDE.md` for architecture, package layout, auth flow, and Supabase connection notes.
+See `CLAUDE.md` for architecture, package layout, and auth flow details.

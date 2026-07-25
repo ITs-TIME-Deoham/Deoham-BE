@@ -35,6 +35,7 @@ public class NotificationService {
                     .user(recipient)
                     .type(NotifyType.CHAT_MESSAGE)
                     .referenceId(chatMessage.getId())
+                    .targetId(chatRoomId)
                     .message(preview)
                     .build());
             eventPublisher.publishEvent(new FcmPushEvent(
@@ -57,6 +58,7 @@ public class NotificationService {
                 .user(recipient)
                 .type(NotifyType.CARD_APPLIED)
                 .referenceId(apply.getId())
+                .targetId(apply.getCard().getId())
                 .message(preview)
                 .build());
         eventPublisher.publishEvent(new FcmPushEvent(
@@ -78,6 +80,7 @@ public class NotificationService {
                 .user(recipient)
                 .type(NotifyType.MATCH_ACCEPTED)
                 .referenceId(apply.getId())
+                .targetId(apply.getCard().getId())
                 .message(preview)
                 .build());
         eventPublisher.publishEvent(new FcmPushEvent(

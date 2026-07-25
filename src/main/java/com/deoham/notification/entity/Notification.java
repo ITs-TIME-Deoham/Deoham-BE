@@ -44,6 +44,9 @@ public class Notification {
     @Column(name = "reference_id")
     private UUID referenceId;
 
+    @Column(name = "target_id")
+    private UUID targetId;
+
     @Column(name = "message", nullable = false, length = 500)
     private String message;
 
@@ -55,10 +58,11 @@ public class Notification {
     private Instant createdAt;
 
     @Builder
-    private Notification(User user, NotifyType type, UUID referenceId, String message) {
+    private Notification(User user, NotifyType type, UUID referenceId, UUID targetId, String message) {
         this.user = user;
         this.type = type;
         this.referenceId = referenceId;
+        this.targetId = targetId;
         this.message = message;
         this.isRead = false;
     }
