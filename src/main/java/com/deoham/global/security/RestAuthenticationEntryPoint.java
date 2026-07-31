@@ -23,7 +23,8 @@ public class RestAuthenticationEntryPoint implements AuthenticationEntryPoint {
 	@Override
 	public void commence(HttpServletRequest request, HttpServletResponse response,
 			AuthenticationException authException) throws IOException {
-		log.warn("필터 단 인증 실패 [{} {}]: {}", request.getMethod(), request.getRequestURI(), authException.getMessage());
+		log.warn("필터 단 인증 실패 [{} {}]", request.getMethod(), request.getRequestURI());
+		log.debug("인증 실패 상세: {}", authException.getMessage());
 		response.setStatus(ErrorCode.UNAUTHORIZED.getStatus().value());
 		response.setContentType(MediaType.APPLICATION_JSON_VALUE);
 		response.setCharacterEncoding("UTF-8");
