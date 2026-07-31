@@ -4,6 +4,7 @@ import com.deoham.auth.client.KakaoOAuthClient;
 import com.deoham.auth.client.KakaoTokenResponse;
 import com.deoham.auth.client.KakaoUserInfo;
 import com.deoham.auth.dto.KakaoCallbackResponse;
+import com.deoham.auth.dto.KakaoLoginResult;
 import com.deoham.auth.dto.TokenResponse;
 import com.deoham.auth.entity.OAuthState;
 import com.deoham.auth.repository.OAuthStateRepository;
@@ -69,7 +70,7 @@ public class AuthService {
 	}
 
 	@Transactional
-	public KakaoCallbackResponse kakaoLogin(String code, String state) {
+	public KakaoLoginResult kakaoLogin(String code, String state) {
 		consumeOAuthState(state, OauthProvider.KAKAO);
 
 		KakaoTokenResponse kakaoToken = kakaoOAuthClient.exchangeCode(code);
@@ -117,16 +118,18 @@ public class AuthService {
 		// 온보딩이 미완료면 계속 신규 사용자로 안내한다.
 		boolean needsOnboarding = !user.isOnboardingCompleted();
 
-		return new KakaoCallbackResponse(
+		return new KakaoLoginResult(
 				accessToken,
 				refreshToken,
-				"Bearer",
-				jwtProperties.accessTokenExpirySeconds(),
 				needsOnboarding);
 	}
 
 	@Transactional
 	public TokenResponse refresh(String refreshToken) {
+		if (refreshToken == null || refreshToken.isBlank()) {
+			throw new BusinessException(ErrorCode.UNAUTHORIZED, "Refresh token is required.");
+		}
+
 		Jwt jwt;
 		try {
 			jwt = jwtTokenProvider.parseToken(refreshToken);
@@ -153,11 +156,11 @@ public class AuthService {
 		User user = socialAccount.getUser();
 		String newAccessToken = jwtTokenProvider.generateAccessToken(
 				user.getId(), socialAccount.getProviderEmail(), user.getRole().name());
+
+		// 매 refresh 요청마다 새 RefreshToken 발급 (보안 강화: 토큰 탈취 시 재사용 기간 최소화)
 		String newRefreshToken = jwtTokenProvider.generateRefreshToken(user.getId());
-		socialAccount.updateTokens(
-				null,
-				newRefreshToken,
-				Instant.now().plusSeconds(jwtProperties.refreshTokenExpirySeconds()));
+		Instant newTokenExpiresAt = Instant.now().plusSeconds(jwtProperties.refreshTokenExpirySeconds());
+		socialAccount.updateTokens(null, newRefreshToken, newTokenExpiresAt);
 
 		return new TokenResponse(
 				newAccessToken,
