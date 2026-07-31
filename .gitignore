@@ -52,6 +52,9 @@ monitoring/secrets/
 loki-windows-amd64.exe
 logs/
 
+### Firebase / FCM service account (로컬 시크릿 — 절대 커밋 금지) ###
+src/main/resources/firebase/
+
 ### Misc ###
 QualityGate.md
 phase-3-4-validation.md
