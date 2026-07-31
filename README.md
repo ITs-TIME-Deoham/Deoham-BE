@@ -36,7 +36,7 @@
 | **Card** | 도움 요청 카드 생성, 위치 기반(PostGIS) 주변 카드 조회, 지원(apply), 취소/완료/재시도 | `/api/cards`, `/api/cards/nearby`, `/api/cards/{id}/applies` |
 | **Chat** | 카드 기반 1:1 채팅방, 메시지 송수신(REST + STOMP), 읽음 처리, 방 종료 | `/api/chat/rooms/**`, STOMP `/chat/rooms/{roomId}/messages` |
 | **Live Location** | 채팅방 내 실시간 위치 공유 (STOMP) | STOMP `/chat/rooms/{roomId}/live-location` |
-| **Translation** | 채팅 메시지 번역 (DeepL 기본, Gemini 레거시) | `/api/chat/messages/{id}/translations` |
+| **Translation** | 채팅 메시지 번역 (DeepL 기본, 실패 시 Gemini 자동 failover) | `/api/chat/messages/{id}/translations` |
 | **Notification** | 인앱 알림 조회/읽음 처리, FCM 토큰 관리 및 푸시 발송 | `/api/notifications/**` |
 | **Report** | 사용자 / 채팅방 신고 | `/api/reports`, `/api/reports/chat-rooms/{roomId}` |
 
@@ -53,7 +53,7 @@
 | 실시간 | Spring WebSocket / STOMP |
 | 파일 저장 | AWS SDK v2 (S3 + STS, presigned URL) |
 | 푸시 알림 | Firebase Admin SDK (FCM) |
-| 번역 | DeepL API (기본), Google Gemini (레거시) |
+| 번역 | DeepL API (기본) + Google Gemini (자동 failover) |
 | API 문서 | SpringDoc OpenAPI 2.8.x (Swagger UI) |
 | 관측성 | Micrometer + Prometheus, Loki (logback appender), Grafana |
 | 테스트 | JUnit 5, Testcontainers (Postgres + Redis), Spring Security Test |
@@ -108,8 +108,8 @@ docker compose -f compose-local.yaml up --build
 | --- | --- |
 | `KAKAO_REST_API_KEY` | Kakao OAuth REST API 키 |
 | `KAKAO_CLIENT_SECRET` | Kakao OAuth Client Secret |
-| `GEMINI_API_KEY` | Gemini API 키 (레거시 번역 프로바이더 바인딩 유지용, https://aistudio.google.com/apikey) |
-| `DEEPL_API_KEY` | DeepL API 키 (현재 기본 번역 프로바이더) |
+| `DEEPL_API_KEY` | DeepL API 키 (기본 번역 프로바이더) |
+| `GEMINI_API_KEY` | Gemini API 키 (DeepL 실패 시 자동 failover 프로바이더, https://aistudio.google.com/apikey) |
 
 그 외 항목(`JWT_SECRET`, `AWS_S3_*`, `KAKAO_REDIRECT_URI`, `GEMINI_MODEL`, `KAKAO_MAP_REST_API_KEY` 등)은 생략 시 `application-local.yml`의 기본값을 사용합니다. 자세한 내용은 `.env.example` 참고.
 
