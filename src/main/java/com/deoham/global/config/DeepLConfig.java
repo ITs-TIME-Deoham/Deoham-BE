@@ -14,7 +14,9 @@ import org.springframework.web.client.RestClient;
 public class DeepLConfig {
 
 	private static final Duration CONNECT_TIMEOUT = Duration.ofSeconds(3);
-	private static final Duration READ_TIMEOUT = Duration.ofSeconds(10);
+	// 정상 응답이 ~1.5s 수준이므로 실패 판정까지 10s는 과함. 여유를 두고 4s로 단축(꼬리 지연 축소).
+	// 지속 실패 시에는 FailoverTranslationProvider 의 서킷 브레이커가 DeepL 시도 자체를 건너뛴다.
+	private static final Duration READ_TIMEOUT = Duration.ofSeconds(4);
 
 	/**
 	 * DeepL 호출 전용 RestClient. GeminiConfig 와 동일한 이유로 커넥트/리드 타임아웃을
