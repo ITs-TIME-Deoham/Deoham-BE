@@ -5,10 +5,10 @@ services:
     image: ${APP_IMAGE:-ghcr.io/its-time-ondo/ondo-be:latest}
     env_file:
       - .env
-    # 파일 로깅 비활성화 - Docker stdout/stderr를 Loki가 수집
-    # volumes:
-    #   - app_logs:/app/logs
-    #   - ./secrets/fcm-service-account.json:/app/secrets/fcm-service-account.json:ro
+    # FCM 서비스 계정 키를 읽기전용으로 마운트 (배포 시 GitHub Actions가 secrets/ 에 생성 후 scp)
+    # 파일 로깅은 비활성화 - Docker stdout/stderr를 Loki가 수집
+    volumes:
+      - ./secrets/fcm-service-account.json:/app/secrets/fcm-service-account.json:ro
     # 외부 노출 금지 — nginx가 리버스 프록시로 80/443만 공개
     depends_on:
       postgres:

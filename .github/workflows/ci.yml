@@ -99,11 +99,6 @@ jobs:
           # JWT — HS256 signing secret (최소 32자)
           JWT_SECRET=${{ secrets.JWT_SECRET }}
 
-          # Supabase JWT — Firebase 전환 전 임시 플레이스홀더 (Swagger 접근용)
-          SUPABASE_JWT_ISSUER=https://placeholder.supabase.co/auth/v1
-          SUPABASE_JWT_JWKS_URI=https://placeholder.supabase.co/auth/v1/.well-known/jwks.json
-          SUPABASE_JWT_AUDIENCE=authenticated
-
           # AWS S3 (필수 — @NotBlank/@Positive, EC2 IAM 역할로 자격증명 자동 처리)
           AWS_S3_REGION=${{ secrets.AWS_S3_REGION }}
           AWS_S3_BUCKET=${{ secrets.AWS_S3_BUCKET }}
@@ -123,8 +118,8 @@ jobs:
           # DeepL — 채팅 메시지 번역 프로바이더 (현재 @Primary)
           DEEPL_API_KEY=${{ secrets.DEEPL_API_KEY }}
 
-          # FCM — Java 바인딩 없음, 구현 완료 후 활성화
-          # FCM_KEY_PATH=/app/secrets/fcm-service-account.json
+          # FCM — 서비스 계정 키는 secrets/ 에 파일로 마운트, 여기서는 컨테이너 내 경로만 지정
+          FCM_KEY_PATH=/app/secrets/fcm-service-account.json
 
           # Kakao Map — Java 바인딩 없음, 구현 완료 후 활성화
           # KAKAO_MAP_REST_API_KEY=${{ secrets.KAKAO_MAP_REST_API_KEY }}
@@ -142,6 +137,20 @@ jobs:
           ENVEOF
           # compose 가 pull 할 이미지 태그 (커밋 SHA 로 핀 고정) — compose 의 ${APP_IMAGE} 로 치환됨
           echo "APP_IMAGE=$IMAGE_NAME:${{ github.sha }}" >> .env
+
+      # FCM 서비스 계정 키(JSON)를 파일로 복원 → compose 가 read-only 로 컨테이너에 마운트
+      # 멀티라인 JSON 이므로 .env 에 넣지 않고 별도 파일로 전달한다
+      - name: Write FCM service account key
+        env:
+          FCM_SERVICE_ACCOUNT_JSON: ${{ secrets.FCM_SERVICE_ACCOUNT_JSON }}
+        run: |
+          mkdir -p secrets
+          printf '%s' "$FCM_SERVICE_ACCOUNT_JSON" > secrets/fcm-service-account.json
+          if [ ! -s secrets/fcm-service-account.json ]; then
+            echo "⚠ FCM_SERVICE_ACCOUNT_JSON 시크릿이 비어 있습니다 — 푸시가 비활성화된 채로 기동됩니다"
+          else
+            echo "✓ FCM 키 파일 생성 (bytes: $(wc -c < secrets/fcm-service-account.json))"
+          fi
 
       - name: Validate environment variables
         run: |
@@ -212,9 +221,9 @@ jobs:
         run: |
           ssh -i private_key.pem -o StrictHostKeyChecking=no \
             ${{ secrets.EC2_USERNAME }}@${{ secrets.EC2_HOST }} \
-            "mkdir -p ~/deoham/monitoring ~/deoham/nginx"
+            "mkdir -p ~/deoham/monitoring ~/deoham/nginx ~/deoham/secrets"
           scp -i private_key.pem -o StrictHostKeyChecking=no \
-            -r compose.yaml monitoring nginx .env \
+            -r compose.yaml monitoring nginx secrets .env \
             ${{ secrets.EC2_USERNAME }}@${{ secrets.EC2_HOST }}:~/deoham/
 
       # B. EC2 는 빌드 없이 GHCR 에서 pull 만 한다
@@ -376,4 +385,4 @@ jobs:
 
       - name: Cleanup sensitive files
         if: always()
-        run: rm -f private_key.pem .env
+        run: rm -rf private_key.pem .env secrets

@@ -25,6 +25,11 @@ jwt:
   access-token-expiry-seconds: 3600
   refresh-token-expiry-seconds: 604800
 
+app:
+  auth:
+    httponly:
+      secure-cookie: false
+
 deoham:
   cors:
     allowed-origins: http://localhost:3000,http://localhost:5173,http://localhost:8080,http://127.0.0.1:3000,http://127.0.0.1:5173,http://127.0.0.1:8080,https://kauth.kakao.com
@@ -43,7 +48,8 @@ deoham:
     api-url: ${DEEPL_API_URL:https://api-free.deepl.com}
 
 fcm:
-  service-account-key-path: src/main/resources/firebase/local-service-account.json
+  # 기본: 프로젝트 루트의 gitignore된 키 파일. FCM_KEY_PATH로 절대경로 덮어쓰기 가능
+  service-account-key-path: ${FCM_KEY_PATH:src/main/resources/firebase/local-service-account.json}
 
 kakao-map:
   rest-api-key: ${KAKAO_MAP_REST_API_KEY:}

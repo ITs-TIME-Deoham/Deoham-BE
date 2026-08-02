@@ -1,5 +1,6 @@
 package com.deoham.chat.translation;
 
+import com.deoham.chat.translation.dto.TranslationResult;
 import com.deoham.global.config.DeepLProperties;
 import com.deoham.global.exception.BusinessException;
 import com.deoham.global.exception.ErrorCode;

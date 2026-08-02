@@ -1,5 +1,6 @@
 package com.deoham.auth.controller;
 
+import com.deoham.global.config.HttpOnlyAuthProperties;
 import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.context.annotation.Bean;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
@@ -16,5 +17,10 @@ class TestSecurityConfig {
 				.csrf(csrf -> csrf.disable())
 				.authorizeHttpRequests(auth -> auth.anyRequest().permitAll());
 		return http.build();
+	}
+
+	@Bean
+	public HttpOnlyAuthProperties httpOnlyAuthProperties() {
+		return new HttpOnlyAuthProperties(false);
 	}
 }
