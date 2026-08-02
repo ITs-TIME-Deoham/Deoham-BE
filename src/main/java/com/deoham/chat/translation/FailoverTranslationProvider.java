@@ -6,6 +6,7 @@ import com.deoham.global.exception.ErrorCode;
 import java.time.Clock;
 import java.time.Duration;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Primary;
 import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Component;
@@ -36,6 +37,8 @@ public class FailoverTranslationProvider implements TranslationProvider {
     private final GeminiTranslationProvider fallback;
     private final SimpleCircuitBreaker deeplBreaker;
 
+    // 생성자가 둘이라 Spring이 스스로 고르지 못한다. 운영에서 쓸 생성자를 명시한다.
+    @Autowired
     public FailoverTranslationProvider(DeepLTranslationProvider primary, GeminiTranslationProvider fallback) {
         this(primary, fallback, new SimpleCircuitBreaker(FAILURE_THRESHOLD, OPEN_DURATION, Clock.systemUTC()));
     }
