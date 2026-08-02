@@ -23,7 +23,8 @@ public class RestAccessDeniedHandler implements AccessDeniedHandler {
 	@Override
 	public void handle(HttpServletRequest request, HttpServletResponse response,
 			AccessDeniedException accessDeniedException) throws IOException {
-		log.warn("필터 단 인가 실패 [{} {}]: {}", request.getMethod(), request.getRequestURI(), accessDeniedException.getMessage());
+		log.warn("필터 단 인가 실패 [{} {}]", request.getMethod(), request.getRequestURI());
+		log.debug("인가 실패 상세: {}", accessDeniedException.getMessage());
 		response.setStatus(ErrorCode.FORBIDDEN.getStatus().value());
 		response.setContentType(MediaType.APPLICATION_JSON_VALUE);
 		response.setCharacterEncoding("UTF-8");

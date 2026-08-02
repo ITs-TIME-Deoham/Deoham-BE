@@ -1,6 +1,7 @@
 package com.deoham.notification.controller.docs;
 
 import com.deoham.global.response.ApiResponse;
+import com.deoham.notification.dto.FcmTokenRegisterRequest;
 import com.deoham.notification.dto.NotificationResponse;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -48,4 +49,29 @@ public interface NotificationControllerDocs {
     @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Marked as read")
     @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "401", description = "Authentication required")
     ApiResponse<Void> markAllAsRead();
+
+    @Operation(
+            summary = "Register FCM token",
+            description = """
+                    Registers or refreshes the current user's FCM device token (upsert).
+
+                    - If the token already exists, its owner/device is reassigned (handles account switch on a shared device).
+                    - Otherwise, if a token for the same `(user, deviceId)` exists, its value is replaced (handles token rotation).
+                    - Otherwise a new token row is created.
+
+                    Clients should call this on login and whenever the FCM SDK reports a refreshed token.
+                    """
+    )
+    @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Token registered")
+    @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "400", description = "Invalid request")
+    @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "401", description = "Authentication required")
+    ApiResponse<Void> registerFcmToken(FcmTokenRegisterRequest request);
+
+    @Operation(
+            summary = "Delete FCM token",
+            description = "Removes the current user's FCM device token, e.g. on logout. No-op if the token is not owned by the caller."
+    )
+    @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Token deleted (or nothing to delete)")
+    @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "401", description = "Authentication required")
+    ApiResponse<Void> deleteFcmToken(@Parameter(description = "FCM registration token to remove") String token);
 }

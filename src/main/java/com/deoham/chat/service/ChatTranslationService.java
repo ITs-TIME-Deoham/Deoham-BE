@@ -3,7 +3,7 @@ package com.deoham.chat.service;
 import com.deoham.chat.dto.ChatTranslationResponse;
 import com.deoham.chat.service.ChatTranslationStore.TranslationLookup;
 import com.deoham.chat.translation.TranslationProvider;
-import com.deoham.chat.translation.TranslationResult;
+import com.deoham.chat.translation.dto.TranslationResult;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import org.springframework.dao.DataIntegrityViolationException;

@@ -69,6 +69,11 @@ jwt:
   access-token-expiry-seconds: ${JWT_ACCESS_TOKEN_EXPIRY_SECONDS:3600}
   refresh-token-expiry-seconds: ${JWT_REFRESH_TOKEN_EXPIRY_SECONDS:604800}
 
+app:
+  auth:
+    httponly:
+      secure-cookie: true
+
 deoham:
   cors:
     allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:3000,https://kauth.kakao.com,https://ondo-fe.vercel.app}
@@ -89,7 +94,8 @@ deoham:
     api-url: ${DEEPL_API_URL:https://api-free.deepl.com}
 
 fcm:
-  service-account-key-path: ${FCM_KEY_PATH}
+  # 비어 있으면(키 미설정) 푸시 발송을 비활성화하는 graceful 정책
+  service-account-key-path: ${FCM_KEY_PATH:}
 
 kakao-map:
   rest-api-key: ${KAKAO_MAP_REST_API_KEY}
