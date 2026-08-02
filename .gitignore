@@ -52,7 +52,7 @@ monitoring/secrets/
 loki-windows-amd64.exe
 logs/
 
-### Firebase / FCM service account keys (절대 커밋 금지) ###
+### Firebase / FCM service account keys (로컬 시크릿 — 절대 커밋 금지) ###
 src/main/resources/firebase/
 secrets/
 *firebase-adminsdk*.json

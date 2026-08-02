@@ -74,6 +74,9 @@ public class SecurityConfig {
 				.httpBasic(AbstractHttpConfigurer::disable)
 				.cors(cors -> cors.configurationSource(corsConfigurationSource()))
 				.sessionManagement(s -> s.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+				.headers(headers -> headers
+						.contentSecurityPolicy(csp -> csp.policyDirectives("default-src 'self'"))
+						.frameOptions(frameOptions -> frameOptions.deny()))
 				.authorizeHttpRequests(auth -> auth
 						.requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
 						.requestMatchers(PUBLIC_ENDPOINTS).permitAll()

@@ -157,20 +157,10 @@ public class AuthService {
 		String newAccessToken = jwtTokenProvider.generateAccessToken(
 				user.getId(), socialAccount.getProviderEmail(), user.getRole().name());
 
-		// refreshToken 만료 임박 시 (24시간 이내) 갱신, 아니면 기존 토큰 유지
-		String newRefreshToken = null;
-		Instant newTokenExpiresAt = socialAccount.getTokenExpiresAt();
-
-		Instant renewalThreshold = Instant.now().plusSeconds(24 * 60 * 60); // 24 hours
-		if (newTokenExpiresAt.isBefore(renewalThreshold)) {
-			// RefreshToken 갱신
-			newRefreshToken = jwtTokenProvider.generateRefreshToken(user.getId());
-			newTokenExpiresAt = Instant.now().plusSeconds(jwtProperties.refreshTokenExpirySeconds());
-		}
-
-		if (newRefreshToken != null) {
-			socialAccount.updateTokens(null, newRefreshToken, newTokenExpiresAt);
-		}
+		// 매 refresh 요청마다 새 RefreshToken 발급 (보안 강화: 토큰 탈취 시 재사용 기간 최소화)
+		String newRefreshToken = jwtTokenProvider.generateRefreshToken(user.getId());
+		Instant newTokenExpiresAt = Instant.now().plusSeconds(jwtProperties.refreshTokenExpirySeconds());
+		socialAccount.updateTokens(null, newRefreshToken, newTokenExpiresAt);
 
 		return new TokenResponse(
 				newAccessToken,

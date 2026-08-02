@@ -7,12 +7,15 @@ import com.deoham.auth.dto.KakaoLoginResult;
 import com.deoham.auth.dto.TokenResponse;
 import com.deoham.auth.service.AuthService;
 import com.deoham.global.config.HttpOnlyAuthProperties;
+import com.deoham.global.exception.BusinessException;
+import com.deoham.global.exception.ErrorCode;
 import com.deoham.global.metrics.MetricEndpoint;
 import com.deoham.global.response.ApiResponse;
 import com.deoham.global.security.CookieUtils;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
+import java.util.Objects;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -47,7 +50,10 @@ public class AuthController implements AuthControllerDocs {
 			@RequestBody @Valid KakaoCallbackRequest request,
 			HttpServletResponse response
 	) {
-		KakaoLoginResult loginResult = authService.kakaoLogin(request.code(), request.state());
+		KakaoLoginResult loginResult = Objects.requireNonNull(
+				authService.kakaoLogin(request.code(), request.state()),
+				"Kakao login result must not be null"
+		);
 
 		// refreshToken을 HttpOnly 쿠키로 설정
 		CookieUtils.setRefreshTokenCookie(
@@ -57,10 +63,10 @@ public class AuthController implements AuthControllerDocs {
 		);
 
 		// accessToken은 Authorization 헤더에 담아서 반환
-		response.addHeader("Authorization", "Bearer " + loginResult.accessToken());
-
 		// Response body는 ApiResponse로 감싸서 반환 (CLAUDE.md 규칙 준수)
-		return ResponseEntity.ok(ApiResponse.ok(new KakaoCallbackResponse(loginResult.isNewUser())));
+		return ResponseEntity.ok()
+				.header("Authorization", "Bearer " + loginResult.accessToken())
+				.body(ApiResponse.ok(new KakaoCallbackResponse(loginResult.isNewUser())));
 	}
 
 	@Override
@@ -73,10 +79,16 @@ public class AuthController implements AuthControllerDocs {
 		// 쿠키에서 refreshToken 자동 추출
 		String refreshToken = CookieUtils.getRefreshTokenFromCookie(request);
 
+		// refreshToken이 없으면 401 Unauthorized 반환
+		if (refreshToken == null) {
+			throw new BusinessException(ErrorCode.UNAUTHORIZED, "Refresh token is missing or invalid");
+		}
+
 		TokenResponse tokenResponse = authService.refresh(refreshToken);
 
 		// accessToken은 Authorization 헤더에만 담기
-		response.addHeader("Authorization", "Bearer " + tokenResponse.accessToken());
+		var responseBuilder = ResponseEntity.ok()
+				.header("Authorization", "Bearer " + tokenResponse.accessToken());
 
 		// 새로운 refreshToken이 있으면 쿠키에만 설정
 		if (tokenResponse.refreshToken() != null) {
@@ -87,7 +99,7 @@ public class AuthController implements AuthControllerDocs {
 			);
 		}
 
-		return ResponseEntity.ok(ApiResponse.ok(null));
+		return responseBuilder.body(ApiResponse.ok(null));
 	}
 
 	@Override
