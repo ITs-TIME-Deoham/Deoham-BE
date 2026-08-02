@@ -5,6 +5,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
+import com.deoham.chat.translation.dto.TranslationResult;
 import com.deoham.global.exception.BusinessException;
 import com.deoham.global.exception.ErrorCode;
 import org.junit.jupiter.api.BeforeEach;

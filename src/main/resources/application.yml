@@ -94,7 +94,8 @@ deoham:
     api-url: ${DEEPL_API_URL:https://api-free.deepl.com}
 
 fcm:
-  service-account-key-path: ${FCM_KEY_PATH}
+  # 비어 있으면(키 미설정) 푸시 발송을 비활성화하는 graceful 정책
+  service-account-key-path: ${FCM_KEY_PATH:}
 
 kakao-map:
   rest-api-key: ${KAKAO_MAP_REST_API_KEY}

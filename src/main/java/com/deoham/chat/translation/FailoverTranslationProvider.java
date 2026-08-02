@@ -1,5 +1,6 @@
 package com.deoham.chat.translation;
 
+import com.deoham.chat.translation.dto.TranslationResult;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.annotation.Primary;
 import org.springframework.context.annotation.Profile;

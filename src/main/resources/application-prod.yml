@@ -60,7 +60,8 @@ deoham:
     presigned-url-ttl-seconds: ${AWS_S3_PRESIGNED_TTL:600}
 
 fcm:
-  service-account-key-path: ${FCM_KEY_PATH}
+  # 미설정 시 푸시만 비활성화되고 앱은 정상 기동(graceful). 운영에서는 반드시 주입할 것
+  service-account-key-path: ${FCM_KEY_PATH:}
 
 kakao-map:
   rest-api-key: ${KAKAO_MAP_REST_API_KEY}

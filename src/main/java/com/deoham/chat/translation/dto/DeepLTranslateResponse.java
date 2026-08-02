@@ -1,4 +1,4 @@
-package com.deoham.chat.translation;
+package com.deoham.chat.translation.dto;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 import java.util.List;

@@ -1,5 +1,6 @@
 package com.deoham.chat.translation;
 
+import com.deoham.chat.translation.dto.TranslationResult;
 import org.springframework.stereotype.Component;
 
 /**

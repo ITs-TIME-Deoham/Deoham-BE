@@ -1,5 +1,8 @@
 package com.deoham.chat.translation;
 
+import com.deoham.chat.translation.dto.GeminiGenerateContentRequest;
+import com.deoham.chat.translation.dto.GeminiGenerateContentResponse;
+import com.deoham.chat.translation.dto.TranslationResult;
 import com.deoham.global.config.GeminiProperties;
 import com.deoham.global.exception.BusinessException;
 import com.deoham.global.exception.ErrorCode;

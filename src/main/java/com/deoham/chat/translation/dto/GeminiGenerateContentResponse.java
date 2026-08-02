@@ -1,4 +1,4 @@
-package com.deoham.chat.translation;
+package com.deoham.chat.translation.dto;
 
 import java.util.List;
 
