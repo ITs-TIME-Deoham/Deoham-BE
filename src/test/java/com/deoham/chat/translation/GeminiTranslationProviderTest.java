@@ -241,6 +241,39 @@ class GeminiTranslationProviderTest {
     }
 
     // ───────────────────────────────────────────────────────────────────────────
+    // generationConfig
+    // ───────────────────────────────────────────────────────────────────────────
+
+    @Test
+    void translate_sendsDeterministicGenerationConfigWithOutputCap() {
+        JsonNode body = capturedRequestBody(provider -> provider.translate("안녕하세요", TargetLanguage.EN));
+
+        assertThat(body.at("/generationConfig/temperature").asDouble()).isZero();
+        assertThat(body.at("/generationConfig/maxOutputTokens").asInt()).isPositive();
+    }
+
+    @Test
+    void maxOutputTokensFor_isBoundedAboveRegardlessOfInputLength() {
+        int huge = GeminiTranslationProvider.maxOutputTokensFor("가".repeat(100_000));
+
+        assertThat(huge).isEqualTo(2048);
+    }
+
+    @Test
+    void maxOutputTokensFor_keepsFloorForShortInput() {
+        assertThat(GeminiTranslationProvider.maxOutputTokensFor("hi")).isEqualTo(256);
+    }
+
+    @Test
+    void maxOutputTokensFor_scalesWithInputLength() {
+        int shorter = GeminiTranslationProvider.maxOutputTokensFor("가".repeat(300));
+        int longer = GeminiTranslationProvider.maxOutputTokensFor("가".repeat(600));
+
+        assertThat(shorter).isEqualTo(600);
+        assertThat(longer).isEqualTo(1200);
+    }
+
+    // ───────────────────────────────────────────────────────────────────────────
     // 헬퍼
     // ───────────────────────────────────────────────────────────────────────────
 

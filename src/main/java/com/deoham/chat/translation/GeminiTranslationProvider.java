@@ -57,6 +57,25 @@ public class GeminiTranslationProvider implements TranslationProvider {
 	private static final Pattern BOUNDARY_TAG =
 			Pattern.compile("<\\s*/?\\s*text_to_translate\\s*/?\\s*>", Pattern.CASE_INSENSITIVE);
 
+	/**
+	 * 아주 짧은 원문에서도 확보할 최소 출력 예산. 모델에 따라 사고(thinking) 토큰까지
+	 * 이 예산에서 차감되므로 여유를 둔다.
+	 */
+	private static final int MIN_OUTPUT_TOKENS = 256;
+
+	/**
+	 * 원문 길이와 무관한 절대 상한. 메시지 본문은 {@code TEXT} 컬럼이라 길이 제한이 없으므로,
+	 * 이 상한이 초장문 메시지와 "긴 글을 써라"류 인젝션 양쪽에 대한 비용 방어선이 된다.
+	 * (원문 길이 자체에 대한 가드는 이슈 #133의 4순위로 분리되어 있다.)
+	 */
+	private static final int MAX_OUTPUT_TOKENS_CEILING = 2048;
+
+	/**
+	 * 원문 1자당 잡아주는 출력 토큰. CJK는 최악의 경우 문자당 1토큰이고, 번역 과정에서
+	 * 길이가 늘어나는 언어쌍(예: 한국어 → 스페인어)을 감안해 2배로 잡는다.
+	 */
+	private static final int OUTPUT_TOKENS_PER_CHAR = 2;
+
 	private final RestClient restClient;
 	private final GeminiProperties properties;
 
@@ -79,7 +98,7 @@ public class GeminiTranslationProvider implements TranslationProvider {
 			response = restClient.post()
 					.uri("/v1beta/models/{model}:generateContent", properties.model())
 					.header("x-goog-api-key", properties.apiKey())
-					.body(GeminiGenerateContentRequest.of(SYSTEM_INSTRUCTION, userPrompt))
+					.body(GeminiGenerateContentRequest.of(SYSTEM_INSTRUCTION, userPrompt, maxOutputTokensFor(text)))
 					.retrieve()
 					.body(GeminiGenerateContentResponse.class);
 		} catch (RestClientResponseException e) {
@@ -105,6 +124,16 @@ public class GeminiTranslationProvider implements TranslationProvider {
 	static String escapeBoundaryTags(String text) {
 		return BOUNDARY_TAG.matcher(text).replaceAll(match -> Matcher.quoteReplacement(
 				match.group().replace("<", "&lt;").replace(">", "&gt;")));
+	}
+
+	/**
+	 * 출력 토큰 상한을 원문 길이에 비례시키되 하한·상한으로 감싼다.
+	 * 번역 결과는 원문 길이에 묶여 있어야 정상이고, 그 범위를 크게 벗어나는 출력은
+	 * 인젝션이 통했다는 신호이자 곧바로 비용이다.
+	 */
+	static int maxOutputTokensFor(String text) {
+		int proportional = Math.min(text.length(), MAX_OUTPUT_TOKENS_CEILING) * OUTPUT_TOKENS_PER_CHAR;
+		return Math.min(MAX_OUTPUT_TOKENS_CEILING, Math.max(MIN_OUTPUT_TOKENS, proportional));
 	}
 
 	@Override
