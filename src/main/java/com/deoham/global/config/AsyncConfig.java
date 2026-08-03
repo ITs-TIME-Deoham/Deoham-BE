@@ -24,4 +24,18 @@ public class AsyncConfig {
 		executor.initialize();
 		return executor;
 	}
+
+	/**
+	 * S3 객체 삭제 전용 풀. FCM 풀과 분리해 S3 지연이 푸시 발송을 굶기지 않도록 한다.
+	 */
+	@Bean(name = "s3TaskExecutor")
+	public Executor s3TaskExecutor() {
+		ThreadPoolTaskExecutor executor = new ThreadPoolTaskExecutor();
+		executor.setCorePoolSize(1);
+		executor.setMaxPoolSize(2);
+		executor.setQueueCapacity(100);
+		executor.setThreadNamePrefix("s3-");
+		executor.initialize();
+		return executor;
+	}
 }
