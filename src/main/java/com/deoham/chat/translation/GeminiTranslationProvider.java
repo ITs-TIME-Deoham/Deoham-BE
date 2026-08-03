@@ -30,13 +30,14 @@ public class GeminiTranslationProvider implements TranslationProvider {
 	}
 
 	@Override
-	public TranslationResult translate(String text, String targetLanguage) {
+	public TranslationResult translate(String text, TargetLanguage targetLanguage) {
+		// 프롬프트에 넣는 언어명은 클라이언트 입력이 아니라 화이트리스트에 하드코딩된 상수다.
 		String prompt = """
 				Translate the text below into %s.
 				Respond with only the translated text, with no explanations, labels or quotes.
 
 				Text: %s
-				""".formatted(targetLanguage, text);
+				""".formatted(targetLanguage.displayName(), text);
 
 		GeminiGenerateContentResponse response;
 		try {
@@ -53,7 +54,7 @@ public class GeminiTranslationProvider implements TranslationProvider {
 
 		String translatedText = response != null ? response.firstText() : null;
 		if (!StringUtils.hasText(translatedText)) {
-			log.warn("Gemini returned no translation candidates for target language {}", targetLanguage);
+			log.warn("Gemini returned no translation candidates for target language {}", targetLanguage.code());
 			throw new BusinessException(ErrorCode.INTERNAL_ERROR, "번역 결과를 받지 못했습니다.");
 		}
 

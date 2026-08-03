@@ -41,8 +41,8 @@ public class DeepLTranslationProvider implements TranslationProvider {
 	}
 
 	@Override
-	public TranslationResult translate(String text, String targetLanguage) {
-		String targetLang = normalizeTargetLang(targetLanguage);
+	public TranslationResult translate(String text, TargetLanguage targetLanguage) {
+		String targetLang = normalizeTargetLang(targetLanguage.code());
 
 		DeepLTranslateResponse response;
 		try {
@@ -54,12 +54,12 @@ public class DeepLTranslationProvider implements TranslationProvider {
 					.retrieve()
 					.body(DeepLTranslateResponse.class);
 		} catch (RestClientResponseException e) {
-			log.warn("DeepL translation request failed. targetLang={} (원본 {}), Status: {}, Response: {}",
-					targetLang, targetLanguage, e.getStatusCode(), e.getResponseBodyAsString());
+			log.warn("DeepL translation request failed. targetLang={} (요청 언어 {}), Status: {}, Response: {}",
+					targetLang, targetLanguage.code(), e.getStatusCode(), e.getResponseBodyAsString());
 			// 400 = target_lang 미지원 등 클라이언트 입력 문제 → 인증/서버 오류(401/403/456/5xx)와 구분
 			if (e.getStatusCode().equals(HttpStatus.BAD_REQUEST)) {
 				throw new BusinessException(ErrorCode.INVALID_REQUEST,
-						"지원하지 않는 번역 대상 언어입니다: " + targetLanguage);
+						"지원하지 않는 번역 대상 언어입니다: " + targetLanguage.code());
 			}
 			throw new BusinessException(ErrorCode.INTERNAL_ERROR, "번역 요청 처리 중 오류가 발생했습니다.");
 		}
@@ -74,9 +74,12 @@ public class DeepLTranslationProvider implements TranslationProvider {
 	}
 
 	/**
-	 * 클라이언트가 보낸 언어 코드를 DeepL target_lang 형식으로 정규화한다.
+	 * {@link TargetLanguage#code()}를 DeepL target_lang 형식으로 정규화한다.
 	 * 대문자화 후, DeepL 이 지원하는 지역 변형(EN-US 등)은 그대로 두고
-	 * 그 외 지역 서브태그는 제거한다. (예: ko-KR → KO, en-US → EN-US, zh_Hans → ZH-HANS)
+	 * 그 외 지역 서브태그는 제거한다. (예: ko-KR → KO, en-US → EN-US, zh-hans → ZH-HANS)
+	 *
+	 * <p>이제 입력이 화이트리스트를 거친 값뿐이라 이 집합과 {@link TargetLanguage} 사이에
+	 * 매핑이 일부 겹친다. 통합 여부는 이슈 #133에서 미결정으로 남겨 두었다.
 	 */
 	private static String normalizeTargetLang(String targetLanguage) {
 		String code = targetLanguage.trim().toUpperCase(Locale.ROOT).replace('_', '-');
