@@ -52,7 +52,7 @@ public class FailoverTranslationProvider implements TranslationProvider {
     }
 
     @Override
-    public TranslationResult translate(String text, String targetLanguage) {
+    public TranslationResult translate(String text, TargetLanguage targetLanguage) {
         if (deeplBreaker.tryAcquire()) {
             try {
                 TranslationResult result = primary.translate(text, targetLanguage);
@@ -65,10 +65,10 @@ public class FailoverTranslationProvider implements TranslationProvider {
                     // 400(미지원 언어) 등: DeepL은 응답했으므로 건강한 것으로 보고 이 요청만 Gemini로 넘긴다.
                     deeplBreaker.onSuccess();
                 }
-                log.warn("DeepL 번역 실패, Gemini로 failover. targetLanguage={}, reason={}", targetLanguage, e.getMessage());
+                log.warn("DeepL 번역 실패, Gemini로 failover. targetLanguage={}, reason={}", targetLanguage.code(), e.getMessage());
             }
         } else {
-            log.debug("DeepL 회로 OPEN, DeepL 건너뛰고 Gemini로 직행. targetLanguage={}", targetLanguage);
+            log.debug("DeepL 회로 OPEN, DeepL 건너뛰고 Gemini로 직행. targetLanguage={}", targetLanguage.code());
         }
         return fallback.translate(text, targetLanguage);
     }

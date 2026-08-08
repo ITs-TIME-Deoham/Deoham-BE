@@ -60,7 +60,7 @@ class DeepLTranslationProviderTest {
 
         DeepLTranslationProvider provider = new DeepLTranslationProvider(client, PROPERTIES);
 
-        TranslationResult result = provider.translate("안녕하세요", "en");
+        TranslationResult result = provider.translate("안녕하세요", TargetLanguage.EN);
 
         assertThat(result.translatedText()).isEqualTo("Hello");
         assertThat(result.modelVersion()).isEqualTo("DEEPL");
@@ -68,7 +68,7 @@ class DeepLTranslationProviderTest {
     }
 
     @Test
-    void translate_stripsUnsupportedRegionSubtag_koKR_toKO() {
+    void translate_uppercasesPlainLanguageCode() {
         server.expect(requestTo(EXPECTED_URI))
                 .andExpect(jsonPath("$.target_lang").value("KO"))
                 .andRespond(withSuccess("""
@@ -77,34 +77,35 @@ class DeepLTranslationProviderTest {
 
         DeepLTranslationProvider provider = new DeepLTranslationProvider(client, PROPERTIES);
 
-        assertThat(provider.translate("hello", "ko-KR").translatedText()).isEqualTo("안녕");
+        assertThat(provider.translate("hello", TargetLanguage.KO).translatedText()).isEqualTo("안녕");
         server.verify();
     }
 
     @Test
-    void translate_keepsSupportedRegionalVariant_enUS() {
+    void translate_keepsSupportedRegionalVariant_zhHans() {
         server.expect(requestTo(EXPECTED_URI))
-                .andExpect(jsonPath("$.target_lang").value("EN-US"))
+                .andExpect(jsonPath("$.target_lang").value("ZH-HANS"))
                 .andRespond(withSuccess("""
-                        {"translations": [{"detected_source_language": "KO", "text": "Hi"}]}
+                        {"translations": [{"detected_source_language": "KO", "text": "你好"}]}
                         """, MediaType.APPLICATION_JSON));
 
         DeepLTranslationProvider provider = new DeepLTranslationProvider(client, PROPERTIES);
 
-        assertThat(provider.translate("안녕", "en-US").translatedText()).isEqualTo("Hi");
+        assertThat(provider.translate("안녕", TargetLanguage.ZH_HANS).translatedText()).isEqualTo("你好");
         server.verify();
     }
 
+    /** 언어 화이트리스트가 생긴 뒤에도 DeepL은 다른 사유(요청 크기 등)로 400을 낼 수 있다. */
     @Test
     void translate_throwsInvalidRequest_onDeepL400() {
         server.expect(requestTo(containsString("/v2/translate")))
                 .andRespond(withStatus(HttpStatus.BAD_REQUEST)
-                        .body("{\"message\":\"Bad request. Reason: Value for 'target_lang' not supported.\"}")
+                        .body("{\"message\":\"Bad request.\"}")
                         .contentType(MediaType.APPLICATION_JSON));
 
         DeepLTranslationProvider provider = new DeepLTranslationProvider(client, PROPERTIES);
 
-        assertThatThrownBy(() -> provider.translate("안녕하세요", "xx"))
+        assertThatThrownBy(() -> provider.translate("안녕하세요", TargetLanguage.TH))
                 .isInstanceOf(BusinessException.class)
                 .satisfies(e -> assertThat(((BusinessException) e).getErrorCode()).isEqualTo(ErrorCode.INVALID_REQUEST));
     }
@@ -116,7 +117,7 @@ class DeepLTranslationProviderTest {
 
         DeepLTranslationProvider provider = new DeepLTranslationProvider(client, PROPERTIES);
 
-        assertThatThrownBy(() -> provider.translate("안녕하세요", "en"))
+        assertThatThrownBy(() -> provider.translate("안녕하세요", TargetLanguage.EN))
                 .isInstanceOf(BusinessException.class)
                 .satisfies(e -> assertThat(((BusinessException) e).getErrorCode()).isEqualTo(ErrorCode.INTERNAL_ERROR));
     }
@@ -130,7 +131,7 @@ class DeepLTranslationProviderTest {
 
         DeepLTranslationProvider provider = new DeepLTranslationProvider(client, PROPERTIES);
 
-        assertThatThrownBy(() -> provider.translate("안녕하세요", "en"))
+        assertThatThrownBy(() -> provider.translate("안녕하세요", TargetLanguage.EN))
                 .isInstanceOf(BusinessException.class)
                 .satisfies(e -> assertThat(((BusinessException) e).getErrorCode()).isEqualTo(ErrorCode.INTERNAL_ERROR));
     }
@@ -144,7 +145,7 @@ class DeepLTranslationProviderTest {
 
         DeepLTranslationProvider provider = new DeepLTranslationProvider(client, PROPERTIES);
 
-        assertThatThrownBy(() -> provider.translate("안녕하세요", "en"))
+        assertThatThrownBy(() -> provider.translate("안녕하세요", TargetLanguage.EN))
                 .isInstanceOf(BusinessException.class)
                 .satisfies(e -> assertThat(((BusinessException) e).getErrorCode()).isEqualTo(ErrorCode.INTERNAL_ERROR));
     }

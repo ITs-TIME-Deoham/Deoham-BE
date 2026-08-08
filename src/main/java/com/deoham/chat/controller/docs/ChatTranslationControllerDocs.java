@@ -26,8 +26,11 @@ public interface ChatTranslationControllerDocs {
 
                     **접근 권한**: 해당 메시지가 속한 채팅방의 참여자(카드 요청자 또는 수락된 신청자)만 번역을 요청할 수 있습니다.
 
-                    **`targetLanguage` 값**: 번역 제공자가 지원하는 언어 코드를 사용합니다 (예: `ko`, `en`, `ja`, `zh`).
-                    현재 번역 제공자는 설정에 따라 다를 수 있으며, 지원 언어 코드는 제공자 문서를 참고하세요.
+                    **`targetLanguage` 값**: 화이트리스트로 고정되어 있습니다 —
+                    `ko`, `en`, `ja`, `zh-hans`, `zh-hant`, `es`, `fr`, `de`, `vi`, `th`.
+                    `ko-KR`, `en-US`처럼 지역 서브태그가 붙은 코드는 기본 언어로 축약되어 처리되며,
+                    응답의 `targetLanguage`와 캐시 키에는 축약된 정규 코드가 담깁니다.
+                    목록에 없는 값은 외부 번역 API를 호출하지 않고 400으로 거부됩니다.
 
                     **Failover**: DeepL을 우선 시도하고 실패하면 자동으로 Gemini로 재시도합니다.
                     실제로 응답을 생성한 제공자는 서버 로그로만 확인 가능하며, 클라이언트 응답에는 노출되지 않습니다.
@@ -36,7 +39,7 @@ public interface ChatTranslationControllerDocs {
     @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "번역 성공 (캐시 적중 또는 신규 번역)")
     @io.swagger.v3.oas.annotations.responses.ApiResponse(
             responseCode = "400",
-            description = "번역 불가 — `TEXT` 타입이 아닌 메시지이거나, `targetLanguage`가 비어 있음",
+            description = "번역 불가 — `TEXT` 타입이 아닌 메시지이거나, `targetLanguage`가 비어 있음/형식 오류/미지원 언어",
             content = @Content(
                     mediaType = "application/json",
                     examples = @ExampleObject(

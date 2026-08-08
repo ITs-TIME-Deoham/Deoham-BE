@@ -2,6 +2,7 @@ package com.deoham.chat.service;
 
 import com.deoham.chat.dto.ChatTranslationResponse;
 import com.deoham.chat.service.ChatTranslationStore.TranslationLookup;
+import com.deoham.chat.translation.TargetLanguage;
 import com.deoham.chat.translation.TranslationProvider;
 import com.deoham.chat.translation.dto.TranslationResult;
 import java.util.UUID;
@@ -25,21 +26,28 @@ public class ChatTranslationService {
     private final TranslationProvider translationProvider;
 
     public ChatTranslationResponse translate(UUID requesterId, UUID messageId, String targetLanguage) {
+        // 0) 언어 코드 화이트리스트 검증. DB도 외부 API도 건드리기 전에 가장 먼저 수행한다.
+        //    잘못된 언어 코드로 외부 번역 API 호출 비용이 발생해서는 안 되고,
+        //    이 검증이 target_language 컬럼(VARCHAR(10)) 초과 값이 저장 단계까지 흘러가
+        //    "동시 저장 경합"으로 오분류되던 문제(이슈 #133 취약점 4)도 함께 막는다.
+        TargetLanguage language = TargetLanguage.from(targetLanguage);
+        String languageCode = language.code();
+
         // 1) 권한 검증 + 캐시 조회 (짧은 읽기 트랜잭션)
-        TranslationLookup lookup = store.lookup(requesterId, messageId, targetLanguage);
+        TranslationLookup lookup = store.lookup(requesterId, messageId, languageCode);
         if (lookup.isCached()) {
             return lookup.cachedResponse();
         }
 
         // 2) 외부 번역 API 호출 (트랜잭션 밖 — DB 커넥션을 점유하지 않는다)
-        TranslationResult result = translationProvider.translate(lookup.sourceText(), targetLanguage);
+        TranslationResult result = translationProvider.translate(lookup.sourceText(), language);
 
         // 3) 결과 저장 (짧은 쓰기 트랜잭션)
         try {
-            return store.save(messageId, targetLanguage, result);
+            return store.save(messageId, languageCode, result);
         } catch (DataIntegrityViolationException raced) {
             // 동시 요청이 같은 (메시지, 언어)를 먼저 저장함 → 승자의 결과를 캐시로 반환
-            return store.getCached(messageId, targetLanguage);
+            return store.getCached(messageId, languageCode);
         }
     }
 }

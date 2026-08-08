@@ -38,9 +38,9 @@ class FailoverTranslationProviderTest {
 
     @Test
     void translate_usesPrimaryResult_whenPrimarySucceeds() {
-        when(primary.translate("안녕", "en")).thenReturn(new TranslationResult("Hello", "DEEPL", "DEEPL"));
+        when(primary.translate("안녕", TargetLanguage.EN)).thenReturn(new TranslationResult("Hello", "DEEPL", "DEEPL"));
 
-        TranslationResult result = provider.translate("안녕", "en");
+        TranslationResult result = provider.translate("안녕", TargetLanguage.EN);
 
         assertThat(result.translatedText()).isEqualTo("Hello");
         assertThat(result.providerName()).isEqualTo("DEEPL");
@@ -49,10 +49,10 @@ class FailoverTranslationProviderTest {
 
     @Test
     void translate_fallsBackToGemini_whenPrimaryThrows() {
-        when(primary.translate("안녕", "en")).thenThrow(new BusinessException(ErrorCode.INTERNAL_ERROR, "DeepL 오류"));
-        when(fallback.translate("안녕", "en")).thenReturn(new TranslationResult("Hello", "GEMINI", "gemini-3.5-flash"));
+        when(primary.translate("안녕", TargetLanguage.EN)).thenThrow(new BusinessException(ErrorCode.INTERNAL_ERROR, "DeepL 오류"));
+        when(fallback.translate("안녕", TargetLanguage.EN)).thenReturn(new TranslationResult("Hello", "GEMINI", "gemini-3.5-flash"));
 
-        TranslationResult result = provider.translate("안녕", "en");
+        TranslationResult result = provider.translate("안녕", TargetLanguage.EN);
 
         assertThat(result.translatedText()).isEqualTo("Hello");
         assertThat(result.providerName()).isEqualTo("GEMINI");
@@ -61,10 +61,10 @@ class FailoverTranslationProviderTest {
 
     @Test
     void translate_propagatesFallbackException_whenBothFail() {
-        when(primary.translate("안녕", "en")).thenThrow(new BusinessException(ErrorCode.INTERNAL_ERROR, "DeepL 오류"));
-        when(fallback.translate("안녕", "en")).thenThrow(new BusinessException(ErrorCode.INTERNAL_ERROR, "Gemini 오류"));
+        when(primary.translate("안녕", TargetLanguage.EN)).thenThrow(new BusinessException(ErrorCode.INTERNAL_ERROR, "DeepL 오류"));
+        when(fallback.translate("안녕", TargetLanguage.EN)).thenThrow(new BusinessException(ErrorCode.INTERNAL_ERROR, "Gemini 오류"));
 
-        assertThatThrownBy(() -> provider.translate("안녕", "en"))
+        assertThatThrownBy(() -> provider.translate("안녕", TargetLanguage.EN))
                 .isInstanceOf(BusinessException.class)
                 .hasMessageContaining("Gemini 오류");
     }
@@ -83,18 +83,18 @@ class FailoverTranslationProviderTest {
         MutableClock clock = new MutableClock();
         provider = new FailoverTranslationProvider(primary, fallback,
                 new SimpleCircuitBreaker(3, Duration.ofSeconds(30), clock));
-        when(primary.translate("안녕", "en")).thenThrow(new BusinessException(ErrorCode.INTERNAL_ERROR, "DeepL 다운"));
-        when(fallback.translate("안녕", "en")).thenReturn(new TranslationResult("Hello", "GEMINI", "gemini-3.5-flash"));
+        when(primary.translate("안녕", TargetLanguage.EN)).thenThrow(new BusinessException(ErrorCode.INTERNAL_ERROR, "DeepL 다운"));
+        when(fallback.translate("안녕", TargetLanguage.EN)).thenReturn(new TranslationResult("Hello", "GEMINI", "gemini-3.5-flash"));
 
         for (int i = 0; i < 3; i++) {
-            assertThat(provider.translate("안녕", "en").providerName()).isEqualTo("GEMINI");
+            assertThat(provider.translate("안녕", TargetLanguage.EN).providerName()).isEqualTo("GEMINI");
         }
-        verify(primary, times(3)).translate("안녕", "en"); // 3회 실패로 회로 오픈
+        verify(primary, times(3)).translate("안녕", TargetLanguage.EN); // 3회 실패로 회로 오픈
 
         // 이후 요청은 DeepL을 건너뛰고 곧장 Gemini로 (primary 호출 증가 없음)
-        assertThat(provider.translate("안녕", "en").providerName()).isEqualTo("GEMINI");
-        assertThat(provider.translate("안녕", "en").providerName()).isEqualTo("GEMINI");
-        verify(primary, times(3)).translate("안녕", "en");
+        assertThat(provider.translate("안녕", TargetLanguage.EN).providerName()).isEqualTo("GEMINI");
+        assertThat(provider.translate("안녕", TargetLanguage.EN).providerName()).isEqualTo("GEMINI");
+        verify(primary, times(3)).translate("안녕", TargetLanguage.EN);
     }
 
     @Test
@@ -102,21 +102,21 @@ class FailoverTranslationProviderTest {
         MutableClock clock = new MutableClock();
         provider = new FailoverTranslationProvider(primary, fallback,
                 new SimpleCircuitBreaker(1, Duration.ofSeconds(30), clock));
-        when(primary.translate("안녕", "en"))
+        when(primary.translate("안녕", TargetLanguage.EN))
                 .thenThrow(new BusinessException(ErrorCode.INTERNAL_ERROR, "DeepL 다운")) // 최초 실패 → 오픈
                 .thenReturn(new TranslationResult("Hello", "DEEPL", "DEEPL"));            // 탐침부터 성공
-        when(fallback.translate("안녕", "en")).thenReturn(new TranslationResult("Hello", "GEMINI", "gemini-3.5-flash"));
+        when(fallback.translate("안녕", TargetLanguage.EN)).thenReturn(new TranslationResult("Hello", "GEMINI", "gemini-3.5-flash"));
 
-        assertThat(provider.translate("안녕", "en").providerName()).isEqualTo("GEMINI"); // 1회 실패 → 오픈
-        assertThat(provider.translate("안녕", "en").providerName()).isEqualTo("GEMINI"); // 쿨다운 중 → DeepL 건너뜀
-        verify(primary, times(1)).translate("안녕", "en");
+        assertThat(provider.translate("안녕", TargetLanguage.EN).providerName()).isEqualTo("GEMINI"); // 1회 실패 → 오픈
+        assertThat(provider.translate("안녕", TargetLanguage.EN).providerName()).isEqualTo("GEMINI"); // 쿨다운 중 → DeepL 건너뜀
+        verify(primary, times(1)).translate("안녕", TargetLanguage.EN);
 
         clock.advance(Duration.ofSeconds(31));
 
         // 쿨다운 경과 → 탐침이 DeepL을 시도, 성공 → 회로 닫힘
-        assertThat(provider.translate("안녕", "en").providerName()).isEqualTo("DEEPL");
-        assertThat(provider.translate("안녕", "en").providerName()).isEqualTo("DEEPL");
-        verify(primary, times(3)).translate("안녕", "en");
+        assertThat(provider.translate("안녕", TargetLanguage.EN).providerName()).isEqualTo("DEEPL");
+        assertThat(provider.translate("안녕", TargetLanguage.EN).providerName()).isEqualTo("DEEPL");
+        verify(primary, times(3)).translate("안녕", TargetLanguage.EN);
     }
 
     @Test
@@ -124,14 +124,16 @@ class FailoverTranslationProviderTest {
         MutableClock clock = new MutableClock();
         provider = new FailoverTranslationProvider(primary, fallback,
                 new SimpleCircuitBreaker(1, Duration.ofSeconds(30), clock)); // 임계치 1
-        when(primary.translate("안녕", "xx")).thenThrow(new BusinessException(ErrorCode.INVALID_REQUEST, "미지원 언어"));
-        when(fallback.translate("안녕", "xx")).thenReturn(new TranslationResult("Hello", "GEMINI", "gemini-3.5-flash"));
+        when(primary.translate("안녕", TargetLanguage.TH))
+                .thenThrow(new BusinessException(ErrorCode.INVALID_REQUEST, "클라이언트 입력 오류"));
+        when(fallback.translate("안녕", TargetLanguage.TH))
+                .thenReturn(new TranslationResult("Hello", "GEMINI", "gemini-3.5-flash"));
 
         for (int i = 0; i < 3; i++) {
-            assertThat(provider.translate("안녕", "xx").providerName()).isEqualTo("GEMINI");
+            assertThat(provider.translate("안녕", TargetLanguage.TH).providerName()).isEqualTo("GEMINI");
         }
         // 400은 회로 실패로 세지 않으므로, 임계치 1이어도 매번 DeepL을 시도함
-        verify(primary, times(3)).translate("안녕", "xx");
+        verify(primary, times(3)).translate("안녕", TargetLanguage.TH);
     }
 
     /** 테스트에서 시간을 수동으로 전진시키는 Clock. */
