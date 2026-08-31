@@ -12,6 +12,7 @@ import com.deoham.notification.repository.FcmTokenRepository;
 import com.deoham.notification.repository.NotificationRepository;
 import com.deoham.user.entity.User;
 import com.deoham.user.entity.UserStatus;
+import com.deoham.user.event.ProfileImageDeletedEvent;
 import com.deoham.user.repository.UserRepository;
 import com.deoham.user.repository.UserSocialAccountRepository;
 import com.deoham.user.service.UserWriteService;
@@ -21,7 +22,7 @@ import java.util.List;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.scheduling.annotation.Async;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
@@ -46,6 +47,7 @@ public class UserWriteServiceImpl implements UserWriteService {
 	private final MetricsRegistry metricsRegistry;
 	private final S3Client s3Client;
 	private final S3Properties s3Properties;
+	private final ApplicationEventPublisher eventPublisher;
 
     @Override
     public User updateProfile(UUID userId, String nickname, MultipartFile profileImage) {
@@ -151,6 +153,11 @@ public class UserWriteServiceImpl implements UserWriteService {
 		deleteProfileImage(user);
 	}
 
+	/**
+	 * S3 삭제는 직접 호출하지 않고 이벤트로 위임한다.
+	 * 커밋 전에 지우면 이후 롤백 시 DB에는 URL이 남고 실물 파일만 사라지므로,
+	 * {@link com.deoham.user.event.ProfileImageDeletionListener}가 커밋 이후 별도 스레드에서 처리한다.
+	 */
 	private void deleteProfileImage(User user) {
 		String profileImageUrl = user.getProfileImageUrl();
 
@@ -158,46 +165,8 @@ public class UserWriteServiceImpl implements UserWriteService {
 		userRepository.save(user);
 
 		if (profileImageUrl != null && !profileImageUrl.isBlank()) {
-			deleteProfileImageAsync(profileImageUrl);
+			eventPublisher.publishEvent(new ProfileImageDeletedEvent(profileImageUrl));
 		}
-	}
-
-	@Async
-	private void deleteProfileImageAsync(String imageUrl) {
-		try {
-			deleteProfileImageFromS3(imageUrl);
-		} catch (Exception e) {
-			log.error("Failed to delete S3 image asynchronously: {}", imageUrl, e);
-		}
-	}
-
-	private void deleteProfileImageFromS3(String imageUrl) {
-		String key = extractS3KeyFromUrl(imageUrl);
-
-		if (key == null || key.isBlank()) {
-			log.warn("Failed to extract S3 key from URL: {}", imageUrl);
-			throw new BusinessException(ErrorCode.INTERNAL_ERROR,
-				"Invalid S3 image URL format: " + imageUrl);
-		}
-
-		s3Client.deleteObject(builder -> builder
-			.bucket(s3Properties.bucket())
-			.key(key)
-			.build());
-
-		log.debug("Deleted S3 object: {}/{}", s3Properties.bucket(), key);
-	}
-
-	private String extractS3KeyFromUrl(String imageUrl) {
-		String prefix = buildS3UrlPrefix();
-		if (imageUrl != null && imageUrl.startsWith(prefix)) {
-			return imageUrl.substring(prefix.length());
-		}
-		return null;
-	}
-
-	private String buildS3UrlPrefix() {
-		return "https://" + s3Properties.bucket() + ".s3." + s3Properties.region() + ".amazonaws.com/";
 	}
 
 	public void deleteExpiredDeletedUsers() {

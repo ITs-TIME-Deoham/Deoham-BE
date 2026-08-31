@@ -21,6 +21,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.context.ApplicationEventPublisher;
 import software.amazon.awssdk.services.s3.S3Client;
 
 import java.util.Optional;
@@ -47,6 +48,7 @@ class UserServiceMetricsTest {
   @Mock private NotificationRepository notificationRepository;
   @Mock private S3Client s3Client;
   @Mock private S3Properties s3Properties;
+  @Mock private ApplicationEventPublisher eventPublisher;
 
   @BeforeEach
   void setUp() {
@@ -63,7 +65,8 @@ class UserServiceMetricsTest {
             notificationRepository,
             metricsRegistry,
             s3Client,
-            s3Properties);
+            s3Properties,
+            eventPublisher);
   }
 
   @Test
